@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { STEPS, TEAM_FIELDS, getStepConfig } from "@/lib/steps";
+import { levelOf } from "@/lib/gamification";
 import { StatusBadge, AutoSaveIndicator, Alert, Button, Card, Input, Textarea, cn, Field } from "./ui";
+import { burstFromElement, showToast } from "./fx";
+import { LevelBadge, XpBar, useAchievementTracker, wizardProgress } from "./achievements";
 import type { WizardData } from "./wizard-types";
 import { TeamStep } from "./wizard-team";
 import { TrackStep } from "./wizard-track";
@@ -21,10 +24,39 @@ export function Wizard({ data }: { data: WizardData }) {
   const [stages, setStages] = useState(data.stages);
   const [track, setTrack] = useState(data.track);
   const [feedbacks, setFeedbacks] = useState(data.feedbacks);
+  const [testCasesLive, setTestCasesLive] = useState(data.testCases);
   const [save, setSave] = useState<SaveState>({ state: "idle", savedAt: "" });
   const [gateError, setGateError] = useState<string[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef<Record<string, Record<string, unknown>>>({});
+  const nextBtnRef = useRef<HTMLSpanElement | null>(null);
+  const lastLevelRef = useRef<number>(0);
+
+  // 实时游戏化:段位/成就跟随输入即时点亮
+  const liveData = useMemo<WizardData>(() => ({ ...data, stages, track, feedbacks, testCases: testCasesLive }), [data, stages, track, feedbacks, testCasesLive]);
+  const progress = wizardProgress(liveData);
+  useAchievementTracker(data.projectId, liveData);
+  const submittedNow = ["SUBMITTED", "PRELIMINARY", "FINAL"].includes(data.status);
+  const level = levelOf(progress.overallPct, submittedNow);
+
+  useEffect(() => {
+    if (lastLevelRef.current === 0) {
+      lastLevelRef.current = level.lv;
+      return;
+    }
+    if (level.lv > lastLevelRef.current) {
+      lastLevelRef.current = level.lv;
+      showToast({
+        tone: "achievement",
+        icon: level.icon,
+        title: `段位提升 · Lv.${level.lv} ${level.name}`,
+        desc: level.title,
+        durationMs: 6000,
+      });
+    } else {
+      lastLevelRef.current = Math.max(lastLevelRef.current, level.lv);
+    }
+  }, [level]);
 
   useEffect(() => {
     window.history.replaceState(null, "", `/projects/${data.projectId}?step=${step}`);
@@ -98,11 +130,18 @@ export function Wizard({ data }: { data: WizardData }) {
       const gate = await gateStep();
       if (!gate.ok) {
         setGateError(gate.errors.map((e) => e.reason));
+        showToast({ tone: "error", icon: "🚧", title: "还差一点", desc: gate.errors[0]?.reason ?? "请补齐必填项", durationMs: 3200 });
         return;
+      }
+      // 过步仪式:小彩带 + 完成提示
+      burstFromElement(nextBtnRef.current, 40);
+      const done = progress.steps.find((s) => s.step === step)?.status === "done";
+      if (done && step <= 8) {
+        showToast({ tone: "success", icon: "✅", title: `第${step}步完成 · ${getStepConfig(step)?.title}`, desc: "自动保存已生效,继续保持!", durationMs: 3000 });
       }
     }
     setStep(Math.min(10, Math.max(1, n)));
-    window.scrollTo({ top: 0 });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function gateStep(): Promise<{ ok: boolean; errors: { field: string; reason: string }[] }> {
@@ -144,7 +183,7 @@ export function Wizard({ data }: { data: WizardData }) {
 
   return (
     <div className="py-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold">{data.title}</h1>
           <StatusBadge status={data.status} />
@@ -152,7 +191,13 @@ export function Wizard({ data }: { data: WizardData }) {
             <span className="text-xs text-amber-700">退回原因:{data.returnReason}</span>
           )}
         </div>
-        {!data.readOnly && <AutoSaveIndicator state={save.state} savedAt={save.savedAt} />}
+        <div className="flex items-center gap-4">
+          {!data.readOnly && <AutoSaveIndicator state={save.state} savedAt={save.savedAt} />}
+          <div className="hidden w-44 md:block">
+            <XpBar pct={progress.overallPct} submitted={submittedNow} />
+          </div>
+          <LevelBadge pct={progress.overallPct} submitted={submittedNow} compact />
+        </div>
       </div>
 
       {data.status === "RETURNED" && (
@@ -164,26 +209,39 @@ export function Wizard({ data }: { data: WizardData }) {
       )}
 
       {/* 步骤条 */}
-      <ol className="no-print mb-5 flex flex-wrap gap-1.5 text-xs">
-        {STEPS.map((s) => (
-          <li key={s.step}>
-            <button
-              onClick={() => goto(s.step)}
-              className={cn(
-                "rounded-full border px-2.5 py-1 transition",
-                s.step === step
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : s.step < step
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-brand-400"
+      <nav className="no-print mb-5 overflow-x-auto" aria-label="步骤导航">
+        <ol className="flex min-w-max items-center gap-1 text-xs">
+          {STEPS.map((s, i) => (
+            <li key={s.step} className="flex items-center">
+              <button
+                onClick={() => goto(s.step)}
+                className={cn(
+                  "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 font-medium transition-all",
+                  s.step === step
+                    ? "border-brand-600 bg-brand-600 text-white shadow-[0_2px_6px_rgba(79,70,229,0.3)]"
+                    : s.step < step
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300"
+                      : "border-slate-200 bg-white text-slate-500 hover:border-brand-400 hover:text-brand-600"
+                )}
+                title={s.title}
+              >
+                <span
+                  className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold",
+                    s.step === step ? "bg-white/20" : s.step < step ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"
+                  )}
+                >
+                  {s.step < step ? "✓" : s.step}
+                </span>
+                {s.title}
+              </button>
+              {i < STEPS.length - 1 && (
+                <span className={cn("mx-0.5 h-px w-3", s.step < step ? "bg-emerald-300" : "bg-slate-200")} aria-hidden />
               )}
-              title={s.title}
-            >
-              {s.step < step ? "✓ " : ""}{s.step}.{s.title}
-            </button>
-          </li>
-        ))}
-      </ol>
+            </li>
+          ))}
+        </ol>
+      </nav>
 
       <div className={cn("grid gap-5", step <= 8 ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "")}>
         <div className="min-w-0 space-y-4">
@@ -270,19 +328,31 @@ export function Wizard({ data }: { data: WizardData }) {
               </div>
             )}
             {step === 8 && (
-              <TestsStep data={data} readOnly={data.readOnly} saveTests={saveTests} setSave={setSave} />
+              <TestsStep
+                data={data}
+                initialCases={testCasesLive}
+                readOnly={data.readOnly}
+                saveTests={saveTests}
+                setSave={setSave}
+                onChange={setTestCasesLive}
+              />
             )}
             {step === 9 && <PrecheckStep data={data} setStatus={(s) => window.location.reload()} />}
             {step === 10 && <StatusStep data={data} />}
           </Card>
 
-          <div className="no-print flex justify-between">
+          <div className="no-print sticky bottom-4 -mx-1 flex items-center justify-between rounded-lg border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-[0_4px_16px_rgba(15,23,42,0.08)] backdrop-blur">
             <Button variant="secondary" disabled={step <= 1} onClick={() => goto(step - 1)}>
               ← 上一步
             </Button>
-            <Button disabled={step >= 10} onClick={() => goto(step + 1)}>
-              下一步 →
-            </Button>
+            <span className="hidden text-xs text-slate-400 sm:inline">
+              第 {step}/10 步 · {cfg.title} · 总进度 {progress.overallPct}%
+            </span>
+            <span ref={nextBtnRef}>
+              <Button disabled={step >= 10} onClick={() => goto(step + 1)}>
+                下一步 →
+              </Button>
+            </span>
           </div>
         </div>
 

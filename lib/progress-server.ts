@@ -14,6 +14,10 @@ export interface ProjectProgressRow {
   progress: ProjectProgress;
   blocker: string;
   submittedAt: string | null;
+  /** 成就系统所需 */
+  feedbackCount: number;
+  hasSnapshot: boolean;
+  hasDocumentedFailure: boolean;
 }
 
 async function buildRow(row: {
@@ -26,7 +30,7 @@ async function buildRow(row: {
   submittedAt: Date | null;
   team: { name: string; members: { userId: string; user: { name: string } }[] };
   stages: { step: number; data: string; updatedAt: Date }[];
-  testCases: { name: string; type: string; input: string; expected: string; createdAt: Date }[];
+  testCases: { name: string; type: string; input: string; expected: string; verdict?: string; failureReason?: string; createdAt: Date }[];
   _count?: { agentFeedbacks: number; snapshots: number };
 }): Promise<ProjectProgressRow> {
   const feedbackTimes = (
@@ -66,13 +70,18 @@ async function buildRow(row: {
     progress,
     blocker: blockerSummary(progress, row.status),
     submittedAt: row.submittedAt?.toISOString() ?? null,
+    feedbackCount: row._count?.agentFeedbacks ?? 0,
+    hasSnapshot: (row._count?.snapshots ?? 0) > 0,
+    hasDocumentedFailure: row.testCases.some(
+      (t) => (t.type === "FAILURE" || t.type === "NA") && !!t.failureReason?.trim()
+    ),
   };
 }
 
 const includeFor = {
   team: { include: { members: { include: { user: { select: { name: true } } } } } },
   stages: { select: { step: true, data: true, updatedAt: true } },
-  testCases: { select: { name: true, type: true, input: true, expected: true, createdAt: true } },
+  testCases: { select: { name: true, type: true, input: true, expected: true, verdict: true, failureReason: true, createdAt: true } },
   _count: { select: { agentFeedbacks: true, snapshots: true } },
 } as const;
 

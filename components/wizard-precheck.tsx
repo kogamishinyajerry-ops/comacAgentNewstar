@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PRECHECK_NOTE } from "@/lib/constants";
 import { Alert, Badge, Button, Card, Input, cn } from "./ui";
+import { CeremonyOverlay, CountUp, fireConfetti, showToast } from "./fx";
 import type { AttachmentItem, FeedbackItem, HardRuleView, WizardData } from "./wizard-types";
 
 interface PrecheckResponse {
@@ -17,23 +18,51 @@ interface PrecheckResponse {
   };
 }
 
+const PRECHECK_PHASES = [
+  "📋 逐条核对硬规则:组队、披露、必填…",
+  "🛡️ 检查求证闭环五要素与敏感信息…",
+  "🧪 清点测试案例与覆盖…",
+  "⚖️ Agent 四维预检评分中…",
+  "📦 组装小实验卡与90秒Demo脚本…",
+];
+
 export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus: (s: string) => void }) {
   const [result, setResult] = useState<PrecheckResponse | null>(null);
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [celebrate, setCelebrate] = useState(false);
+  const passCelebrated = useRef(false);
   const [attachments, setAttachments] = useState<AttachmentItem[]>(data.attachments);
   const [linkForm, setLinkForm] = useState({ title: "", url: "" });
   const [attMsg, setAttMsg] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (!busy) {
+      setPhase(0);
+      return;
+    }
+    const iv = setInterval(() => setPhase((p) => (p + 1) % PRECHECK_PHASES.length), 2600);
+    return () => clearInterval(iv);
+  }, [busy]);
+
   async function run() {
     setBusy(true);
     const res = await fetch(`/api/projects/${data.projectId}/precheck`, { method: "POST" });
     const json = (await res.json().catch(() => null)) as PrecheckResponse | null;
     setBusy(false);
-    if (json) setResult(json);
+    if (!json) return;
+    setResult(json);
+    if (json.canSubmit && !passCelebrated.current) {
+      passCelebrated.current = true;
+      fireConfetti({ count: 130, spread: 8 });
+      showToast({ tone: "achievement", icon: "🏁", title: "预检通关!", desc: "硬规则全部通过,可以提交了。去确认提交,生成不可变快照。", durationMs: 5600 });
+    } else if (!json.canSubmit) {
+      passCelebrated.current = false;
+    }
   }
 
   async function submit() {
@@ -48,6 +77,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
       return;
     }
     setStatus("SUBMITTED");
+    setCelebrate(true);
   }
 
   async function withdraw() {
@@ -64,7 +94,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
         <Button onClick={run} disabled={busy || data.readOnly}>
-          {busy ? "预检中…" : "运行提交预检"}
+          {busy ? "预检中…" : result ? "重新预检" : "运行提交预检"}
         </Button>
         {submitted && !data.readOnly && (
           <Button variant="secondary" onClick={withdraw}>撤回修改</Button>
@@ -77,6 +107,17 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
           打开小实验卡与Demo脚本 →
         </a>
       </div>
+
+      {busy && (
+        <div className="space-y-1.5 rounded-lg border border-brand-200/70 bg-brand-50/50 p-3.5">
+          <div className="anim-shimmer h-1.5 rounded-full" />
+          <p className="flex items-center gap-1.5 text-[13px] font-medium text-brand-800">
+            <span className="anim-float">{["📋", "🛡️", "🧪", "⚖️", "📦"][phase]}</span>
+            {PRECHECK_PHASES[phase]}
+          </p>
+          <p className="text-[11px] text-brand-600/80">Agent 四维预检通常需要30—75秒,期间可继续查看本页材料</p>
+        </div>
+      )}
 
       {submitError && <Alert tone="error" title="无法提交">{submitError}</Alert>}
 
@@ -213,15 +254,17 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
                   { key: "closed_loop", label: "跑通闭环与人机边界" },
                   { key: "evidence", label: "验证证据与复盘" },
                 ].map((d) => (
-                  <div key={d.key} className="rounded-md border border-slate-200 p-3 text-center">
-                    <p className="text-2xl font-bold text-brand-700">{scores[d.key as keyof typeof scores]}</p>
+                  <div key={d.key} className="anim-rise-in rounded-md border border-slate-200 p-3 text-center">
+                    <p className="text-2xl font-bold text-brand-700">
+                      <CountUp value={Number(scores[d.key as keyof typeof scores])} />
+                    </p>
                     <p className="text-xs text-slate-500">/10</p>
                     <p className="mt-1 text-xs font-medium text-slate-600">{d.label}</p>
                   </div>
                 ))}
               </div>
               <p className="mt-3 text-center text-sm">
-                总分 <span className="text-lg font-bold text-brand-700">{scores.total}</span>/40
+                总分 <span className="text-lg font-bold text-brand-700"><CountUp value={scores.total} durationMs={1000} /></span>/40
               </p>
               <p className="mt-2 rounded bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-800">{PRECHECK_NOTE}</p>
             </Card>
@@ -263,11 +306,37 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
         </>
       )}
 
-      {!result && (
+      {!result && !busy && (
         <Alert tone="info">
           预检会执行:硬规则校验(组队、披露、必填、测试覆盖、求证闭环、敏感信息)、四维40分Agent预检,并生成小实验卡与90秒Demo脚本。
         </Alert>
       )}
+
+      <CeremonyOverlay
+        open={celebrate}
+        emoji="🏆"
+        title="作品已提交!"
+        desc={`「${data.title}」已生成不可变提交快照。小实验卡、可见结果清单与90秒Demo脚本三件就绪——评委看到的将是这份快照。`}
+        onClose={() => {
+          setCelebrate(false);
+          window.location.href = `/projects/${data.projectId}?step=10`;
+        }}
+      >
+        <div className="relative mx-auto mt-4 flex w-fit items-center justify-center">
+          <span className="anim-stamp select-none rounded-lg border-[3px] border-brand-600/80 px-5 py-2 text-lg font-black tracking-[0.3em] text-brand-700/90">
+            已提交
+          </span>
+        </div>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <a
+            href={`/projects/${data.projectId}/card`}
+            target="_blank"
+            className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+          >
+            查看小实验卡 →
+          </a>
+        </div>
+      </CeremonyOverlay>
     </div>
   );
 }

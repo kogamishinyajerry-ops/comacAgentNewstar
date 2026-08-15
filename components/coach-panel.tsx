@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RISK_LABELS, PRECHECK_NOTE, type RiskType } from "@/lib/constants";
 import { getStepConfig } from "@/lib/steps";
 import { Alert, Badge, Button, cn } from "./ui";
+import { burstFromElement, showToast } from "./fx";
 import type { FeedbackItem } from "./wizard-types";
 
 const severityStyle: Record<string, string> = {
@@ -13,6 +14,15 @@ const severityStyle: Record<string, string> = {
 };
 
 const stateLabel: Record<string, string> = { adopted: "已采纳", ignored: "忽略", done: "已处理" };
+
+/** 诊断等待仪式:Echo/Delta双视角轮播 */
+const DIAGNOSIS_PHASES = [
+  "📡 正在读取你的项目上下文…",
+  "🎯 Echo 视角:审视真问题与判定标准…",
+  "🔧 Delta 视角:检查闭环与测试证据…",
+  "⚖️ 对照活动红线:数据、原创、人机边界…",
+  "✍️ 综合诊断结论生成中…",
+];
 
 export function CoachPanel({
   projectId,
@@ -34,6 +44,17 @@ export function CoachPanel({
   const [error, setError] = useState("");
   const [latest, setLatest] = useState<FeedbackItem | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [phase, setPhase] = useState(0);
+  const askBtnRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!busy) {
+      setPhase(0);
+      return;
+    }
+    const iv = setInterval(() => setPhase((p) => (p + 1) % DIAGNOSIS_PHASES.length), 2600);
+    return () => clearInterval(iv);
+  }, [busy]);
 
   async function ask() {
     setBusy(true);
@@ -47,6 +68,7 @@ export function CoachPanel({
     setBusy(false);
     if (!res.ok) {
       setError(json.error ?? "Agent 暂时不可用,请稍后再试");
+      showToast({ tone: "error", icon: "😵", title: "Agent 暂时不可用", desc: json.error ?? "请稍后再试" });
       return;
     }
     const item: FeedbackItem = {
@@ -57,9 +79,11 @@ export function CoachPanel({
       suggestionStates: {},
       createdAt: new Date().toISOString(),
     };
-    // 用服务端返回的真实反馈记录ID(持久化后的AgentFeedback)
     setLatest(item);
     onFeedback(item);
+    if ((json.feedback?.suggestions?.length ?? 0) > 0) {
+      burstFromElement(askBtnRef.current, 35);
+    }
   }
 
   async function setState(fbId: string, index: number, state: string) {
@@ -98,9 +122,24 @@ export function CoachPanel({
             </p>
           )}
           {!readOnly && (
-            <Button size="sm" className="w-full" onClick={ask} disabled={busy}>
-              {busy ? "诊断中…" : "获取Agent诊断"}
-            </Button>
+            <div ref={askBtnRef}>
+              <Button size="sm" className="w-full" onClick={ask} disabled={busy}>
+                {busy ? "诊断中…" : "获取Agent诊断"}
+              </Button>
+            </div>
+          )}
+          {busy && (
+            <div className="space-y-1.5">
+              <div className="anim-shimmer h-1.5 rounded-full" />
+              <p className="flex items-center gap-1 text-[11px] font-medium text-brand-700">
+                <span className="anim-float">{["🛰️", "🎯", "🔧", "⚖️", "✍️"][phase]}</span>
+                {DIAGNOSIS_PHASES[phase]}
+                <span className="inline-flex w-4 justify-start">
+                  <span className="animate-pulse">…</span>
+                </span>
+              </p>
+              <p className="text-[10px] leading-3 text-slate-400">GLM-5.3 深度思考中,通常需要30—75秒,值得等待</p>
+            </div>
           )}
           {error && <p className="text-xs text-red-600">{error}</p>}
 

@@ -19,17 +19,21 @@ const emptyCase = (): TestCaseRow => ({
 
 export function TestsStep({
   data,
+  initialCases,
   readOnly,
   saveTests,
   setSave,
+  onChange,
 }: {
   data: WizardData;
+  initialCases: TestCaseRow[];
   readOnly: boolean;
   saveTests: (cases: TestCaseRow[], strict: boolean) => Promise<{ ok: boolean; errors: { field: string; reason: string }[] }>;
   setSave: (s: { state: "idle" | "saving" | "saved" | "error"; savedAt: string }) => void;
+  onChange?: (cases: TestCaseRow[]) => void;
 }) {
   const [cases, setCases] = useState<TestCaseRow[]>(
-    data.testCases.length ? data.testCases : [emptyCase(), emptyCase(), emptyCase()]
+    initialCases.length ? initialCases : [emptyCase(), emptyCase(), emptyCase()]
   );
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const casesRef = useRef(cases);
@@ -43,7 +47,9 @@ export function TestsStep({
     if (readOnly) return;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      saveTests(casesRef.current, false);
+      saveTests(casesRef.current, false).then((r) => {
+        if (r.ok && onChange) onChange(casesRef.current);
+      });
     }, 1000);
   }
 
@@ -52,9 +58,14 @@ export function TestsStep({
   }
 
   function removeCase(i: number) {
-    setCases((prev) => prev.filter((_, idx) => idx !== i));
+    const next = casesRef.current.filter((_, idx) => idx !== i);
+    setCases(next);
     if (timer.current) clearTimeout(timer.current);
-    setTimeout(() => saveTests(casesRef.current.filter((_, idx) => idx !== i), false), 50);
+    setTimeout(() => {
+      saveTests(next, false).then((r) => {
+        if (r.ok && onChange) onChange(next);
+      });
+    }, 50);
   }
 
   return (
@@ -179,7 +190,12 @@ export function TestsStep({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => saveTests(cases, false).then(() => setSave({ state: "saved", savedAt: new Date().toLocaleTimeString("zh-CN") }))}
+            onClick={() =>
+              saveTests(cases, false).then((r) => {
+                setSave({ state: "saved", savedAt: new Date().toLocaleTimeString("zh-CN") });
+                if (r.ok && onChange) onChange(cases);
+              })
+            }
           >
             立即保存
           </Button>

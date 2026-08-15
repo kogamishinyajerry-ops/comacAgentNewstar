@@ -15,32 +15,42 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="space-y-8 py-6">
-      <section className="rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 px-8 py-12 text-white">
-        <h1 className="text-3xl font-bold">{config?.name ?? "青年AI轻创活动"}</h1>
-        <p className="mt-3 text-lg">{config?.slogan ?? "发现一个真问题,做一个可验证的解法。"}</p>
-        <p className="mt-3 max-w-2xl text-sm text-brand-100">
-          {config?.intro ||
-            "不做宏大平台,只做一条从真问题到可验证解法的小实验路径:10步向导、5个测试案例、三项轻交付,四维40分评审。"}
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          {user ? (
-            <LinkButton href={user.role === "JUDGE" ? "/judge" : user.role === "ORGANIZER" || user.role === "ADMIN" ? "/organizer" : "/projects"} variant="secondary">
-              进入工作区
-            </LinkButton>
-          ) : (
-            <>
-              <LinkButton href="/register" variant="secondary">注册参与</LinkButton>
-              <LinkButton href="/login" variant="secondary">登录</LinkButton>
-            </>
-          )}
-          <LinkButton href="/inspirations" variant="ghost" className="text-white hover:bg-white/10">看看案例灵感</LinkButton>
-        </div>
-        {config?.submissionDeadline && (
-          <p className="mt-4 text-xs text-brand-100">
-            活动时间:{config.startDate ?? "?"} — {config.endDate ?? "?"} · 提交截止:{config.submissionDeadline}
+    <div className="space-y-8 py-4">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] px-8 py-12 text-white shadow-[0_12px_40px_rgba(79,70,229,0.25)]">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-50"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.14) 0, transparent 45%), radial-gradient(circle at 88% 80%, rgba(255,255,255,0.1) 0, transparent 40%)",
+          }}
+        />
+        <div className="relative max-w-3xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-200">内部创新活动平台</p>
+          <h1 className="mt-2 text-[32px] font-bold leading-tight tracking-tight">{config?.name ?? "青年AI轻创活动"}</h1>
+          <p className="mt-3 text-lg text-brand-50">{config?.slogan ?? "发现一个真问题,做一个可验证的解法。"}</p>
+          <p className="mt-3 max-w-2xl text-[13px] leading-6 text-brand-100/90">
+            {config?.intro ||
+              "不做宏大平台,只做一条从真问题到可验证解法的小实验路径:10步向导、5个测试案例、三项轻交付,四维40分评审。"}
           </p>
-        )}
+          <div className="mt-7 flex flex-wrap gap-3">
+            {user ? (
+              <LinkButton href={user.role === "JUDGE" ? "/judge" : user.role === "ORGANIZER" || user.role === "ADMIN" ? "/organizer" : "/projects"} variant="secondary" size="lg">
+                进入工作区
+              </LinkButton>
+            ) : (
+              <>
+                <LinkButton href="/register" variant="secondary" size="lg">注册参与</LinkButton>
+                <LinkButton href="/login" variant="ghost" size="lg" className="text-white hover:bg-white/10">登录</LinkButton>
+              </>
+            )}
+            <LinkButton href="/inspirations" variant="ghost" size="lg" className="text-white hover:bg-white/10">看看案例灵感</LinkButton>
+          </div>
+          {config?.submissionDeadline && (
+            <p className="mt-5 text-xs text-brand-200/90">
+              活动时间:{config.startDate ?? "?"} — {config.endDate ?? "?"} · 提交截止:{config.submissionDeadline}
+            </p>
+          )}
+        </div>
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -82,13 +92,13 @@ export default async function HomePage() {
       </div>
 
       <Card title="四个正式赛道">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {TRACKS.map((t) => (
-            <div key={t.key} className="rounded-lg border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-800">{t.name}</h3>
-              <p className="mt-1 text-xs text-slate-500">{t.description}</p>
-              <p className="mt-2 text-xs text-emerald-700">适合:{t.suitable}</p>
-              <p className="mt-1 text-xs text-red-600">不适合:{t.unsuitable}</p>
+            <div key={t.key} className="surface-card surface-card-hover p-4">
+              <span className="inline-flex h-7 items-center rounded-md bg-brand-50 px-2 text-xs font-semibold text-brand-700">{t.name}</span>
+              <p className="mt-2.5 text-xs leading-5 text-slate-500">{t.description}</p>
+              <p className="mt-2.5 border-t border-slate-100 pt-2.5 text-xs leading-5 text-emerald-700">✓ 适合:{t.suitable}</p>
+              <p className="mt-1.5 text-xs leading-5 text-red-600">✗ 不适合:{t.unsuitable}</p>
             </div>
           ))}
         </div>
