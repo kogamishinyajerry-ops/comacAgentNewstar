@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Nav } from "@/components/nav";
-import { ToastHost } from "@/components/fx";
+import { ToastHost, EpicHost } from "@/components/fx";
 import { DemoLauncher, DemoPlayer } from "@/components/demo-player";
 
 export const metadata: Metadata = {
@@ -21,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </p>
         </footer>
         <ToastHost />
+        <EpicHost />
         <DemoPlayer />
         <DemoLauncher />
       </body>

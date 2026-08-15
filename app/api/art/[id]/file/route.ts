@@ -9,7 +9,7 @@ const MIME: Record<string, string> = {
   ".jpeg": "image/jpeg", ".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".svg": "image/svg+xml",
 };
 
-/** 插画文件:项目成员/组织者/被分配评委可看 */
+/** 插画文件:项目插画走权限校验;全局每日灵感(projectId为空)公开可看 */
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const row = await prisma.artAsset.findUnique({ where: { id: params.id } });
   if (!row) return jsonError(404, "插画不存在");

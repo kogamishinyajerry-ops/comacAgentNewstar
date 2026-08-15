@@ -2,6 +2,7 @@
 
 import { STATUS_LABELS, PROJECT_STATUSES } from "@/lib/constants";
 import { Badge, Card } from "./ui";
+import { ArtGallery } from "./gallery";
 import type { WizardData } from "./wizard-types";
 
 const tracking = [
@@ -77,6 +78,13 @@ export function StatusStep({ data }: { data: WizardData }) {
               ))}
           </ul>
         )}
+      </Card>
+
+      <Card title="插画图鉴 · 里程碑的专属记忆">
+        <ArtGallery projectId={data.projectId} />
+        <p className="mt-3 text-xs leading-5 text-slate-400">
+          每张插画由 MiniMax 根据项目内容即兴创作,全球唯一;完成对应里程碑或解锁史诗成就即可收集。
+        </p>
       </Card>
 
       <Card title="活动后跟踪(30/60/90天)">

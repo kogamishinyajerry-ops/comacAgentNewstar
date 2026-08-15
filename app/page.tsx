@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { Card, LinkButton, Badge } from "@/components/ui";
 import { TRACKS } from "@/lib/constants";
+import { DailyInspiration } from "@/components/daily-art";
 
 export default async function HomePage() {
   const [config, user] = await Promise.all([
@@ -54,7 +55,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <DailyInspiration />
         <Card title="参赛规则速览">
           <ul className="list-disc space-y-1.5 pl-4 text-[13px] leading-5 text-slate-600">
             <li>每队 1—2 人,单人可参赛</li>

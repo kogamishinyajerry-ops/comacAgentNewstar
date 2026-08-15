@@ -49,6 +49,18 @@ export function burstFromElement(el: Element | null, count = 45) {
   fireConfetti({ origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, count, spread: 4.5 });
 }
 
+/** 两侧礼炮(canvas-confetti 多段连发,用于史诗级时刻) */
+export function sideCannons(durationMs = 1600) {
+  if (typeof window === "undefined") return;
+  const end = Date.now() + durationMs;
+  const fire = () => {
+    engine()({ particleCount: 4, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors: PALETTE, zIndex: 9999 });
+    engine()({ particleCount: 4, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors: PALETTE, zIndex: 9999 });
+    if (Date.now() < end) requestAnimationFrame(fire);
+  };
+  fire();
+}
+
 /* ---------------- Toast ---------------- */
 
 export interface ToastPayload {
@@ -196,7 +208,12 @@ export function CeremonyOverlay({
 
 /* ---------------- 成就解锁庆祝 ---------------- */
 
-export function celebrateAchievement(a: { name: string; desc: string; icon: string; rarity: string }) {
+export function celebrateAchievement(a: { name: string; desc: string; icon: string; rarity: string }, projectId?: string) {
+  if (a.rarity === "epic" && projectId) {
+    // 史诗成就:全屏仪式(金光+旋入徽章+双侧礼炮+专属插画)
+    window.dispatchEvent(new CustomEvent("ynav-epic", { detail: { achievement: a, projectId } }));
+    return;
+  }
   showToast({
     tone: "achievement",
     icon: a.icon,
@@ -205,6 +222,99 @@ export function celebrateAchievement(a: { name: string; desc: string; icon: stri
     durationMs: 5200,
   });
   fireConfetti({ count: 70, origin: { x: window.innerWidth - 180, y: 120 }, spread: 5 });
+}
+
+/* ---------------- 史诗成就全屏仪式 ---------------- */
+
+const EPIC_EVENT = "ynav-epic";
+
+interface EpicPayload {
+  achievement: { name: string; desc: string; icon: string };
+  projectId: string;
+}
+
+function EpicCeremony({ payload, onClose }: { payload: EpicPayload; onClose: () => void }) {
+  const [art, setArt] = useState<string | null>(null);
+  useEffect(() => {
+    sideCannons(1800);
+    fireConfetti({ count: 120, spread: 10 });
+    fetchArt({ projectId: payload.projectId, scene: `ach-${achSceneKey(payload.achievement.name)}` })
+      .then((r) => r && setArt(r.url))
+      .catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div className="no-print fixed inset-0 z-[10003] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md" onClick={onClose}>
+      <div
+        className="anim-pop-in relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-8 text-center shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 金色旋转光芒 */}
+        <div
+          className="anim-gradient-pan pointer-events-none absolute -inset-24 opacity-30"
+          style={{
+            background:
+              "conic-gradient(from 0deg, transparent 0deg, rgba(251,191,36,0.55) 30deg, transparent 60deg, transparent 120deg, rgba(251,191,36,0.4) 150deg, transparent 180deg, transparent 240deg, rgba(251,191,36,0.5) 290deg, transparent 320deg)",
+          }}
+        />
+        <div className="relative">
+          <div className="anim-float mx-auto flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-orange-200 text-5xl ring-2 ring-amber-300 shadow-[0_8px_30px_rgba(251,191,36,0.45)]">
+            {payload.achievement.icon}
+          </div>
+          <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.3em] text-amber-600">Epic Achievement</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">{payload.achievement.name}</h2>
+          <p className="mx-auto mt-2 max-w-xs text-[13px] leading-6 text-slate-500">{payload.achievement.desc}</p>
+          {art && (
+            <div className="relative mx-auto mt-4 aspect-video w-56 overflow-hidden rounded-xl ring-1 ring-amber-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={art} alt="史诗成就插画" className="anim-blur-reveal h-full w-full object-cover" />
+              <span className="anim-sparkle absolute right-2 top-2 text-lg">✨</span>
+            </div>
+          )}
+          <button className="mt-6 inline-flex h-10 items-center rounded-md bg-gradient-to-r from-amber-500 to-orange-500 px-6 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(245,158,11,0.4)] hover:brightness-110" onClick={onClose}>
+            领取荣耀
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 成就名→图鉴场景key(与lib/art-scenes对齐) */
+function achSceneKey(name: string): string {
+  const map: Record<string, string> = {
+    闭环掌控者: "loop-master",
+    如实以告: "failure-honest",
+    解法成立: "submitted",
+  };
+  for (const [k, v] of Object.entries(map)) if (name.includes(k)) return v;
+  return "other";
+}
+
+/** 史诗仪式宿主(随ToastHost全局挂载) */
+export function EpicHost() {
+  const [payload, setPayload] = useState<EpicPayload | null>(null);
+  useEffect(() => {
+    const onEpic = (e: Event) => setPayload((e as CustomEvent<EpicPayload>).detail);
+    window.addEventListener(EPIC_EVENT, onEpic);
+    return () => window.removeEventListener(EPIC_EVENT, onEpic);
+  }, []);
+  if (!payload) return null;
+  return <EpicCeremony payload={payload} onClose={() => setPayload(null)} />;
+}
+
+/* ---------------- XP 浮动数字 ---------------- */
+
+export function XpFloat({ gain, onDone }: { gain: number; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1300);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
+    <span className="anim-slide-in-right pointer-events-none absolute -top-5 right-0 select-none rounded-full bg-emerald-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-[0_2px_10px_rgba(16,185,129,0.5)]">
+      +{gain}%
+    </span>
+  );
 }
 
 /* ---------------- 里程碑插画盲盒(MiniMax生图) ---------------- */

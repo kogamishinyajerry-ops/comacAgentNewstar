@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { STEPS, TEAM_FIELDS, getStepConfig } from "@/lib/steps";
 import { levelOf } from "@/lib/gamification";
-import { StatusBadge, AutoSaveIndicator, Alert, Button, Card, Input, Textarea, cn, Field } from "./ui";
-import { burstFromElement, showToast, ArtRevealModal, type ArtRequest } from "./fx";
+import { StatusBadge, AutoSaveIndicator, Alert, Button, Card, Input, ProgressBar, Textarea, cn, Field } from "./ui";
+import { burstFromElement, showToast, ArtRevealModal, XpFloat, type ArtRequest } from "./fx";
 import { LevelBadge, XpBar, useAchievementTracker, wizardProgress } from "./achievements";
 import type { WizardData } from "./wizard-types";
 import { TeamStep } from "./wizard-team";
@@ -78,6 +78,26 @@ export function Wizard({ data }: { data: WizardData }) {
     window.history.replaceState(null, "", `/projects/${data.projectId}?step=${step}`);
   }, [step, data.projectId]);
 
+  // XP浮动:总进度上升时冒出 +N%
+  const [xpGain, setXpGain] = useState<number | null>(null);
+  const prevPctRef = useRef(progress.overallPct);
+  useEffect(() => {
+    if (progress.overallPct > prevPctRef.current) {
+      setXpGain(progress.overallPct - prevPctRef.current);
+    }
+    prevPctRef.current = progress.overallPct;
+  }, [progress.overallPct]);
+
+  // 完成步骤时步骤条胶囊弹跳
+  const [popStep, setPopStep] = useState(0);
+  // 闲置提醒:30秒无输入,下一步按钮呼吸发光
+  const [idle, setIdle] = useState(false);
+  useEffect(() => {
+    setIdle(false);
+    const t = setTimeout(() => setIdle(true), 30000);
+    return () => clearTimeout(t);
+  }, [step, stages]);
+
   const persistStage = useCallback(
     async (stepNum: number, payload: Record<string, unknown>, strict: boolean) => {
       setSave({ state: "saving", savedAt: "" });
@@ -149,9 +169,13 @@ export function Wizard({ data }: { data: WizardData }) {
         showToast({ tone: "error", icon: "🚧", title: "还差一点", desc: gate.errors[0]?.reason ?? "请补齐必填项", durationMs: 3200 });
         return;
       }
-      // 过步仪式:小彩带 + 完成提示
+      // 过步仪式:小彩带 + 完成提示 + 步骤胶囊弹跳
       burstFromElement(nextBtnRef.current, 40);
       const done = progress.steps.find((s) => s.step === step)?.status === "done";
+      if (done) {
+        setPopStep(step);
+        setTimeout(() => setPopStep(0), 800);
+      }
       if (done && step <= 8) {
         showToast({ tone: "success", icon: "✅", title: `第${step}步完成 · ${getStepConfig(step)?.title}`, desc: "自动保存已生效,继续保持!", durationMs: 3000 });
       }
@@ -208,6 +232,12 @@ export function Wizard({ data }: { data: WizardData }) {
 
   const cfg = getStepConfig(step)!;
   const fieldStep = [1, 4, 5, 6].includes(step);
+  const cfgFieldsFilled = fieldStep
+    ? (cfg.fields ?? []).filter((f) => {
+        const v = (stages[step] ?? {})[f.key];
+        return f.type === "checkbox" ? v === true : typeof v === "string" && v.trim().length > 0;
+      }).length
+    : 0;
 
   return (
     <div className="py-4">
@@ -221,8 +251,22 @@ export function Wizard({ data }: { data: WizardData }) {
         </div>
         <div className="flex items-center gap-4">
           {!data.readOnly && <AutoSaveIndicator state={save.state} savedAt={save.savedAt} />}
-          <div className="hidden w-44 md:block">
+          {fieldStep && cfg.fields.length > 0 && (
+            <div className="hidden w-24 md:block">
+              <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
+                <span>本步</span>
+                <span className="tnum font-medium text-slate-600">{cfgFieldsFilled}/{cfg.fields.length}</span>
+              </div>
+              <ProgressBar
+                pct={(cfgFieldsFilled / cfg.fields.length) * 100}
+                height="h-1"
+                tone={cfgFieldsFilled === cfg.fields.length ? "green" : "brand"}
+              />
+            </div>
+          )}
+          <div className="relative hidden w-44 md:block">
             <XpBar pct={progress.overallPct} submitted={submittedNow} />
+            {xpGain != null && <XpFloat gain={xpGain} onDone={() => setXpGain(null)} />}
           </div>
           <LevelBadge pct={progress.overallPct} submitted={submittedNow} compact />
         </div>
@@ -245,6 +289,7 @@ export function Wizard({ data }: { data: WizardData }) {
                 onClick={() => goto(s.step)}
                 className={cn(
                   "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 font-medium transition-all",
+                  s.step === popStep && "anim-pop-in",
                   s.step === step
                     ? "border-brand-600 bg-brand-600 text-white shadow-[0_2px_6px_rgba(79,70,229,0.3)]"
                     : s.step < step
@@ -331,25 +376,39 @@ export function Wizard({ data }: { data: WizardData }) {
                       </label>
                     );
                   }
+                  const filled = typeof value === "string" && value.trim().length > 0;
                   return (
-                    <Field key={f.key} label={f.label} required={f.required} hint={f.hint}>
-                      {f.type === "textarea" ? (
-                        <Textarea
-                          rows={f.rows ?? 3}
-                          disabled={data.readOnly}
-                          placeholder={f.placeholder}
-                          value={typeof value === "string" ? value : ""}
-                          onChange={(e) => updateField(step, f.key, e.target.value)}
-                        />
-                      ) : (
-                        <Input
-                          disabled={data.readOnly}
-                          placeholder={f.placeholder}
-                          value={typeof value === "string" ? value : ""}
-                          onChange={(e) => updateField(step, f.key, e.target.value)}
-                        />
-                      )}
-                    </Field>
+                    <div key={f.key} className="relative">
+                      <Field label={f.label} required={f.required} hint={f.hint}>
+                        {f.type === "textarea" ? (
+                          <Textarea
+                            rows={f.rows ?? 3}
+                            disabled={data.readOnly}
+                            placeholder={f.placeholder}
+                            className={cn(filled && "border-emerald-300/70 bg-emerald-50/30")}
+                            value={typeof value === "string" ? value : ""}
+                            onChange={(e) => updateField(step, f.key, e.target.value)}
+                          />
+                        ) : (
+                          <Input
+                            disabled={data.readOnly}
+                            placeholder={f.placeholder}
+                            className={cn(filled && "border-emerald-300/70 bg-emerald-50/30")}
+                            value={typeof value === "string" ? value : ""}
+                            onChange={(e) => updateField(step, f.key, e.target.value)}
+                          />
+                        )}
+                      </Field>
+                      <span
+                        className={cn(
+                          "absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300",
+                          filled ? "anim-pop-in bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-300"
+                        )}
+                        aria-hidden
+                      >
+                        ✓
+                      </span>
+                    </div>
                   );
                 })}
               </div>
@@ -388,7 +447,7 @@ export function Wizard({ data }: { data: WizardData }) {
             <span className="hidden text-xs text-slate-400 sm:inline">
               第 {step}/10 步 · {cfg.title} · 总进度 {progress.overallPct}%
             </span>
-            <span ref={nextBtnRef}>
+            <span ref={nextBtnRef} className={cn(idle && "anim-glow-pulse rounded-md")}>
               <Button disabled={step >= 10} onClick={() => goto(step + 1)}>
                 下一步 →
               </Button>

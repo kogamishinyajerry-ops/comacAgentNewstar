@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { evaluateAchievements, type AchievementDef } from "@/lib/gamification";
 import type { ProjectProgress } from "@/lib/progress";
 import { AchievementSummary, LevelBadge, XpBar, useAchievementCelebration } from "./achievements";
+import { ArtGallery } from "./gallery";
 
 export function WorkspaceGamification({
   projectId,
@@ -46,8 +47,9 @@ export function WorkspaceGamification({
       <LevelBadge pct={progress.overallPct} submitted={submitted} />
       <XpBar pct={progress.overallPct} submitted={submitted} />
       <AchievementSummary unlockedIds={unlocked.map((a) => a.id)} />
+      <ArtGallery projectId={projectId} dense />
       <p className="text-[10px] leading-4 text-slate-400">
-        成就由项目真实状态点亮:完成必填、补齐闭环、如实记录失败案例都会解锁;无排名,只有你自己的进度。
+        成就与插画由项目真实状态点亮:完成必填、补齐闭环、如实记录失败都会解锁;无排名,只有你自己的进度。
       </p>
     </div>
   );

@@ -43,7 +43,7 @@ export function wizardProgress(data: WizardData): ProjectProgress {
   });
 }
 
-/** 监听成就跨越:新解锁→彩带+Toast(每个错开600ms,避免轰炸) */
+/** 监听成就跨越:新解锁→彩带+Toast(每个错开600ms,避免轰炸);史诗走全屏仪式 */
 export function useAchievementCelebration(projectId: string, unlocked: AchievementDef[]) {
   const [seen, setSeen] = useState<string[]>([]);
   const hydrated = useRef(false);
@@ -64,7 +64,7 @@ export function useAchievementCelebration(projectId: string, unlocked: Achieveme
     if (!hydrated.current) return;
     const fresh = unlocked.filter((a) => !seen.includes(a.id));
     if (fresh.length === 0) return;
-    fresh.forEach((a, i) => setTimeout(() => celebrateAchievement(a), i * 700));
+    fresh.forEach((a, i) => setTimeout(() => celebrateAchievement(a, projectId), i * 700));
     setSeen(idsKey.split(",").filter(Boolean));
     try {
       localStorage.setItem(storageKey, JSON.stringify(idsKey.split(",").filter(Boolean)));
