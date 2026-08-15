@@ -447,7 +447,7 @@ export function DemoPlayer() {
       {/* 虚拟鼠标 */}
       <div ref={cursorRef} className={cn("demo-cursor", !active && "hidden")} aria-hidden>
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-          <path d="M5 3l14 7.5-6.2 1.6L9.9 18 5 3z" fill="#4f46e5" stroke="white" strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M5 3l14 7.5-6.2 1.6L9.9 18 5 3z" fill="#1c1917" stroke="#f7f4ec" strokeWidth="1.4" strokeLinejoin="round" />
         </svg>
         <span className="demo-cursor-label" />
       </div>

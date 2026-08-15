@@ -243,7 +243,7 @@ export function Wizard({ data }: { data: WizardData }) {
     <div className="py-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold">{data.title}</h1>
+          <h1 className="font-display text-xl font-bold tracking-tight">{data.title}</h1>
           <StatusBadge status={data.status} />
           {data.status === "RETURNED" && data.returnReason && (
             <span className="text-xs text-amber-700">退回原因:{data.returnReason}</span>

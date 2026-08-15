@@ -37,8 +37,7 @@ export default async function WorkspacePage() {
           desc="按自己的节奏推进——每一步都有填写示例,右侧Agent随时陪跑,卡住了来Office Hour也行。"
           actions={
             dl != null ? (
-              <Badge tone={dl < 0 ? "red" : dl <= 7 ? "amber" : "gray"}>
-                <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+              <Badge tone={dl < 0 ? "red" : dl <= 7 ? "amber" : "gray"}>                <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
                   <circle cx="8" cy="8" r="6.2" />
                   <path d="M8 4.8V8l2 1.6" strokeLinecap="round" />
                 </svg>
@@ -58,8 +57,8 @@ export default async function WorkspacePage() {
 
         {/* 继续上次 */}
         {active ? (
-          <div className="surface-card relative overflow-hidden">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brand-500 via-indigo-500 to-brand-700" />
+          <div className="tick-corners surface-card relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brand-500 via-brand-300 to-brand-600" />
             <div className="flex flex-wrap items-center gap-5 px-5 pb-5 pt-6">
               <ProgressRing pct={active.progress.overallPct} size={84} stroke={7} />
               <div className="min-w-0 flex-1">

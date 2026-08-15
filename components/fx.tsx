@@ -8,7 +8,7 @@ import { cn } from "./ui";
 
 /* ---------------- 彩带(canvas-confetti) ---------------- */
 
-const PALETTE = ["#4f46e5", "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7"];
+const PALETTE = ["#b94a26", "#d68f70", "#e0a458", "#1c1917", "#4a7c59", "#c9a227", "#7c2f18"];
 
 let confettiInstance: confetti.CreateTypes | null = null;
 

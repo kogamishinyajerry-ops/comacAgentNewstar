@@ -4,25 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
+import { Seal } from "@/components/seal";
 
 function BrandPanel() {
   return (
-    <aside className="anim-gradient-pan relative hidden w-[420px] shrink-0 overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] p-10 text-white lg:flex lg:flex-col">
+    <aside className="relative hidden w-[420px] shrink-0 overflow-hidden bg-ink-900 p-10 text-paper lg:flex lg:flex-col">
       <div
-        className="pointer-events-none absolute inset-0 opacity-40"
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.12) 0, transparent 45%), radial-gradient(circle at 85% 75%, rgba(255,255,255,0.09) 0, transparent 40%)",
+            "radial-gradient(circle at 20% 15%, rgba(185,74,38,0.28) 0, transparent 42%), radial-gradient(circle at 85% 80%, rgba(185,74,38,0.16) 0, transparent 38%)",
         }}
       />
       <div className="relative">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-sm font-bold backdrop-blur">AI</span>
-        <h1 className="mt-8 text-[26px] font-bold leading-snug tracking-tight">
+        <Seal size={40} char="解" tilt />
+        <h1 className="font-display mt-8 text-[26px] font-bold leading-[1.4] tracking-tight">
           发现一个真问题,
           <br />
           做一个可验证的解法。
         </h1>
-        <ul className="mt-8 space-y-3.5 text-[13px] text-brand-100">
+        <ul className="mt-8 space-y-3.5 text-[13px] text-ink-200">
           {[
             ["10 步向导", "从真问题到可验证解法,每步都有示例"],
             ["5 个测试案例", "必须包含失败情况——失败是被鼓励展示的证据"],
@@ -30,18 +31,16 @@ function BrandPanel() {
             ["专职 Agent 陪跑", "先诊断、再追问、后建议,每次最多3条"],
           ].map(([t, d]) => (
             <li key={t} className="flex gap-2.5">
-              <svg className="mt-1 h-3.5 w-3.5 shrink-0 text-emerald-300" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="m3 8.5 3.2 3.2L13 5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <span className="mt-[7px] h-[6px] w-[6px] shrink-0 rotate-45 bg-brand-500" aria-hidden />
               <span>
-                <span className="font-semibold text-white">{t}</span>
-                <span className="ml-1.5">{d}</span>
+                <span className="font-semibold text-paper">{t}</span>
+                <span className="ml-1.5 text-ink-300">{d}</span>
               </span>
             </li>
           ))}
         </ul>
       </div>
-      <p className="relative mt-auto text-xs text-brand-200/80">内部活动平台 · 数据仅使用公开/模拟/已脱敏样例</p>
+      <p className="relative mt-auto text-xs tracking-wide text-ink-400">内部活动平台 · 数据仅使用公开/模拟/已脱敏样例</p>
     </aside>
   );
 }

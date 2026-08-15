@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { Card, LinkButton, Badge } from "@/components/ui";
 import { TRACKS } from "@/lib/constants";
 import { DailyInspiration } from "@/components/daily-art";
+import { Seal } from "@/components/seal";
 
 export default async function HomePage() {
   const [config, user] = await Promise.all([
@@ -16,42 +17,71 @@ export default async function HomePage() {
   });
 
   return (
-    <div className="space-y-8 py-4">
-      <section className="anim-gradient-pan relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] px-8 py-12 text-white shadow-[0_12px_40px_rgba(79,70,229,0.25)]">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-50"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.14) 0, transparent 45%), radial-gradient(circle at 88% 80%, rgba(255,255,255,0.1) 0, transparent 40%)",
-          }}
-        />
-        <div className="relative max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-200">内部创新活动平台</p>
-          <h1 className="mt-2 text-[32px] font-bold leading-tight tracking-tight">{config?.name ?? "青年AI轻创活动"}</h1>
-          <p className="mt-3 text-lg text-brand-50">{config?.slogan ?? "发现一个真问题,做一个可验证的解法。"}</p>
-          <p className="mt-3 max-w-2xl text-[13px] leading-6 text-brand-100/90">
-            {config?.intro ||
-              "不做宏大平台,只做一条从真问题到可验证解法的小实验路径:10步向导、5个测试案例、三项轻交付,四维40分评审。"}
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            {user ? (
-              <LinkButton href={user.role === "JUDGE" ? "/judge" : user.role === "ORGANIZER" || user.role === "ADMIN" ? "/organizer" : "/projects"} variant="secondary" size="lg">
-                进入工作区
-              </LinkButton>
-            ) : (
-              <>
-                <LinkButton href="/register" variant="secondary" size="lg">注册参与</LinkButton>
-                <LinkButton href="/login" variant="ghost" size="lg" className="text-white hover:bg-white/10">登录</LinkButton>
-              </>
-            )}
-            <LinkButton href="/?demo=1" variant="ghost" size="lg" className="text-white hover:bg-white/10">▶ 观看自动演示</LinkButton>
-            <LinkButton href="/inspirations" variant="ghost" size="lg" className="text-white hover:bg-white/10">看看案例灵感</LinkButton>
-          </div>
-          {config?.submissionDeadline && (
-            <p className="mt-5 text-xs text-brand-200/90">
-              活动时间:{config.startDate ?? "?"} — {config.endDate ?? "?"} · 提交截止:{config.submissionDeadline}
+    <div className="space-y-8 py-6">
+      {/* 编辑风主视觉:纸墨 + 朱砂印章 + 刻线 */}
+      <section className="tick-corners relative overflow-hidden rounded-lg border border-ink-900/10 bg-[#fffdf8] px-8 py-12 lg:px-14">
+        <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
+          <div className="max-w-2xl">
+            <p className="kicker">Internal Innovation Program · 2026</p>
+            <h1 className="font-display mt-4 text-[38px] font-bold leading-[1.25] tracking-tight text-ink-900 lg:text-[46px]">
+              发现一个真问题,
+              <br />
+              做一个<span className="relative mx-1 inline-block text-brand-600">
+                可验证
+                <svg className="absolute -bottom-1.5 left-0 w-full" height="8" viewBox="0 0 200 8" preserveAspectRatio="none" aria-hidden>
+                  <path d="M2 5 C 60 1, 140 8, 198 3" stroke="#b94a26" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.7" />
+                </svg>
+              </span>的解法。
+            </h1>
+            <p className="mt-5 max-w-xl text-[14px] leading-7 text-ink-500">
+              {config?.intro ||
+                "不做宏大平台,只做一条从真问题到可验证解法的小实验路径:10步向导、5个测试案例、三项轻交付,四维40分评审。"}
             </p>
-          )}
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              {user ? (
+                <LinkButton href={user.role === "JUDGE" ? "/judge" : user.role === "ORGANIZER" || user.role === "ADMIN" ? "/organizer" : "/projects"} size="lg">
+                  进入工作台 →
+                </LinkButton>
+              ) : (
+                <>
+                  <LinkButton href="/register" size="lg">注册参与</LinkButton>
+                  <LinkButton href="/login" variant="secondary" size="lg">登录</LinkButton>
+                </>
+              )}
+              <LinkButton href="/?demo=1" variant="ghost" size="lg" className="text-ink-500">▶ 观看自动演示</LinkButton>
+              <LinkButton href="/inspirations" variant="ghost" size="lg" className="text-ink-500">案例灵感</LinkButton>
+            </div>
+            {config?.submissionDeadline && (
+              <p className="mt-6 flex items-center gap-2 text-xs tracking-wide text-ink-400">
+                <span className="inline-block h-3 w-[3px] bg-brand-500" />
+                {config.startDate ?? "?"} — {config.endDate ?? "?"} · 提交截止 {config.submissionDeadline}
+              </p>
+            )}
+          </div>
+          {/* 印章主视觉 */}
+          <div className="relative hidden lg:block">
+            <div className="flex h-56 w-56 items-center justify-center rounded-full border border-ink-900/15">
+              <div className="flex h-44 w-44 items-center justify-center rounded-full border border-dashed border-ink-900/20">
+                <Seal size={88} char="解" tilt />
+              </div>
+            </div>
+            <span className="absolute -right-2 top-6 rotate-90 text-[10px] tracking-[0.3em] text-ink-300">VERIFY · BUILD · SHIP</span>
+            <span className="absolute -left-6 bottom-8 -rotate-90 text-[10px] tracking-[0.3em] text-ink-300">EXPERIMENT NO.001</span>
+          </div>
+        </div>
+        {/* 底部数据条 */}
+        <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded border border-ink-900/10 bg-ink-900/10 sm:grid-cols-4">
+          {[
+            ["10", "步引导流程"],
+            ["5", "例测试要求"],
+            ["3", "项轻交付"],
+            ["40", "分四维评审"],
+          ].map(([n, l]) => (
+            <div key={l} className="flex items-baseline gap-2 bg-[#fffdf8] px-4 py-3">
+              <span className="font-display tnum text-2xl font-bold text-brand-600">{n}</span>
+              <span className="text-xs text-ink-500">{l}</span>
+            </div>
+          ))}
         </div>
       </section>
 

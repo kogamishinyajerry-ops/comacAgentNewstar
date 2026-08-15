@@ -4,11 +4,10 @@
 
 :root {
   color-scheme: light;
-  /* 设计令牌:组件类中通过 arbitrary value 引用,保证全局一致 */
-  --surface: #ffffff;
-  --canvas: #f6f7f9;
-  --hairline: rgba(15, 23, 42, 0.08);
-  --brand: #4f46e5;
+  --paper: #f7f4ec;
+  --ink: #1c1917;
+  --accent: #b94a26;
+  --hairline: rgba(28, 25, 23, 0.12);
 }
 
 @layer base {
@@ -17,64 +16,92 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-[#f6f7f9] text-slate-900;
+    @apply bg-paper text-ink-800;
     font-family:
       -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
       "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     font-size: 14px;
     line-height: 1.6;
   }
-  ::selection {
-    background: rgba(79, 70, 229, 0.16);
+  /* 宣纸颗粒:极低透明度的噪声纹理 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
   }
-  /* 细滚动条(桌面) */
+  main, header, footer { position: relative; z-index: 1; }
+  ::selection {
+    background: rgba(185, 74, 38, 0.22);
+  }
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+    scrollbar-color: rgba(107, 100, 87, 0.4) transparent;
   }
-  *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  *::-webkit-scrollbar-thumb {
-    background: rgba(100, 116, 139, 0.3);
-    border-radius: 8px;
-  }
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: rgba(107, 100, 87, 0.35); border-radius: 8px; }
+  *::-webkit-scrollbar-track { background: transparent; }
 }
 
 @layer utilities {
-  /* 数字等宽:统计、进度、表格数字列 */
   .tnum {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
   }
-  /* 下拉箭头(替代原生外观) */
+
   .select-arrow {
     -webkit-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6457' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.6rem center;
   }
-  /* 卡片悬浮层次 */
+
+  /* 纸面卡片:细墨线边框,几乎无阴影(编辑风) */
   .surface-card {
-    @apply rounded-lg border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)];
+    @apply rounded-md border border-ink-900/10 bg-[#fffdf8];
   }
   .surface-card-hover {
-    @apply transition-all duration-150 hover:-translate-y-px hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)];
-  }
-  /* 表单聚焦环 */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30 focus-visible:border-brand-500;
-  }
-  .text-balance {
-    text-wrap: balance;
+    @apply transition-all duration-150 hover:-translate-y-px hover:border-ink-900/25 hover:shadow-[0_6px_18px_rgba(28,25,23,0.07)];
   }
 
-  /* ---------- 游戏化仪式动效 ---------- */
+  /* 角标刻线:卡片两角的L形制图标记(签名视觉母题) */
+  .tick-corners { position: relative; }
+  .tick-corners::before,
+  .tick-corners::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+    opacity: 0.85;
+  }
+  .tick-corners::before {
+    top: -2px; left: -2px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+  }
+  .tick-corners::after {
+    bottom: -2px; right: -2px;
+    border-bottom: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 focus-visible:border-brand-500;
+  }
+  .text-balance { text-wrap: balance; }
+
+  /* 章节编号(编辑风) */
+  .kicker {
+    @apply text-[11px] font-bold uppercase tracking-[0.28em] text-brand-600;
+  }
+  .hairline { @apply border-ink-900/10; }
+
+  /* ---------- 游戏化仪式动效(保留) ---------- */
   @keyframes pop-in {
     0% { transform: scale(0.4); opacity: 0; }
     60% { transform: scale(1.25); opacity: 1; }
@@ -99,7 +126,7 @@
     100% { background-position: 400px 0; }
   }
   .anim-shimmer {
-    background: linear-gradient(90deg, rgba(99,102,241,0.08) 0%, rgba(99,102,241,0.2) 50%, rgba(99,102,241,0.08) 100%);
+    background: linear-gradient(90deg, rgba(185, 74, 38, 0.06) 0%, rgba(185, 74, 38, 0.16) 50%, rgba(185, 74, 38, 0.06) 100%);
     background-size: 800px 100%;
     animation: shimmer 1.6s linear infinite;
   }
@@ -111,8 +138,8 @@
   .anim-float { animation: float-y 3s ease-in-out infinite; }
 
   @keyframes glow-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.35); }
-    50% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(185, 74, 38, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(185, 74, 38, 0); }
   }
   .anim-glow-pulse { animation: glow-pulse 2s ease-out infinite; }
 
@@ -124,11 +151,6 @@
   }
   .anim-stamp { animation: stamp-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both; }
 
-  @keyframes ring-draw {
-    from { stroke-dashoffset: var(--ring-len, 200); }
-    to { stroke-dashoffset: var(--ring-off, 0); }
-  }
-
   @keyframes check-draw {
     from { stroke-dashoffset: 24; }
     to { stroke-dashoffset: 0; }
@@ -138,24 +160,19 @@
     animation: check-draw 0.4s ease-out 0.25s both;
   }
 
-  /* 插画盲盒揭示:模糊到清晰 */
   @keyframes blur-reveal {
     0% { filter: blur(26px) saturate(1.6); transform: scale(1.08); opacity: 0; }
     100% { filter: blur(0) saturate(1); transform: scale(1); opacity: 1; }
   }
   .anim-blur-reveal { animation: blur-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-  /* 星光闪烁 */
   @keyframes sparkle {
     0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
     50% { transform: scale(1) rotate(20deg); opacity: 1; }
   }
   .anim-sparkle { animation: sparkle 1.6s ease-in-out infinite; }
 
-  /* 列表错落入场 */
-  .stagger > * {
-    animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
+  .stagger > * { animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .stagger > *:nth-child(1) { animation-delay: 0.02s; }
   .stagger > *:nth-child(2) { animation-delay: 0.07s; }
   .stagger > *:nth-child(3) { animation-delay: 0.12s; }
@@ -164,7 +181,6 @@
   .stagger > *:nth-child(6) { animation-delay: 0.27s; }
   .stagger > *:nth-child(n+7) { animation-delay: 0.32s; }
 
-  /* 品牌区渐变流动 */
   @keyframes gradient-pan {
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
@@ -175,7 +191,6 @@
     animation: gradient-pan 12s ease infinite;
   }
 
-  /* 成就图标hover摇摆 */
   @keyframes wiggle {
     0%, 100% { transform: rotate(0deg); }
     25% { transform: rotate(-8deg) scale(1.08); }
@@ -190,8 +205,7 @@
     top: 0;
     z-index: 10050;
     pointer-events: none;
-    filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.35));
-    transition: none;
+    filter: drop-shadow(0 2px 6px rgba(28, 25, 23, 0.35));
     will-change: transform;
   }
   .demo-cursor .demo-cursor-label {
@@ -200,8 +214,8 @@
     top: 20px;
     white-space: nowrap;
     border-radius: 999px;
-    background: rgba(15, 23, 42, 0.85);
-    color: #fff;
+    background: rgba(28, 25, 23, 0.88);
+    color: #f7f4ec;
     font-size: 11px;
     line-height: 1;
     padding: 5px 9px;
@@ -222,8 +236,8 @@
     width: 44px;
     height: 44px;
     border-radius: 999px;
-    border: 3px solid rgba(79, 70, 229, 0.8);
-    background: rgba(99, 102, 241, 0.18);
+    border: 3px solid rgba(185, 74, 38, 0.8);
+    background: rgba(185, 74, 38, 0.15);
     animation: demo-click-ripple 0.5s ease-out forwards;
   }
 
@@ -240,13 +254,8 @@
 
 /* 打印友好:小实验卡/Demo脚本预览页 */
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  body {
-    background: #fff;
-    font-size: 12px;
-  }
+  .no-print { display: none !important; }
+  body { background: #fff; font-size: 12px; }
   .print-page {
     box-shadow: none !important;
     border: none !important;

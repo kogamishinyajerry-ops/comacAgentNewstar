@@ -13,12 +13,12 @@ type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-600 text-white shadow-[0_1px_2px_rgba(79,70,229,0.35),inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-brand-700 active:translate-y-px",
+    "bg-ink-900 text-paper shadow-none hover:bg-ink-800 active:translate-y-px",
   secondary:
-    "border border-slate-300 bg-white text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-slate-400 hover:bg-slate-50 active:translate-y-px",
-  ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    "border border-ink-900/20 bg-transparent text-ink-800 hover:border-ink-900/45 hover:bg-ink-50 active:translate-y-px",
+  ghost: "text-ink-600 hover:bg-ink-100 hover:text-ink-900",
   danger:
-    "bg-red-600 text-white shadow-[0_1px_2px_rgba(220,38,38,0.3)] hover:bg-red-700 active:translate-y-px",
+    "bg-red-700 text-paper hover:bg-red-800 active:translate-y-px",
   subtle: "bg-brand-50 text-brand-700 hover:bg-brand-100",
 };
 
@@ -94,8 +94,8 @@ export function Card({
   return (
     <section className={cn("surface-card flex flex-col", className)}>
       {(title || actions) && (
-        <header className="flex min-h-[46px] items-center justify-between gap-3 border-b border-slate-100 px-4 py-2.5">
-          <h2 className="text-[13px] font-semibold tracking-wide text-slate-800">{title}</h2>
+        <header className="flex min-h-[46px] items-center justify-between gap-3 border-b border-ink-900/10 px-4 py-2.5">
+          <h2 className="font-display text-[13px] font-bold tracking-wide text-ink-900">{title}</h2>
           {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
         </header>
       )}
@@ -162,7 +162,7 @@ export function StatusBadge({ status }: { status: string }) {
 /* ---------------- 表单 ---------------- */
 
 const inputBase =
-  "w-full rounded-md border border-slate-300/90 bg-white px-3 text-[13px] text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-colors placeholder:text-slate-400 hover:border-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
+  "w-full rounded-md border border-ink-900/20 bg-[#fffdf8] px-3 text-[13px] text-ink-900 transition-colors placeholder:text-ink-300 hover:border-ink-900/35 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-300";
 
 export function Field({
   label,
@@ -302,8 +302,8 @@ export function PageHeader({ title, desc, actions }: { title: ReactNode; desc?: 
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h1>
-        {desc && <p className="mt-1 text-[13px] leading-5 text-slate-500">{desc}</p>}
+        <h1 className="font-display text-xl font-bold tracking-tight text-ink-900">{title}</h1>
+        {desc && <p className="mt-1 text-[13px] leading-5 text-ink-500">{desc}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -324,10 +324,10 @@ export function StatCard({
   hint?: string;
 }) {
   const valueTone = {
-    default: "text-slate-900",
-    brand: "text-brand-700",
-    danger: "text-red-600",
-    success: "text-emerald-600",
+    default: "text-ink-900",
+    brand: "text-brand-600",
+    danger: "text-red-700",
+    success: "text-emerald-700",
   }[tone];
   return (
     <div className="surface-card px-4 py-3">
@@ -383,8 +383,8 @@ export function ProgressRing({
         />
         <defs>
           <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#6366f1" />
-            <stop offset="100%" stopColor="#4f46e5" />
+            <stop offset="0%" stopColor="#d68f70" />
+            <stop offset="100%" stopColor="#a03e20" />
           </linearGradient>
         </defs>
       </svg>
