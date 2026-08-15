@@ -10,6 +10,8 @@ export function TeamStep({ data, onSaved }: { data: WizardData; onSaved: () => v
   const [team, setTeam] = useState(data.team);
   const [saved, setSaved] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 累积待保存字段:连续填写多个字段时,一次防抖批量落库(避免只保存最后一份)
+  const pendingRef = useRef<Record<string, string>>({});
 
   const save = useCallback(
     (payload: Record<string, unknown>) => {
@@ -30,8 +32,13 @@ export function TeamStep({ data, onSaved }: { data: WizardData; onSaved: () => v
   const update = useCallback(
     (key: string, value: string) => {
       setTeam((prev) => ({ ...prev, [key]: value }));
+      pendingRef.current[key] = value;
       if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => save({ [key]: value }), 800);
+      timer.current = setTimeout(() => {
+        const payload = pendingRef.current;
+        pendingRef.current = {};
+        save(payload);
+      }, 800);
     },
     [save]
   );

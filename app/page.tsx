@@ -43,6 +43,7 @@ export default async function HomePage() {
                 <LinkButton href="/login" variant="ghost" size="lg" className="text-white hover:bg-white/10">登录</LinkButton>
               </>
             )}
+            <LinkButton href="/?demo=1" variant="ghost" size="lg" className="text-white hover:bg-white/10">▶ 观看自动演示</LinkButton>
             <LinkButton href="/inspirations" variant="ghost" size="lg" className="text-white hover:bg-white/10">看看案例灵感</LinkButton>
           </div>
           {config?.submissionDeadline && (
