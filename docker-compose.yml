@@ -1,0 +1,28 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - AUTH_SECRET=${AUTH_SECRET:-please-change-me-in-production}
+      - GLM_API_KEY=${GLM_API_KEY:-}
+      - GLM_BASE_URL=${GLM_BASE_URL:-https://open.bigmodel.cn/api/paas/v4}
+      - GLM_MODEL=${GLM_MODEL:-glm-5.3}
+      - LLM_MOCK_MODE=${LLM_MOCK_MODE:-false}
+    volumes:
+      - app-data:/app/data
+    restart: unless-stopped
+  # 如需 PostgreSQL,取消以下注释并把 app 的 DATABASE_URL 指向 db,
+  # 同时将 prisma/schema.prisma 的 provider 改为 postgresql 后重新构建
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: ynav
+  #     POSTGRES_PASSWORD: ynav
+  #     POSTGRES_DB: ynav
+  #   volumes:
+  #     - pg-data:/var/lib/postgresql/data
+
+volumes:
+  app-data:
+  # pg-data:

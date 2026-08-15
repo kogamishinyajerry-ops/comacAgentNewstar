@@ -1,0 +1,274 @@
+// 青年AI轻创导航站 数据模型
+// 说明:SQLite 不支持 Prisma enum / Json 字段,枚举与 JSON 均用 String 存储,
+// 由 lib/constants.ts 的常量与 Zod 在应用层校验。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("PARTICIPANT") // PARTICIPANT | ORGANIZER | JUDGE | ADMIN
+  createdAt    DateTime @default(now())
+  sessions     Session[]
+  memberships  TeamMember[]
+  assignments  ReviewAssignment[]
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Team {
+  id                 String   @id @default(cuid())
+  name               String
+  inviteCode         String   @unique
+  mode               String   @default("SOLO") // SOLO | ECHO | DELTA | DUO
+  // 原创与公平披露字段(第2步采集)
+  startTime          String? // 实际开始时间
+  existingBase       String? // 活动前已有基础
+  addedDuringActivity String? // 活动期间新增内容
+  externalResources  String? // 使用的开源项目/模板/模型/外部资源
+  helpers            String? // 提供过帮助的人员
+  createdAt          DateTime @default(now())
+  members            TeamMember[]
+  projects           IdeaProject[]
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  userId   String
+  seatRole String   @default("OWNER") // OWNER | ECHO | DELTA
+  joinedAt DateTime @default(now())
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+model IdeaProject {
+  id          String    @id @default(cuid())
+  teamId      String
+  title       String    @default("未命名想法")
+  track       String? // 赛道 key,见 lib/constants TRACKS
+  status      String    @default("DRAFT") // DRAFT | SUBMITTED | RETURNED | PRELIMINARY | FINAL | ARCHIVED
+  currentStep Int       @default(1)
+  returnReason String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  submittedAt DateTime?
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  stages      StageResponse[]
+  testCases   TestCase[]
+  snapshots   SubmissionSnapshot[]
+  agentSessions AgentSession[]
+  agentFeedbacks AgentFeedback[]
+  attachments Attachment[]
+  assignments ReviewAssignment[]
+}
+
+// 每个项目每步一份表单数据(JSON 字符串),自动保存覆盖更新
+model StageResponse {
+  id        String   @id @default(cuid())
+  projectId String
+  step      Int
+  data      String // JSON
+  updatedAt DateTime @updatedAt
+  project   IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, step])
+}
+
+model TestCase {
+  id            String   @id @default(cuid())
+  projectId     String
+  name          String
+  type          String // NORMAL | BOUNDARY | FAILURE | NA
+  input         String
+  expected      String
+  actual        String
+  verdict       String   @default("PENDING") // PENDING | PASS | FAIL | NA
+  manualFix     String
+  failureReason String
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  project       IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// 提交时生成的不可变快照
+model SubmissionSnapshot {
+  id        String   @id @default(cuid())
+  projectId String
+  version   Int
+  payload   String // JSON:项目+全部步骤+测试+小实验卡+Demo脚本
+  createdAt DateTime @default(now())
+  project   IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+}
+
+model AgentSession {
+  id                String   @id @default(cuid())
+  projectId         String
+  step              Int
+  purpose           String   @default("COACH") // COACH | PRECHECK
+  provider          String
+  model             String
+  promptVersionLabel String?
+  status            String   @default("OK") // OK | REPAIRED | FALLBACK | ERROR
+  latencyMs         Int      @default(0)
+  promptTokens      Int?
+  completionTokens  Int?
+  error             String?
+  createdAt         DateTime @default(now())
+  project           IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  feedback          AgentFeedback?
+}
+
+// Agent 结构化反馈,只追加不改写;suggestionStates 记录每条建议的采纳状态
+model AgentFeedback {
+  id               String   @id @default(cuid())
+  sessionId        String   @unique
+  projectId        String
+  step             Int
+  content          String // JSON,结构见 lib/llm/schema.ts
+  suggestionStates String   @default("{}") // JSON: {"0":"adopted|ignored|done", ...}
+  createdAt        DateTime @default(now())
+  session          AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  project          IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  projectId String
+  kind      String   @default("LINK") // LINK | FILE
+  title     String
+  url       String
+  sizeKb    Int?
+  createdAt DateTime @default(now())
+  project   IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ReviewAssignment {
+  id        String   @id @default(cuid())
+  projectId String
+  judgeId   String
+  round     String   @default("PRELIMINARY") // PRELIMINARY | FINAL
+  status    String   @default("ASSIGNED") // ASSIGNED | RECUSED | COMPLETED
+  createdAt DateTime @default(now())
+  project   IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  judge     User     @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  review    Review?
+}
+
+model Review {
+  id             String    @id @default(cuid())
+  assignmentId   String    @unique
+  problemDefinition Int    @default(0) // 0-10
+  originality    Int       @default(0)
+  closedLoop     Int       @default(0)
+  evidence       Int       @default(0)
+  bestValue      String    @default("") // 最大价值
+  topImprovement String    @default("") // 首要改进
+  status         String    @default("DRAFT") // DRAFT | LOCKED
+  lockedAt       DateTime?
+  updatedAt      DateTime  @updatedAt
+  assignment     ReviewAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+}
+
+model ActivityConfig {
+  id                 String   @id @default("main")
+  name               String   @default("青年AI轻创活动")
+  slogan             String   @default("发现一个真问题,做一个可验证的解法。")
+  intro              String   @default("")
+  startDate          String?
+  endDate            String?
+  submissionDeadline String?
+  updatedAt          DateTime @updatedAt
+}
+
+// 四个固定赛道,普通用户不可新增
+model TrackConfig {
+  id          String  @id // personal-efficiency | knowledge-qa | process-automation | engineering-agent
+  name        String
+  description String
+  suitable    String
+  unsuitable  String
+  example     String
+  sortOrder   Int     @default(0)
+  enabled     Boolean @default(true)
+}
+
+model PromptVersion {
+  id           String   @id @default(cuid())
+  version      String   @unique
+  purpose      String   @default("COACH") // COACH | PRECHECK
+  systemPrompt String
+  active       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  pinned      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model InspirationCase {
+  id        String   @id @default(cuid())
+  title     String
+  track     String?
+  summary   String
+  tags      String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model OfficeHour {
+  id        String   @id @default(cuid())
+  title     String
+  host      String
+  time      String
+  place     String
+  capacity  Int      @default(20)
+  signups   String   @default("[]") // JSON: userId 数组
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorName  String
+  action     String
+  targetType String
+  targetId   String
+  detail     String   @default("")
+  createdAt  DateTime @default(now())
+}
+
+model TokenUsage {
+  id               String   @id @default(cuid())
+  sessionId        String?
+  provider         String
+  model            String
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  latencyMs        Int      @default(0)
+  ok               Boolean  @default(true)
+  createdAt        DateTime @default(now())
+}

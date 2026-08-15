@@ -1,0 +1,141 @@
+# 青年AI轻创导航站
+
+> 口号:**发现一个真问题,做一个可验证的解法。**
+
+一条受活动规则约束、引导青年员工完成 AI 小实验的数字流程:10 步向导、5 个测试案例、三项轻交付、四维 40 分评审。内置专职 Agent Coach(先诊断、再追问、后建议,每次最多 3 条建议,只给最小下一步)。
+
+## 10 分钟启动
+
+```bash
+# 1. 安装依赖
+npm install
+
+# 2. 初始化数据库(SQLite,零配置)并写入种子数据
+npm run db:push
+npm run db:seed
+
+# 3. 启动
+npm run dev        # 开发模式,http://localhost:3000
+# 或
+npm run build && npm run start
+```
+
+无 `GLM_API_KEY` 时自动使用 **Mock Provider**(确定性启发式诊断),可完整演示全部流程;配置 Key 后自动切换 GLM。
+
+> 注意:shell 环境变量优先于 `.env` 文件。若你的环境已有 `GLM_API_KEY` 但余额不足,可设置 `LLM_MOCK_MODE=true` 强制 Mock。
+
+### 演示账号(密码均为 `demo1234`)
+
+| 角色 | 邮箱 | 状态 |
+| --- | --- | --- |
+| 参与者 | alice@demo.com | 单人队,作品已提交(可查看完整样例) |
+| 参与者 | bob@demo.com | 双人队(Echo+Delta),草稿进行中 |
+| 组织者 | organizer@demo.com | 仪表盘/评审分配/活动配置 |
+| 评委 | judge1@demo.com | 已分配 alice 作品(预赛) |
+| 管理员 | admin@demo.com | 全部权限 |
+
+## 环境变量
+
+复制 `.env.example` 为 `.env` 并按需修改:
+
+| 变量 | 说明 |
+| --- | --- |
+| `DATABASE_URL` | 默认 SQLite `file:./dev.db`;切 PostgreSQL 改连接串并把 `prisma/schema.prisma` 的 provider 改为 `postgresql` |
+| `AUTH_SECRET` | 会话密钥,生产必须强随机 |
+| `GLM_API_KEY` | 仅服务端使用,绝不进入浏览器与日志 |
+| `GLM_BASE_URL` / `GLM_MODEL` | 默认 `https://open.bigmodel.cn/api/paas/v4` / `glm-5.3` |
+| `LLM_MOCK_MODE` | `true` 强制 Mock Provider |
+| `UPLOAD_MAX_MB` | 附件上限(预留) |
+
+## 常用命令
+
+```bash
+npm run dev          # 开发
+npm run lint         # ESLint
+npm run typecheck    # TypeScript 检查
+npm run test         # Vitest 单元测试(33例)
+npm run build        # 生产构建
+npm run db:reset     # 重置数据库并重新种子
+npm run e2e          # Playwright E2E(首次:npx playwright install chromium)
+```
+
+## 架构
+
+模块化单体,Next.js 14 App Router 全栈:
+
+```
+app/                    页面与API路由
+  api/                  auth/teams/projects/agent/precheck/organizer/judge
+  projects/[id]         10步向导 + 小实验卡打印页
+  organizer/            仪表盘、作品状态、评审分配、活动配置
+  judge/                评委工作台(四维40分)
+components/             UI组件、向导、Agent辅导栏
+lib/
+  constants.ts          角色/赛道/状态/风险类型(四赛道固定)
+  steps.ts              10步流程集中配置(字段/必填/示例/预计用时)
+  validation.ts         阶段校验、求证闭环红线、测试覆盖、敏感信息扫描(纯函数)
+  precheck.ts           提交预检硬规则(纯函数)
+  deliverables.ts       小实验卡/可见结果清单/90秒Demo脚本生成器
+  llm/                  Provider抽象:glm.ts / mock.ts / repair.ts / schema.ts / coach.ts
+  auth.ts               Session+RBAC+审计
+prisma/schema.prisma    18个实体;SQLite触发器在seed中创建
+tests/                  Vitest单元测试 + Playwright E2E
+```
+
+### 关键设计决策(稳健默认)
+
+- **数据库默认 SQLite**:满足"10分钟启动";PostgreSQL 一行切换,业务代码零改动(JSON 以字符串存储于 SQLite,切换 Postgres 后亦兼容)。
+- **队伍 ≤2 人三层防线**:前端 UI 不展示入口 → 服务端校验(`app/api/teams/join`)→ SQLite 触发器 `team_size_guard` 直接 ABORT(已验证)。
+- **提交不可变**:提交时生成 `SubmissionSnapshot`(整包 JSON 含小实验卡与 Demo 脚本),触发器阻止 UPDATE/DELETE;评审基于快照。
+- **评分锁定**:Review `LOCKED` 后触发器阻止修改,重复提交返回 409。
+- **Agent 结构化输出**:Zod Schema 校验 → 一次自动修复(去围栏/尾逗号/补括号)→ 降级为可读反馈(绝不展示思维链);`suggestions≤3`、`questions≤3`、预检 note 固定为"仅供完善材料参考,不代表正式评审结果。"在 `normalizeFeedback` 强制执行。
+- **求证闭环红线**:`判断依据/自动检查范围/人工确认点/异常停止条件/最终责任人` 五要素齐全才可提交;声称"由另一个AI质检"但无明确判定标准(`judgmentSourceVague`)同样视为没有闭环,closed_loop 预检为 0。
+- **权限**:组织者看不到未提交草稿全文(访问草稿详情页会重定向);评委仅见被分配的已提交作品;普通参与者不能查看他人项目(404)。
+- **GLM Key 安全**:只在服务端路由读取;日志与错误信息只包含 HTTP 状态与响应摘要,不含 Key。
+
+## 活动规则实现对照
+
+| 规则 | 实现位置 |
+| --- | --- |
+| 每队1—2人 | `app/api/teams/join` + DB触发器 |
+| 四固定赛道 | `lib/constants.ts TRACKS` + `TrackConfig`(仅组织者改文案,不可新增) |
+| 三项轻交付 | `lib/deliverables.ts` + `/projects/[id]/card`(打印友好) |
+| ≥5测试案例含失败/不适用 | `lib/validation.ts validateTestCases`(第8步门禁+提交硬规则) |
+| 四维40分 | 评委 `ReviewForm`(0—10×4)+ Agent 预检(标注仅供参考) |
+| 求证闭环红线 | `CLOSED_LOOP_FIELDS` + `runHardRules` + `judgmentSourceVague` |
+| 原创与公平披露 | Team 披露五字段必填 + 预检硬规则 |
+| 数据红线 | `scanSensitiveText`(密钥/身份证/手机号/内网地址/明文密码)阻止提交 |
+| Agent行为约束 | `lib/prompts.ts` 系统提示 + `normalizeFeedback` 硬截断 |
+| Prompt版本可追溯 | `PromptVersion` 表,每次调用记录 label;组织者可切换生效版本 |
+| 调用可观测 | `AgentSession`(provider/model/status/延迟/token)+ `TokenUsage` |
+
+## Docker
+
+```bash
+docker compose up --build   # http://localhost:3000,数据卷持久化
+```
+
+`docker-compose.yml` 默认 SQLite(卷挂载);需要 PostgreSQL 时取消注释 `db` 服务并调整 `DATABASE_URL`。
+
+## MVP 验收自检
+
+1. ✅ 登录并创建单人队伍
+2. ✅ 邀请码组队(种子队 E5F6G7H8 可体验)
+3. ✅ 第三人无法加入(API 409 + DB触发器,均有验证)
+4. ✅ 完整走完10步(步骤门禁阻止跳步缺填)
+5. ✅ 刷新后内容存在(StageResponse 持久化+自动保存)
+6. ✅ 四赛道固定且文案来自 `TrackConfig`
+7. ✅ Agent输出合法JSON(Zod校验+33个单测覆盖)
+8. ✅ 建议≤3条(`normalizeFeedback` 强制)
+9. ✅ ≥5测试案例强制校验(第8步strict+提交硬规则)
+10. ✅ 缺少边界/失败案例时提示
+11. ✅ 无求证闭环不能提交(硬规则+预检0分)
+12. ✅ 原创声明与外部资源披露必填
+13. ✅ 生成小实验卡与90秒Demo脚本(`/projects/[id]/card`)
+14. ✅ 组织者查看进度与风险(仪表盘风险汇总)
+15. ✅ 评委四维40分评分(草稿/锁定/回避)
+16. ✅ 普通参与者不能查看他人草稿(404)
+17. ✅ GLM Key 不出现在浏览器与日志
+18. ✅ Mock模式完整演示(无Key自动降级)
+19. ✅ lint / typecheck / test / build 全部通过
+20. ✅ 本README支持10分钟启动
