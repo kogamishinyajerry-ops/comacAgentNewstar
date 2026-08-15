@@ -93,13 +93,14 @@ describe("coerceFeedbackShape 形状矫正", () => {
       critical_gaps: ["闭环设计完全缺失", "测试案例为0个"],
       suggestions: ["补全阶段5闭环设计材料", "补充至少5个测试案例"],
     };
-    const coerced = coerceFeedbackShape(raw);
-    const parsed = AgentFeedbackSchema.safeParse(coerced);
+    // 与真实管线一致:coerce → Schema校验 → normalize(强制note与上限)
+    const parsed = AgentFeedbackSchema.safeParse(coerceFeedbackShape(raw));
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data.critical_gaps[0]).toHaveProperty("reason", "闭环设计完全缺失");
-      expect(parsed.data.suggestions[0]).toHaveProperty("action", "补全阶段5闭环设计材料");
-      expect(parsed.data.precheck_scores?.note).toContain("仅供参考");
+      const fb = normalizeFeedback(parsed.data);
+      expect(fb.critical_gaps[0]).toHaveProperty("reason", "闭环设计完全缺失");
+      expect(fb.suggestions[0]).toHaveProperty("action", "补全阶段5闭环设计材料");
+      expect(fb.precheck_scores?.note).toContain("不代表正式评审结果");
     }
   });
   it("补齐缺失的必填字段", () => {

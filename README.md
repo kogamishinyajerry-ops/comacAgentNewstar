@@ -22,7 +22,7 @@ npm run build && npm run start
 
 无 `GLM_API_KEY` 时自动使用 **Mock Provider**(确定性启发式诊断),可完整演示全部流程;配置 Key 后自动切换 GLM。
 
-> 注意:shell 环境变量优先于 `.env` 文件。若你的环境已有 `GLM_API_KEY` 但余额不足,可设置 `LLM_MOCK_MODE=true` 强制 Mock。
+> **GLM Coding Plan 用户注意**:如果你使用的是 GLM Coding Plan 订阅的 Key(非普通资源包),`GLM_BASE_URL` 必须指向 `https://open.bigmodel.cn/api/coding/paas/v4`(本项目默认值);指向标准端点 `/api/paas/v4` 会返回 429"余额不足或无可用资源包"。真实调用已验证:GLM-5.3 带思维链的完整诊断约 30—75 秒,默认超时 90 秒(可用 `GLM_TIMEOUT_MS` 覆盖);思维链 `reasoning_content` 只留在服务端,不会下发到浏览器。
 
 ### 演示账号(密码均为 `demo1234`)
 
@@ -43,9 +43,10 @@ npm run build && npm run start
 | `DATABASE_URL` | 默认 SQLite `file:./dev.db`;切 PostgreSQL 改连接串并把 `prisma/schema.prisma` 的 provider 改为 `postgresql` |
 | `AUTH_SECRET` | 会话密钥,生产必须强随机 |
 | `GLM_API_KEY` | 仅服务端使用,绝不进入浏览器与日志 |
-| `GLM_BASE_URL` / `GLM_MODEL` | 默认 `https://open.bigmodel.cn/api/paas/v4` / `glm-5.3` |
+| `GLM_BASE_URL` / `GLM_MODEL` | 默认 `https://open.bigmodel.cn/api/coding/paas/v4`(Coding Plan 端点;普通资源包改为 `/api/paas/v4`)/ `glm-5.3` |
+| `GLM_TIMEOUT_MS` | GLM 调用超时,默认 90000(思维链较慢) |
 | `LLM_MOCK_MODE` | `true` 强制 Mock Provider |
-| `UPLOAD_MAX_MB` | 附件上限(预留) |
+| `UPLOAD_MAX_MB` | 附件上限,默认 10MB |
 
 ## 常用命令
 
@@ -53,7 +54,7 @@ npm run build && npm run start
 npm run dev          # 开发
 npm run lint         # ESLint
 npm run typecheck    # TypeScript 检查
-npm run test         # Vitest 单元测试(33例)
+npm run test         # Vitest 单元测试(35例)
 npm run build        # 生产构建
 npm run db:reset     # 重置数据库并重新种子
 npm run e2e          # Playwright E2E(首次:npx playwright install chromium)
@@ -91,7 +92,8 @@ tests/                  Vitest单元测试 + Playwright E2E
 - **Agent 结构化输出**:Zod Schema 校验 → 一次自动修复(去围栏/尾逗号/补括号)→ 降级为可读反馈(绝不展示思维链);`suggestions≤3`、`questions≤3`、预检 note 固定为"仅供完善材料参考,不代表正式评审结果。"在 `normalizeFeedback` 强制执行。
 - **求证闭环红线**:`判断依据/自动检查范围/人工确认点/异常停止条件/最终责任人` 五要素齐全才可提交;声称"由另一个AI质检"但无明确判定标准(`judgmentSourceVague`)同样视为没有闭环,closed_loop 预检为 0。
 - **权限**:组织者看不到未提交草稿全文(访问草稿详情页会重定向);评委仅见被分配的已提交作品;普通参与者不能查看他人项目(404)。
-- **GLM Key 安全**:只在服务端路由读取;日志与错误信息只包含 HTTP 状态与响应摘要,不含 Key。
+- **GLM Key 安全**:只在服务端路由读取;日志与错误信息只包含 HTTP 状态与响应摘要,不含 Key;思维链(`reasoning_content`)不解析、不存储、不下发。
+- **可见结果材料**:第9步支持添加在线链接与上传文件(≤10MB,存 `data/uploads`),下载走 `/api/attachments/[id]/download` 并复用项目查看权限(未登录401、无权限403);小实验卡页会列出全部材料。
 
 ## 活动规则实现对照
 
@@ -137,5 +139,5 @@ docker compose up --build   # http://localhost:3000,数据卷持久化
 16. ✅ 普通参与者不能查看他人草稿(404)
 17. ✅ GLM Key 不出现在浏览器与日志
 18. ✅ Mock模式完整演示(无Key自动降级)
-19. ✅ lint / typecheck / test / build 全部通过
+19. ✅ lint / typecheck / test(35例) / build / Playwright E2E 全部通过
 20. ✅ 本README支持10分钟启动
