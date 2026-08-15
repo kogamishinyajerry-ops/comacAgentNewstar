@@ -271,6 +271,17 @@ model Notice {
   createdAt DateTime  @default(now())
 }
 
+// AI生成插画(MiniMax生图模型):里程碑专属"盲盒"艺术
+model ArtAsset {
+  id        String   @id @default(cuid())
+  projectId String?
+  scene     String // step-4 | submit | achievement-loop-master 等
+  prompt    String
+  file      String // data/art/ 下的文件名
+  provider  String   @default("minimax")
+  createdAt DateTime @default(now())
+}
+
 model TokenUsage {
   id               String   @id @default(cuid())
   sessionId        String?

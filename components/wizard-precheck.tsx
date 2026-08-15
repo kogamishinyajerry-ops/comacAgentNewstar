@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PRECHECK_NOTE } from "@/lib/constants";
 import { Alert, Badge, Button, Card, Input, cn } from "./ui";
-import { CeremonyOverlay, CountUp, fireConfetti, showToast } from "./fx";
+import { CeremonyOverlay, CountUp, ArtSlot, fireConfetti, showToast } from "./fx";
 import type { AttachmentItem, FeedbackItem, HardRuleView, WizardData } from "./wizard-types";
 
 interface PrecheckResponse {
@@ -341,12 +341,13 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
         open={celebrate}
         emoji="🏆"
         title="作品已提交!"
-        desc={`「${data.title}」已生成不可变提交快照。小实验卡、可见结果清单与90秒Demo脚本三件就绪——评委看到的将是这份快照。`}
+        desc={`「${data.title}」已生成不可变提交快照。三件套就绪——评委看到的将是这份快照。`}
         onClose={() => {
           setCelebrate(false);
           window.location.href = `/projects/${data.projectId}?step=10`;
         }}
       >
+        <ArtSlot request={{ projectId: data.projectId, scene: "submit", title: data.title }} className="mt-4" />
         <div className="relative mx-auto mt-4 flex w-fit items-center justify-center">
           <span className="anim-stamp select-none rounded-lg border-[3px] border-brand-600/80 px-5 py-2 text-lg font-black tracking-[0.3em] text-brand-700/90">
             已提交

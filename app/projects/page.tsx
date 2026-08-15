@@ -116,7 +116,7 @@ export default async function WorkspacePage() {
               <h2 className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">我的想法 · {data.rows.length}</h2>
               {data.team && <NewProjectButton />}
             </div>
-            <div className="grid gap-2.5">
+            <div className="stagger grid gap-2.5">
               {data.rows.map((r) => (
                 <div key={r.projectId} className="surface-card surface-card-hover p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">

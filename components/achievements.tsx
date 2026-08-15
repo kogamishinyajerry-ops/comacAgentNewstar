@@ -155,7 +155,7 @@ export function AchievementShelf({ unlockedIds, dense }: { unlockedIds: string[]
               got ? cn(RARITY_RING[a.rarity], "cursor-default") : "bg-slate-50/60 ring-slate-200/70"
             )}
           >
-            <span className={cn("leading-none", dense ? "text-lg" : "text-2xl", !got && "opacity-25 grayscale")}>{a.icon}</span>
+            <span className={cn("leading-none transition-transform", dense ? "text-lg" : "text-2xl", !got && "opacity-25 grayscale", got && "hover:wiggle")}>{a.icon}</span>
             {!dense && (
               <span className={cn("text-center text-[10px] font-medium leading-3", got ? "text-slate-700" : "text-slate-400")}>
                 {a.name}

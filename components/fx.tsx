@@ -206,3 +206,158 @@ export function celebrateAchievement(a: { name: string; desc: string; icon: stri
   });
   fireConfetti({ count: 70, origin: { x: window.innerWidth - 180, y: 120 }, spread: 5 });
 }
+
+/* ---------------- 里程碑插画盲盒(MiniMax生图) ---------------- */
+
+const ART_WAIT_PHASES = [
+  "🎨 正在召唤专属插画师…",
+  "🎲 从你的项目里抽取灵感…",
+  "✨ 构图中,每一张都独一无二…",
+  "🖼️ 即将揭晓…",
+];
+
+export interface ArtRequest {
+  projectId: string;
+  scene: string;
+  title?: string;
+  track?: string | null;
+  hint?: string;
+}
+
+/** 拉取插画(带12h服务端缓存),返回可直接使用的url */
+export async function fetchArt(req: ArtRequest): Promise<{ url: string; cached: boolean } | null> {
+  try {
+    const res = await fetch("/api/art/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { url: string; cached: boolean };
+    return { url: json.url, cached: json.cached };
+  } catch {
+    return null;
+  }
+}
+
+/** 盲盒揭示遮罩:加载微光轮播 → 模糊揭晓 + 彩带 + 星光 */
+export function ArtRevealModal({
+  open,
+  onClose,
+  request,
+  caption,
+}: {
+  open: boolean;
+  onClose: () => void;
+  request: ArtRequest | null;
+  caption?: string;
+}) {
+  const [art, setArt] = useState<{ url: string; cached: boolean } | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    if (!open || !request) return;
+    setArt(null);
+    setFailed(false);
+    setPhase(0);
+    const iv = setInterval(() => setPhase((p) => (p + 1) % ART_WAIT_PHASES.length), 2200);
+    let alive = true;
+    fetchArt(request).then((r) => {
+      if (!alive) return;
+      if (r) {
+        setArt(r);
+        setTimeout(() => fireConfetti({ count: 110, spread: 8 }), 350);
+      } else setFailed(true);
+    });
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- request按projectId+scene语义依赖,对象身份每次渲染都变
+  }, [open, request?.projectId, request?.scene]);
+
+  if (!open || !request) return null;
+
+  return (
+    <div className="no-print fixed inset-0 z-[10002] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="anim-pop-in relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-br from-brand-50 via-white to-amber-50">
+          {art ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={art.url} alt="AI为你的里程碑生成的专属插画" className="anim-blur-reveal h-full w-full object-cover" />
+              <span className="anim-sparkle absolute left-5 top-5 text-2xl">✨</span>
+              <span className="anim-sparkle absolute right-6 top-10 text-xl" style={{ animationDelay: "0.5s" }}>✨</span>
+              <span className="anim-sparkle absolute bottom-6 left-10 text-lg" style={{ animationDelay: "0.9s" }}>✨</span>
+            </>
+          ) : failed ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
+              <span className="text-4xl">🎨</span>
+              <p className="text-sm">插画师暂时离席,不影响你的进度</p>
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3">
+              <div className="anim-float text-5xl">🎁</div>
+              <div className="anim-shimmer h-2 w-40 rounded-full" />
+              <p className="anim-pulse text-[13px] font-medium text-brand-700">{ART_WAIT_PHASES[phase]}</p>
+            </div>
+          )}
+          <span className="absolute right-3 top-3 rounded-full bg-slate-900/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
+            {art?.cached ? "专属回忆" : "全球唯一 · 为你生成"}
+          </span>
+        </div>
+        <div className="p-4 text-center">
+          <p className="text-sm font-semibold text-slate-900">{caption ?? "这份风景,只属于此刻的你"}</p>
+          <p className="mt-1 text-[11px] leading-4 text-slate-400">由 MiniMax 生图模型根据你的项目内容即兴创作</p>
+          <div className="mt-3 flex justify-center gap-2">
+            {art && (
+              <a
+                href={art.url}
+                download
+                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+              >
+                保存这张插画
+              </a>
+            )}
+            <button className="inline-flex h-9 items-center rounded-md bg-brand-600 px-5 text-[13px] font-medium text-white hover:bg-brand-700" onClick={onClose}>
+              继续
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 嵌入式插画槽(用于提交庆典内):自动拉取并揭晓 */
+export function ArtSlot({ request, className }: { request: ArtRequest; className?: string }) {
+  const [art, setArt] = useState<{ url: string; cached: boolean } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetchArt(request).then((r) => alive && r && setArt(r));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 同上,按projectId+scene语义依赖
+  }, [request.projectId, request.scene]);
+  return (
+    <div className={cn("relative mx-auto aspect-square w-40 overflow-hidden rounded-xl bg-gradient-to-br from-brand-50 to-amber-50 ring-1 ring-amber-200/60", className)}>
+      {art ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={art.url} alt="里程碑插画" className="anim-blur-reveal h-full w-full object-cover" />
+          <span className="anim-sparkle absolute right-2 top-2 text-lg">✨</span>
+        </>
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-1.5">
+          <span className="anim-float text-3xl">🎁</span>
+          <div className="anim-shimmer h-1.5 w-24 rounded-full" />
+        </div>
+      )}
+    </div>
+  );
+}

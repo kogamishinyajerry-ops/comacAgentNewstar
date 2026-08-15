@@ -16,7 +16,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8 py-4">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] px-8 py-12 text-white shadow-[0_12px_40px_rgba(79,70,229,0.25)]">
+      <section className="anim-gradient-pan relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] px-8 py-12 text-white shadow-[0_12px_40px_rgba(79,70,229,0.25)]">
         <div
           className="pointer-events-none absolute inset-0 opacity-50"
           style={{

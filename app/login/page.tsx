@@ -7,7 +7,7 @@ import { Button, Input } from "@/components/ui";
 
 function BrandPanel() {
   return (
-    <aside className="relative hidden w-[420px] shrink-0 overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] p-10 text-white lg:flex lg:flex-col">
+    <aside className="anim-gradient-pan relative hidden w-[420px] shrink-0 overflow-hidden bg-gradient-to-br from-brand-600 via-brand-700 to-[#3730a3] p-10 text-white lg:flex lg:flex-col">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{

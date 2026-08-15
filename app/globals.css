@@ -138,10 +138,56 @@
     animation: check-draw 0.4s ease-out 0.25s both;
   }
 
+  /* 插画盲盒揭示:模糊到清晰 */
+  @keyframes blur-reveal {
+    0% { filter: blur(26px) saturate(1.6); transform: scale(1.08); opacity: 0; }
+    100% { filter: blur(0) saturate(1); transform: scale(1); opacity: 1; }
+  }
+  .anim-blur-reveal { animation: blur-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  /* 星光闪烁 */
+  @keyframes sparkle {
+    0%, 100% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1) rotate(20deg); opacity: 1; }
+  }
+  .anim-sparkle { animation: sparkle 1.6s ease-in-out infinite; }
+
+  /* 列表错落入场 */
+  .stagger > * {
+    animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.07s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.17s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.27s; }
+  .stagger > *:nth-child(n+7) { animation-delay: 0.32s; }
+
+  /* 品牌区渐变流动 */
+  @keyframes gradient-pan {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .anim-gradient-pan {
+    background-size: 200% 200%;
+    animation: gradient-pan 12s ease infinite;
+  }
+
+  /* 成就图标hover摇摆 */
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg) scale(1.08); }
+    75% { transform: rotate(8deg) scale(1.08); }
+  }
+  .hover\:wiggle:hover { animation: wiggle 0.45s ease-in-out; }
+
   /* 尊重减弱动态偏好 */
   @media (prefers-reduced-motion: reduce) {
     .anim-pop-in, .anim-rise-in, .anim-slide-in-right, .anim-shimmer,
-    .anim-float, .anim-glow-pulse, .anim-stamp, .anim-check-path {
+    .anim-float, .anim-glow-pulse, .anim-stamp, .anim-check-path,
+    .anim-blur-reveal, .anim-sparkle, .anim-gradient-pan, .stagger > * {
       animation-duration: 0.01s !important;
       animation-iteration-count: 1 !important;
     }

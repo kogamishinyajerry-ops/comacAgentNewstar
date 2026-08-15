@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { STEPS, TEAM_FIELDS, getStepConfig } from "@/lib/steps";
 import { levelOf } from "@/lib/gamification";
 import { StatusBadge, AutoSaveIndicator, Alert, Button, Card, Input, Textarea, cn, Field } from "./ui";
-import { burstFromElement, showToast } from "./fx";
+import { burstFromElement, showToast, ArtRevealModal, type ArtRequest } from "./fx";
 import { LevelBadge, XpBar, useAchievementTracker, wizardProgress } from "./achievements";
 import type { WizardData } from "./wizard-types";
 import { TeamStep } from "./wizard-team";
@@ -21,6 +21,14 @@ const CHECKBOX_SHORT: Record<string, string> = {
   agreeOriginality: "原创与公平承诺",
 };
 
+/** 里程碑步骤:首次完成时解锁AI插画盲盒 */
+const ART_MILESTONES: Record<number, string> = {
+  4: "真问题已被你捕获",
+  5: "判定标准,就此立宪",
+  6: "人机边界,画下第一笔",
+  8: "五连测试,证据成军",
+};
+
 export interface SaveState {
   state: "idle" | "saving" | "saved" | "error";
   savedAt: string;
@@ -34,6 +42,7 @@ export function Wizard({ data }: { data: WizardData }) {
   const [testCasesLive, setTestCasesLive] = useState(data.testCases);
   const [save, setSave] = useState<SaveState>({ state: "idle", savedAt: "" });
   const [gateError, setGateError] = useState<string[]>([]);
+  const [artScene, setArtScene] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef<Record<string, Record<string, unknown>>>({});
   const nextBtnRef = useRef<HTMLSpanElement | null>(null);
@@ -146,6 +155,18 @@ export function Wizard({ data }: { data: WizardData }) {
       if (done && step <= 8) {
         showToast({ tone: "success", icon: "✅", title: `第${step}步完成 · ${getStepConfig(step)?.title}`, desc: "自动保存已生效,继续保持!", durationMs: 3000 });
       }
+      // 里程碑盲盒:关键步骤首次完成,解锁一张专属AI插画
+      if (done && ART_MILESTONES[step]) {
+        const flag = `ynav-art-fired:${data.projectId}:step-${step}`;
+        try {
+          if (!localStorage.getItem(flag)) {
+            localStorage.setItem(flag, "1");
+            setArtScene(`step-${step}`);
+          }
+        } catch {
+          /* 隐私模式静默跳过 */
+        }
+      }
     }
     setStep(Math.min(10, Math.max(1, n)));
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -253,6 +274,8 @@ export function Wizard({ data }: { data: WizardData }) {
       <div className={cn("grid gap-5", step <= 8 ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "")}>
         <div className="min-w-0 space-y-4">
           <Card
+            key={step}
+            className="anim-rise-in"
             title={
               <span>
                 第{step}步:{cfg.title}
@@ -388,6 +411,22 @@ export function Wizard({ data }: { data: WizardData }) {
           </aside>
         )}
       </div>
+
+      <ArtRevealModal
+        open={!!artScene}
+        onClose={() => setArtScene(null)}
+        request={
+          artScene
+            ? {
+                projectId: data.projectId,
+                scene: artScene,
+                title: data.title,
+                track: track,
+              }
+            : null
+        }
+        caption={artScene ? ART_MILESTONES[Number(artScene.replace("step-", ""))] : undefined}
+      />
     </div>
   );
 }
