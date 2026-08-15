@@ -56,6 +56,7 @@ export default async function OrganizerDashboard() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">组织者仪表盘</h1>
         <div className="flex gap-2">
+          <LinkButton href="/organizer/progress">进展中枢</LinkButton>
           <LinkButton href="/organizer/projects" variant="secondary">作品与状态</LinkButton>
           <LinkButton href="/organizer/reviews" variant="secondary">评审分配</LinkButton>
           <LinkButton href="/organizer/config" variant="secondary">活动配置</LinkButton>

@@ -260,6 +260,17 @@ model AuditLog {
   createdAt  DateTime @default(now())
 }
 
+// 站内通知:组织者温和催办、退回补充等事件
+model Notice {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  body      String    @default("")
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
 model TokenUsage {
   id               String   @id @default(cuid())
   sessionId        String?
