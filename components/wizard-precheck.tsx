@@ -218,31 +218,56 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
       {result && (
         <>
           <Card title="硬规则校验">
-            <ul className="space-y-2">
-              {result.hardRules.map((r) => (
-                <li key={r.code} className={cn("rounded-md border p-2.5 text-sm", r.passed ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50")}>
-                  <p className="flex items-center gap-2 font-medium">
-                    <span>{r.passed ? "✓" : "✗"}</span>
-                    {r.label}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-600">{r.message}</p>
-                  {!r.passed && <p className="mt-1 text-xs text-red-700">如何解除:{r.fix}</p>}
-                </li>
-              ))}
-            </ul>
-            {!data.readOnly && (
-              <div className="mt-3">
-                {canSubmit ? (
-                  <Button onClick={submit} disabled={submitting}>
-                    {submitting ? "提交中…" : "确认提交(生成不可变快照)"}
-                  </Button>
-                ) : (
-                  <Alert tone="error" title="硬条件未满足,暂不能提交">
-                    请按上方「如何解除」提示逐条处理后再运行预检。
-                  </Alert>
-                )}
-              </div>
-            )}
+            {(() => {
+              const failed = result.hardRules.filter((r) => !r.passed);
+              const passed = result.hardRules.filter((r) => r.passed);
+              return (
+                <div className="space-y-2.5">
+                  {failed.length > 0 ? (
+                    <ul className="space-y-2">
+                      {failed.map((r) => (
+                        <li key={r.code} className="rounded-lg border border-red-200 bg-red-50/70 p-3">
+                          <p className="flex items-center gap-2 text-[13px] font-semibold text-red-800">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs">✗</span>
+                            {r.label}
+                          </p>
+                          <p className="mt-1 line-clamp-2 pl-7 text-xs leading-5 text-red-700/90" title={r.message}>{r.message}</p>
+                          <p className="mt-1 pl-7 text-xs leading-5 text-red-900">
+                            <span className="font-medium">怎么解除:</span>
+                            {r.fix}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-[13px] font-medium text-emerald-800">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs">✓</span>
+                      全部 {passed.length} 项硬规则通过
+                    </p>
+                  )}
+                  {failed.length > 0 && passed.length > 0 && (
+                    <details>
+                      <summary className="cursor-pointer text-xs text-slate-400 hover:text-brand-600">
+                        ✓ 已通过 {passed.length} 项:{passed.map((r) => r.label).join("、")}
+                      </summary>
+                    </details>
+                  )}
+                  {!data.readOnly && (
+                    <div className="pt-1">
+                      {canSubmit ? (
+                        <Button onClick={submit} disabled={submitting}>
+                          {submitting ? "提交中…" : "确认提交(生成不可变快照)"}
+                        </Button>
+                      ) : (
+                        <Alert tone="error" title="硬条件未满足,暂不能提交">
+                          逐条处理上方红色项后重新预检。
+                        </Alert>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </Card>
 
           {scores && (

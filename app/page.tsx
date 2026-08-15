@@ -55,23 +55,23 @@ export default async function HomePage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card title="参赛规则速览">
-          <ul className="list-disc space-y-2 pl-4 text-sm text-slate-600">
-            <li>每队1—2人,单人可参赛(建议Echo+Delta互补)</li>
-            <li>四个固定赛道,不可自选新增</li>
-            <li>最终只需三项轻交付:小实验卡、可见结果、90秒成果包</li>
-            <li>至少5个测试案例,必须含失败或不适用情况</li>
-            <li>四维40分评分:真问题、原创、闭环、证据</li>
+          <ul className="list-disc space-y-1.5 pl-4 text-[13px] leading-5 text-slate-600">
+            <li>每队 1—2 人,单人可参赛</li>
+            <li>四个固定赛道</li>
+            <li>三项轻交付:小实验卡 · 可见结果 · 90秒Demo</li>
+            <li>至少 5 个测试案例,须含失败情况</li>
+            <li>四维 40 分评分</li>
           </ul>
         </Card>
         <Card title="求证闭环红线">
-          <p className="text-sm text-slate-600">最小闭环必须是:</p>
-          <p className="my-2 rounded bg-slate-50 p-2 text-xs font-medium text-slate-700">
-            输入 → AI或自动化处理 → 依据明确标准检查 → 人工确认或异常处理 → 输出
+          <p className="text-[13px] text-slate-600">最小闭环必须是:</p>
+          <p className="my-2 rounded bg-slate-50 p-2 text-center text-xs font-medium text-slate-700">
+            输入 → 处理 → <span className="text-brand-700">依据明确标准检查</span> → 人工确认 → 输出
           </p>
-          <ul className="list-disc space-y-1 pl-4 text-sm text-slate-600">
-            <li>没有检查环节,验证维度为0且不能提交</li>
-            <li>不得把关键工程判断、放行与责任全部交给AI</li>
-            <li>只允许公开/模拟/自有非敏感/已脱敏数据</li>
+          <ul className="list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
+            <li>没有检查环节,不能提交</li>
+            <li>关键判断与放行不能全交给AI</li>
+            <li>只用公开/模拟/脱敏数据</li>
           </ul>
         </Card>
         <Card title="最新公告">
@@ -96,9 +96,9 @@ export default async function HomePage() {
           {TRACKS.map((t) => (
             <div key={t.key} className="surface-card surface-card-hover p-4">
               <span className="inline-flex h-7 items-center rounded-md bg-brand-50 px-2 text-xs font-semibold text-brand-700">{t.name}</span>
-              <p className="mt-2.5 text-xs leading-5 text-slate-500">{t.description}</p>
-              <p className="mt-2.5 border-t border-slate-100 pt-2.5 text-xs leading-5 text-emerald-700">✓ 适合:{t.suitable}</p>
-              <p className="mt-1.5 text-xs leading-5 text-red-600">✗ 不适合:{t.unsuitable}</p>
+              <p className="mt-2.5 line-clamp-2 text-xs leading-5 text-slate-500" title={t.description}>{t.description}</p>
+              <p className="mt-2.5 border-t border-slate-100 pt-2.5 text-xs leading-5 text-emerald-700">✓ {t.suitable}</p>
+              <p className="mt-1 line-clamp-1 text-xs leading-5 text-red-600" title={`不适合:${t.unsuitable}`}>✗ {t.unsuitable}</p>
             </div>
           ))}
         </div>

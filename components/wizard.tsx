@@ -14,6 +14,13 @@ import { PrecheckStep } from "./wizard-precheck";
 import { StatusStep } from "./wizard-status";
 import { CoachPanel } from "./coach-panel";
 
+/** 第1步三项承诺的短标题(完整条款折叠在卡片内) */
+const CHECKBOX_SHORT: Record<string, string> = {
+  agreeRules: "我已阅读并接受活动规则",
+  agreeDataSafety: "数据安全与脱敏承诺",
+  agreeOriginality: "原创与公平承诺",
+};
+
 export interface SaveState {
   state: "idle" | "saving" | "saved" | "error";
   savedAt: string;
@@ -253,7 +260,9 @@ export function Wizard({ data }: { data: WizardData }) {
               </span>
             }
           >
-            <p className="mb-4 text-sm text-slate-500">{cfg.subtitle}</p>
+            <p className="mb-4 line-clamp-2 text-[13px] leading-5 text-slate-500" title={cfg.subtitle}>
+              {cfg.subtitle}
+            </p>
 
             {gateError.length > 0 && (
               <div className="mb-4">
@@ -268,22 +277,33 @@ export function Wizard({ data }: { data: WizardData }) {
             )}
 
             {fieldStep && (
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 {cfg.fields.map((f) => {
                   const value = (stages[step] ?? {})[f.key];
                   if (f.type === "checkbox") {
                     return (
-                      <label key={f.key} className="flex items-start gap-2 rounded-md border border-slate-200 p-3 text-sm">
+                      <label
+                        key={f.key}
+                        className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-3 text-[13px] transition-colors hover:border-brand-300 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50/60"
+                      >
                         <input
                           type="checkbox"
-                          className="mt-0.5 h-4 w-4"
+                          className="mt-0.5 h-4 w-4 accent-brand-600"
                           disabled={data.readOnly}
                           checked={value === true}
                           onChange={(e) => updateField(step, f.key, e.target.checked)}
                         />
-                        <span>
-                          {f.label}
-                          <span className="text-red-500">*</span>
+                        <span className="min-w-0">
+                          <span className="font-medium text-slate-800">
+                            {CHECKBOX_SHORT[f.key] ?? f.label}
+                            <span className="text-red-500">*</span>
+                          </span>
+                          <details className="group mt-0.5">
+                            <summary className="cursor-pointer list-none text-xs text-slate-400 transition-colors hover:text-brand-600">
+                              查看完整条款
+                            </summary>
+                            <p className="mt-1 text-xs leading-5 text-slate-500">{f.label}</p>
+                          </details>
                         </span>
                       </label>
                     );
@@ -305,9 +325,6 @@ export function Wizard({ data }: { data: WizardData }) {
                           value={typeof value === "string" ? value : ""}
                           onChange={(e) => updateField(step, f.key, e.target.value)}
                         />
-                      )}
-                      {f.placeholder && f.type !== "textarea" && (
-                        <span className="mt-1 block text-xs text-slate-400">示例:{f.placeholder}</span>
                       )}
                     </Field>
                   );

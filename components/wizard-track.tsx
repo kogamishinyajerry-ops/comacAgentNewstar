@@ -43,14 +43,17 @@ export function TrackStep({
               <span className="font-semibold text-slate-800">{t.name}</span>
               {track === t.key && <Badge tone="indigo">已选</Badge>}
             </div>
-            <p className="mt-1 text-xs text-slate-500">{t.description}</p>
-            <p className="mt-2 text-xs text-emerald-700">✓ 适合:{t.suitable}</p>
-            <p className="mt-1 text-xs text-red-600">✗ 不适合:{t.unsuitable}</p>
-            <p className="mt-2 rounded bg-slate-50 p-2 text-xs text-slate-600">微型示例:{t.example}</p>
+            <p className="mt-1 line-clamp-1 text-xs text-slate-500" title={t.description}>{t.description}</p>
+            <p className="mt-2 line-clamp-2 text-xs leading-5 text-emerald-700" title={`适合:${t.suitable}`}>✓ {t.suitable}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-red-600" title={`不适合:${t.unsuitable}`}>✗ {t.unsuitable}</p>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-[11px] text-slate-400 hover:text-brand-600">微型示例</summary>
+              <p className="mt-1 rounded bg-slate-50 p-2 text-xs leading-5 text-slate-600">{t.example}</p>
+            </details>
           </button>
         ))}
       </div>
-      <p className="text-xs text-slate-400">赛道固定为四个,由组织者维护文案;Agent可给匹配建议,但选择权在你。</p>
+      <p className="mt-3 text-xs text-slate-400">四个赛道固定,选择权在你,之后可改。</p>
     </div>
   );
 }

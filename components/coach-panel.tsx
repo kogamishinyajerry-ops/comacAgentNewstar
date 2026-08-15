@@ -116,7 +116,7 @@ export function CoachPanel({
         </header>
         <div className="space-y-3 px-3 py-3">
           {cfg?.coachFocus && (
-            <p className="rounded bg-slate-50 p-2 text-xs text-slate-600">
+            <p className="line-clamp-2 rounded bg-slate-50 p-2 text-xs leading-5 text-slate-600" title={cfg.coachFocus}>
               <span className="font-medium">本步重点:</span>
               {cfg.coachFocus}
             </p>
@@ -165,9 +165,9 @@ export function CoachPanel({
               {fb.critical_gaps.length > 0 && (
                 <div>
                   <p className="text-[11px] font-semibold text-slate-500">关键缺口</p>
-                  <ul className="mt-0.5 list-disc pl-4 text-[11px] text-slate-600">
-                    {fb.critical_gaps.slice(0, 4).map((g, i) => (
-                      <li key={i}>{g.reason}</li>
+                  <ul className="mt-0.5 list-disc pl-4 text-[11px] leading-5 text-slate-600">
+                    {fb.critical_gaps.slice(0, 3).map((g, i) => (
+                      <li key={i} className="line-clamp-2" title={g.reason}>{g.reason}</li>
                     ))}
                   </ul>
                 </div>
@@ -193,8 +193,7 @@ export function CoachPanel({
                       return (
                         <li key={i} className="rounded border border-slate-200 p-2 text-[11px]">
                           <p className="font-medium text-slate-700">{i + 1}. {s.title}</p>
-                          <p className="mt-0.5 text-slate-600">动作:{s.action}</p>
-                          <p className="mt-0.5 text-slate-400">理由:{s.why}</p>
+                          <p className="mt-0.5 line-clamp-2 text-slate-600" title={s.action}>动作:{s.action}</p>
                           {!readOnly && (
                             <div className="mt-1.5 flex gap-1">
                               {(["adopted", "ignored", "done"] as const).map((v) => (
@@ -253,9 +252,7 @@ export function CoachPanel({
         </div>
       )}
 
-      <Alert tone="info">
-        Agent不是代写员也不是评委:它不替你虚构需求、数据与原创过程;分数仅为提交预检参考。
-      </Alert>
+      <Alert tone="info">Agent不代写、不评奖;分数仅为提交预检参考。</Alert>
     </div>
   );
 }

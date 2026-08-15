@@ -1,98 +1,52 @@
 "use client";
 
-/* 仪式感特效层:彩带(canvas物理粒子)、Toast栈、数字滚动、庆典遮罩。
-   全部客户端按需触发,尊重 prefers-reduced-motion(经CSS动画降级 + confetti开关)。 */
+/* 仪式感特效层:彩带(canvas-confetti,社区标准,原生reduced-motion支持)、Toast栈、数字滚动、庆典遮罩。 */
 
 import { useEffect, useRef, useState } from "react";
+import confetti from "canvas-confetti";
 import { cn } from "./ui";
 
-/* ---------------- 彩带引擎 ---------------- */
+/* ---------------- 彩带(canvas-confetti) ---------------- */
 
-interface Particle {
-  x: number; y: number; vx: number; vy: number;
-  size: number; color: string; rot: number; vr: number; life: number; shape: number;
-}
+const PALETTE = ["#4f46e5", "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7"];
 
-const CONFETTI_COLORS = ["#4f46e5", "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7"];
+let confettiInstance: confetti.CreateTypes | null = null;
 
-let canvas: HTMLCanvasElement | null = null;
-let ctx: CanvasRenderingContext2D | null = null;
-let particles: Particle[] = [];
-let rafId = 0;
-
-function ensureCanvas() {
-  if (canvas) return;
-  canvas = document.createElement("canvas");
+function engine(): confetti.CreateTypes | typeof confetti {
+  if (confettiInstance) return confettiInstance;
+  // 独立canvas实例,禁用reduced-motion用户的彩带
+  const canvas = document.createElement("canvas");
   canvas.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999";
   document.body.appendChild(canvas);
-  ctx = canvas.getContext("2d");
-  const resize = () => {
-    if (!canvas) return;
-    canvas.width = window.innerWidth * devicePixelRatio;
-    canvas.height = window.innerHeight * devicePixelRatio;
-  };
-  resize();
-  window.addEventListener("resize", resize);
-}
-
-function tick() {
-  if (!ctx || !canvas) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  particles = particles.filter((p) => p.life > 0 && p.y < canvas!.height / devicePixelRatio + 40);
-  for (const p of particles) {
-    p.vy += 0.18; // 重力
-    p.vx *= 0.992;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.rot += p.vr;
-    p.life -= 1;
-    ctx.save();
-    ctx.translate(p.x * devicePixelRatio, p.y * devicePixelRatio);
-    ctx.rotate(p.rot);
-    ctx.globalAlpha = Math.min(1, p.life / 30);
-    ctx.fillStyle = p.color;
-    if (p.shape === 0) ctx.fillRect((-p.size / 2) * devicePixelRatio, (-p.size / 4) * devicePixelRatio, p.size * devicePixelRatio, (p.size / 2) * devicePixelRatio);
-    else {
-      ctx.beginPath();
-      ctx.arc(0, 0, (p.size / 2.6) * devicePixelRatio, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-  if (particles.length > 0) rafId = requestAnimationFrame(tick);
-  else rafId = 0;
+  confettiInstance = confetti.create(canvas, {
+    resize: true,
+    useWorker: true,
+    disableForReducedMotion: true,
+  });
+  return confettiInstance;
 }
 
 export function fireConfetti(opts: { origin?: { x: number; y: number }; count?: number; spread?: number } = {}) {
   if (typeof window === "undefined") return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  ensureCanvas();
-  const { x = window.innerWidth / 2, y = window.innerHeight * 0.35 } = opts.origin ?? {};
-  const count = opts.count ?? 90;
-  const spread = opts.spread ?? 7;
-  for (let i = 0; i < count; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 3 + Math.random() * spread;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 4,
-      size: 6 + Math.random() * 6,
-      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-      rot: Math.random() * Math.PI,
-      vr: (Math.random() - 0.5) * 0.3,
-      life: 90 + Math.random() * 60,
-      shape: Math.random() > 0.6 ? 1 : 0,
-    });
-  }
-  if (!rafId) rafId = requestAnimationFrame(tick);
+  const { x = 0.5, y = 0.35 } = opts.origin ?? {};
+  engine()({
+    particleCount: opts.count ?? 90,
+    spread: (opts.spread ?? 7) * 12,
+    origin: { x: x / window.innerWidth, y: y / window.innerHeight },
+    colors: PALETTE,
+    ticks: 220,
+    scalar: 0.95,
+    gravity: 1.1,
+    shapes: ["square", "circle"],
+    zIndex: 9999,
+  });
 }
 
 /** 从某个元素位置向上喷发(用于按钮处的小庆祝) */
 export function burstFromElement(el: Element | null, count = 45) {
   if (!el || typeof window === "undefined") return;
   const rect = el.getBoundingClientRect();
-  fireConfetti({ origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, count, spread: 5 });
+  fireConfetti({ origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }, count, spread: 4.5 });
 }
 
 /* ---------------- Toast ---------------- */
