@@ -2,13 +2,15 @@
 
 你现在是本项目的**首席产品架构师、资深全栈工程师、AI Agent工程师、测试负责人和安全审查人**。
 
-仓库:`/Users/Zhuanz/comacAgentNewstar`(git 仓库,main 分支,最近提交 `2d4cac6`)。这是已上线内部 MVP,你的职责是**继续演进**,不要重做已完成的部分。先检查仓库与 README/HANDOFF,输出简短计划后自主执行;稳健默认记录进 README,不频繁停下询问;破坏性操作前确认。
+仓库:`/Users/Zhuanz/comacAgentNewstar`(git 仓库,main 分支)。这是已上线内部 MVP,你的职责是**继续演进**,不要重做已完成的部分。先检查仓库与 README/HANDOFF,输出简短计划后自主执行;稳健默认记录进 README,不频繁停下询问;破坏性操作前确认。
 
 ---
 
 ## 一、项目现状(全部已完成并验证,勿重做)
 
-- **对话式工作台是主入口**(`/projects/[id]/chat`):一个聊天框,Agent 面试式一次问一个,回答实时提取为结构化材料(承诺/披露/赛道/第4-6步全字段);原10步向导降级为"结构视图"
+- **对话式工作台是主入口**(`/projects/[id]/chat`):一个聊天框,Agent 面试式一次问一个,回答实时提取为结构化材料(承诺/披露/赛道/第4-6步全字段、**第8步测试案例口述落表**);原10步向导降级为"结构视图"
+- **第8步测试案例对话化**:4-6步齐后 Agent 邀请口述"讲一个你会试的场景",`parseTestCaseStory` 启发式拆成名称/类型(常规/边界/失败/不适用)/输入/预期/失败原因**追加**落表(不覆盖表格);预期缺失会追问补上;≥5例且覆盖齐→引导预检;GLM 模式输出 `test_case` 对象(白名单净化)
+- **结构视图字段"到对话中重说"**:4-6步与团队披露每字段右上角"💬 重说"→ `/chat?focus=step.key`,重说引导卡+首轮定向覆盖(服务端 parseFocus 校验,焦点轮走离线大脑保证确定性)
 - 拷问式 Agent:先拷问再建议、追问引用用户原话、每问带 why、答过深挖不重复;辅导栏追问可作答形成苏格拉底循环
 - 游戏化:6段位/11成就/字段✓微奖励/XP浮动/过步彩带(canvas-confetti)/史诗成就全屏仪式(双侧礼炮)
 - MiniMax 生图:里程碑插画盲盒(8格图鉴)+ 每日灵感卡(全站日缓存)+ 提交庆典插画
@@ -26,11 +28,11 @@ lib/steps.ts            10步字段配置(单一事实源)
 lib/validation.ts       领域校验(闭环红线/测试覆盖/敏感扫描,纯函数)
 lib/precheck.ts         硬规则;lib/progress.ts 进度引擎(权重/最小下一步)
 lib/gamification.ts     段位/成就;lib/art-scenes.ts 插画场景表
-lib/llm/                provider.ts(抽象/限流) glm.ts mock.ts schema.ts repair.ts coach.ts chat.ts chat-brain.ts(对话大脑)
+lib/llm/                provider.ts(抽象/限流) glm.ts mock.ts schema.ts repair.ts coach.ts chat.ts chat-brain.ts(对话大脑:面试状态机+口述测试拆解+focus路由)
 lib/minimax.ts          生图(真实+离线SVG回退)
 components/             ui.tsx(组件库) seal.tsx charts.tsx wizard*.tsx chat-runner.tsx coach-panel.tsx fx.tsx demo-player.tsx gallery.tsx
 app/api/                auth/teams/projects(含chat/precheck/submit)/agent/art/organizer/judge/notices
-tests/                  69个Vitest单测;tests/e2e Playwright(2用例)
+tests/                  84个Vitest单测;tests/e2e Playwright(2用例)
 ```
 
 ## 三、环境铁律(全部踩过坑,勿再踩)
@@ -58,7 +60,7 @@ tests/                  69个Vitest单测;tests/e2e Playwright(2用例)
 ## 六、质量闸门(每轮改动必须全绿)
 
 ```bash
-npm run lint && npm run typecheck && npm run test    # 69个单测
+npm run lint && npm run typecheck && npm run test    # 84个单测
 npm run build
 # E2E(mock模式):
 npm run db:reset && LLM_MOCK_MODE=true PORT=3000 npm run start &
@@ -69,12 +71,11 @@ UI 改动需浏览器截图验证(截图存 /tmp 后用图像分析审查)。演
 
 ## 七、下一步候选(按价值排序,选1-3项执行)
 
-1. **第8步测试案例对话化**:Agent 引导口述"讲一个失败的例子"→AI拆成名称/输入/预期/判定落表——补齐对话体验最后一块
-2. **结构视图字段加"到对话中重说"**:两个世界缝合(点击字段→带着该字段上下文跳对话)
-3. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
-4. 演示脚本扩展:第5-9步+预检+提交庆典完整走完
-5. 组织者端"对话洞察":把 grill 问答摘要呈现给评委(原创性佐证)
-6. 运维:演示账号自动清理、每周进展摘要通知
+1. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
+2. 演示脚本扩展:第5-9步+口述测试+预检+提交庆典完整走完
+3. 组织者端"对话洞察":把 grill 问答与口述测试过程摘要呈现给评委(原创性佐证)
+4. 口述测试表格编辑回写:对话里也能改/删已落表的案例(现在只能追加)
+5. 运维:演示账号自动清理、每周进展摘要通知
 
 ## 八、启动
 

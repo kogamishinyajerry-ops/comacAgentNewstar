@@ -93,24 +93,35 @@ export function TeamStep({ data, onSaved }: { data: WizardData; onSaved: () => v
       <div className="space-y-4">
         <h3 className="text-sm font-semibold text-slate-700">原创与公平披露(必填,提交前会校验)</h3>
         {TEAM_FIELDS.map((f) => (
-          <Field key={f.key} label={f.label} required={f.required}>
-            {f.type === "textarea" ? (
-              <Textarea
-                rows={2}
-                disabled={data.readOnly}
-                placeholder={f.placeholder}
-                value={String(team[f.key as keyof typeof team] ?? "")}
-                onChange={(e) => update(f.key, e.target.value)}
-              />
-            ) : (
-              <Input
-                disabled={data.readOnly}
-                placeholder={f.placeholder}
-                value={String(team[f.key as keyof typeof team] ?? "")}
-                onChange={(e) => update(f.key, e.target.value)}
-              />
+          <div key={f.key} className="relative">
+            <Field label={f.label} required={f.required}>
+              {f.type === "textarea" ? (
+                <Textarea
+                  rows={2}
+                  disabled={data.readOnly}
+                  placeholder={f.placeholder}
+                  value={String(team[f.key as keyof typeof team] ?? "")}
+                  onChange={(e) => update(f.key, e.target.value)}
+                />
+              ) : (
+                <Input
+                  disabled={data.readOnly}
+                  placeholder={f.placeholder}
+                  value={String(team[f.key as keyof typeof team] ?? "")}
+                  onChange={(e) => update(f.key, e.target.value)}
+                />
+              )}
+            </Field>
+            {!data.readOnly && (
+              <a
+                href={`/projects/${data.projectId}/chat?focus=2.${f.key}`}
+                className="absolute right-0 top-0 text-[10px] leading-5 text-ink-300 underline decoration-dotted underline-offset-2 transition-colors hover:text-brand-600"
+                title="到对话中重说:讲一句新说法,Agent帮你覆盖这一项"
+              >
+                💬 重说
+              </a>
             )}
-          </Field>
+          </div>
         ))}
         {saved && !data.readOnly && <p className="text-xs text-emerald-600">队伍信息已保存</p>}
         {!data.readOnly && (

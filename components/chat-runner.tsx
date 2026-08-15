@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getStepConfig } from "@/lib/steps";
-import { TEAM_MODE_LABELS } from "@/lib/constants";
+import { TEAM_MODE_LABELS, TEST_TYPE_LABELS } from "@/lib/constants";
 import { Badge, Button, ProgressBar, ProgressRing, StatusBadge, cn } from "./ui";
 import { Seal } from "./seal";
 import { MissionBar } from "./charts";
 import { LevelBadge, XpBar } from "./achievements";
-import { CHAT_OPENING } from "@/lib/llm/chat-brain";
+import { CHAT_OPENING, type ParsedTestCase } from "@/lib/llm/chat-brain";
 import { showToast } from "./fx";
 
 export interface ChatMsg {
@@ -16,7 +16,7 @@ export interface ChatMsg {
   role: string;
   content: string;
   meta: {
-    updates?: { step: number; key: string; value: string | boolean }[];
+    updates?: { step: number; key: string; value: string | boolean | ParsedTestCase }[];
     nextTarget?: { step: number; key: string; label?: string } | null;
     action?: string | null;
     grill?: { q: string; why?: string } | null;
@@ -46,18 +46,33 @@ const TEAM_LABEL: Record<string, string> = {
   helpers: "帮助人员",
 };
 
-function fieldLabel(step: number, key: string): string {
+function fieldLabel(step: number, key: string, value?: unknown): string {
+  if (step === 8) {
+    if (key === "testCaseExpected") return "补充预期";
+    const t = (value as ParsedTestCase | undefined)?.type;
+    return t ? `测试案例(${TEST_TYPE_LABELS[t] ?? t})` : "测试案例";
+  }
   if (step === 2) return TEAM_LABEL[key] ?? key;
   if (step === 3) return "赛道";
   if (step === 1) return "活动承诺";
   return getStepConfig(step)?.fields.find((f) => f.key === key)?.label.split("(")[0].slice(0, 12) ?? key;
 }
 
-export function ChatRunner({ boot, initialMessages }: { boot: ChatBoot; initialMessages: ChatMsg[] }) {
+export function ChatRunner({
+  boot,
+  initialMessages,
+  focus,
+}: {
+  boot: ChatBoot;
+  initialMessages: ChatMsg[];
+  focus?: { step: number; key: string; label: string } | null;
+}) {
   const [messages, setMessages] = useState<ChatMsg[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(boot.progress);
+  // "到对话中重说":首轮消息携带焦点,命中后回到正常节奏
+  const [pendingFocus, setPendingFocus] = useState(focus ?? null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -77,7 +92,7 @@ export function ChatRunner({ boot, initialMessages }: { boot: ChatBoot; initialM
       const res = await fetch(`/api/projects/${boot.projectId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, ...(pendingFocus ? { focus: `${pendingFocus.step}.${pendingFocus.key}` } : {}) }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -86,11 +101,18 @@ export function ChatRunner({ boot, initialMessages }: { boot: ChatBoot; initialM
         setInput(text);
         return;
       }
+      setPendingFocus(null);
       setMessages((prev) => [...prev.filter((m) => m.id !== optimistic.id), json.user, json.agent]);
       if (json.progress) setProgress(json.progress);
       const upd = json.agent?.meta?.updates ?? [];
       if (upd.length) {
-        showToast({ tone: "success", icon: "✓", title: `已记录 ${upd.length} 项材料`, desc: upd.map((u: { step: number; key: string }) => fieldLabel(u.step, u.key)).join("、"), durationMs: 2800 });
+        showToast({
+          tone: "success",
+          icon: "✓",
+          title: `已记录 ${upd.length} 项材料`,
+          desc: upd.map((u: { step: number; key: string; value: unknown }) => fieldLabel(u.step, u.key, u.value)).join("、"),
+          durationMs: 2800,
+        });
       }
     } finally {
       setBusy(false);
@@ -127,6 +149,24 @@ export function ChatRunner({ boot, initialMessages }: { boot: ChatBoot; initialM
 
         {/* 消息区 */}
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5">
+          {pendingFocus && (
+            <div className="anim-rise-in mx-auto max-w-md rounded-lg border border-brand-300/70 bg-brand-50/50 p-4">
+              <div className="mb-1.5 flex items-center gap-2">
+                <Seal size={20} char="重" tilt />
+                <span className="font-display text-xs tracking-widest text-brand-700">重说 · {pendingFocus.label}</span>
+              </div>
+              <p className="text-[13px] leading-6 text-ink-700">
+                把这一项的新说法讲给我——你说的第一句会<strong className="text-brand-700">覆盖原内容</strong>,之后回到正常节奏。
+                <span className="text-ink-400">(也可以点击右上角放弃,直接聊)</span>
+              </p>
+              <button
+                onClick={() => setPendingFocus(null)}
+                className="mt-1.5 text-[11px] text-ink-400 underline decoration-dotted underline-offset-2 hover:text-ink-700"
+              >
+                不重说了,正常聊
+              </button>
+            </div>
+          )}
           {showOpening && (
             <div className="mx-auto max-w-md rounded-lg border border-ink-900/10 bg-paper p-5">
               <div className="mb-2 flex items-center gap-2">
@@ -165,16 +205,31 @@ export function ChatRunner({ boot, initialMessages }: { boot: ChatBoot; initialM
                         去第8步填测试案例 →
                       </Link>
                     )}
+                    {m.meta.action === "run-precheck" && (
+                      <Link
+                        href={`/projects/${boot.projectId}?step=9`}
+                        className="mt-2 inline-flex items-center gap-1 rounded border border-brand-400 bg-brand-50/60 px-2 py-1 text-[11px] font-medium text-brand-700 hover:border-brand-600"
+                      >
+                        去第9步跑提交预检 →
+                      </Link>
+                    )}
                   </div>
                   {m.meta.updates && m.meta.updates.length > 0 && (
                     <div className="flex flex-wrap gap-1 pl-1">
                       {m.meta.updates.map((u, i) => (
                         <span
                           key={i}
-                          title={typeof u.value === "string" ? u.value : "已确认"}
+                          title={
+                            typeof u.value === "string"
+                              ? u.value
+                              : typeof u.value === "object" && u.value !== null
+                                ? `${(u.value as ParsedTestCase).input} → ${(u.value as ParsedTestCase).expected}`
+                                : "已确认"
+                          }
                           className="anim-pop-in inline-flex max-w-[240px] items-center gap-1 rounded-full border border-emerald-600/25 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
                         >
-                          ✓ {fieldLabel(u.step, u.key)} 已记录
+                          ✓ {fieldLabel(u.step, u.key, u.value)}
+                          {typeof u.value === "object" && u.value !== null ? " 已落表" : " 已记录"}
                         </span>
                       ))}
                     </div>

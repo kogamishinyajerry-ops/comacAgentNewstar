@@ -5,9 +5,24 @@ import { canEditProject, canViewProject, isProjectMember, loadProjectBundle } fr
 import { judgeAssignmentIds } from "@/lib/api-helpers";
 import { computeProjectProgress } from "@/lib/progress";
 import { chatHistory } from "@/lib/llm/chat";
+import { parseFocus } from "@/lib/llm/chat-brain";
+import { TEAM_FIELDS, getStepConfig } from "@/lib/steps";
 import { ChatRunner } from "@/components/chat-runner";
 
-export default async function ProjectChatPage({ params }: { params: { id: string } }) {
+/** "到对话中重说"的焦点:?focus=4.scenario → 引导卡 + 首轮定向覆盖 */
+function focusCard(focus?: string): { step: number; key: string; label: string } | null {
+  const parsed = parseFocus(focus);
+  if (!parsed) return null;
+  const label =
+    parsed.step === 2
+      ? TEAM_FIELDS.find((f) => f.key === parsed.key)?.label
+      : parsed.step === 3
+        ? "赛道"
+        : getStepConfig(parsed.step)?.fields.find((f) => f.key === parsed.key)?.label;
+  return label ? { ...parsed, label: label.split("(")[0].slice(0, 14) } : null;
+}
+
+export default async function ProjectChatPage({ params, searchParams }: { params: { id: string }; searchParams: { focus?: string } }) {
   const user = await requireUser();
   const bundle = await loadProjectBundle(params.id);
   if (!bundle) notFound();
@@ -42,6 +57,7 @@ export default async function ProjectChatPage({ params }: { params: { id: string
         },
       }}
       initialMessages={messages}
+      focus={editable ? focusCard(searchParams.focus) : null}
     />
   );
 }

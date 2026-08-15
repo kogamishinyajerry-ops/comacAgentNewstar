@@ -5,6 +5,8 @@ import { chatHistory, runChatTurn } from "@/lib/llm/chat";
 
 const Body = z.object({
   message: z.string().trim().min(1, "说点什么吧").max(4000),
+  /** "到对话中重说"携带的焦点字段(如 4.scenario),仅首轮有效 */
+  focus: z.string().max(16).optional(),
 });
 
 /** 对话历史 */
@@ -26,7 +28,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const access = await projectAccess(params.id, "edit");
   if (!access.ok) return access.error;
 
-  const result = await runChatTurn({ projectId: params.id, message: parsed.data.message, userId: user.id });
+  const result = await runChatTurn({ projectId: params.id, message: parsed.data.message, userId: user.id, focus: parsed.data.focus });
   if (!result.ok) return jsonError(result.status, result.error);
   return Response.json(result);
 }

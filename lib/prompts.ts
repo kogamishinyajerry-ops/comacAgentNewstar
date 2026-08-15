@@ -30,8 +30,9 @@ export const CHAT_SYSTEM_PROMPT = `你是"青年AI轻创活动"的对话式工�
 - 先确认,后追问:回复=一句简短确认(≤20字,如"已记录 ✓")+ 一个具体问题(≤40字);
 - 一次只问一个空缺字段的问题;问题要贴用户的语境,不念字段名;
 - 用户话里有漏洞要点破:估算没数字、判定依据无裁决力、把判断/放行交给AI、指标不可度量——放进 grill;
+- 上下文标注"邀请口述"且用户在讲一个测试场景时,输出 test_case 对象:{"name":"≤20字案例名","type":"NORMAL|BOUNDARY|FAILURE|NA","input":"测试输入","expected":"预期结果","failure_reason":"失败/不适用时的原因,其余为空串"},并在 reply 中确认第几例、邀请下一例(覆盖需含常规/边界/至少1个失败或不适用,共≥5例);
 - 不代写、不虚构、不空泛表扬;简体中文;
-- 只输出一个JSON对象:{"reply":"确认+下一问","updates":[{"step":4,"key":"targetUser","value":"..."}],"grill":{"q":"...","why":"..."}|null}
+- 只输出一个JSON对象:{"reply":"确认+下一问","updates":[{"step":4,"key":"targetUser","value":"..."}],"test_case":{...}|null,"grill":{"q":"...","why":"..."}|null}
 - updates只填用户确实说了内容的字段,step取4/5/6,key必须是给定空缺列表里的;没把握就不填。`;
 
 export const PRECHECK_SYSTEM_PROMPT = `你是"青年AI轻创活动"的提交预检Agent,按四维40分标准给出"提交预检"分数(每维0—10分):

@@ -3,19 +3,98 @@
 
 import { getStepConfig } from "../steps";
 import { getStageData, rulesAgreed } from "../validation";
+import { TEST_TYPE_LABELS } from "../constants";
 
 /** 大脑所需的最小项目形状 */
 export interface BrainBundle {
   stages: { step: number; data: string }[];
   project: { track: string | null };
+  /** 第8步口述测试需要现状(计数与覆盖);缺省视为0例 */
+  testCases?: { type: string }[];
+}
+
+/** 口述测试案例 → 结构化一行的中间形状(落库时补 verdict/sortOrder) */
+export interface ParsedTestCase {
+  name: string;
+  type: "NORMAL" | "BOUNDARY" | "FAILURE" | "NA";
+  input: string;
+  expected: string;
+  failureReason: string;
 }
 
 export interface ChatTurn {
   reply: string;
-  updates: { step: number; key: string; value: string | boolean }[];
+  updates: { step: number; key: string; value: string | boolean | ParsedTestCase }[];
   nextTarget: { step: number; key: string; label: string } | null;
   action?: "open-structure-8" | "run-precheck";
   grill?: { q: string; why: string } | null;
+}
+
+/** 口述测试的期望值占位:chat.ts 据此把后续补充写回最近一例 */
+export const EXPECT_PENDING = "待补充";
+
+const NA_RE = /不适用|用不上|无数据|没有这种|不存在这种|压根没有/;
+const FAILURE_RE = /失败|出错|报错|错了|没成|不行|崩了?|异常|搞砸|翻车|出问题|识别错|编了|编出|瞎编|胡编/;
+const BOUNDARY_RE = /边界|极端|最多|最少|超大|超长|同时|多条|重复|为空|空数据|只有一|只有1|最后一条|第一条|满负荷/;
+const EXPECTED_RE = /(应该|应当|预期|期望|希望|理应|正确|合格|算对|对得上|算通过)/;
+const REASON_RE = /(因为|由于|导致|结果是|所以)/;
+const NOT_A_STORY_RE = /^(不知道|不会|想不出|没法|说不上|你(来|帮)|帮我想|怎么写)|去表格|表格里填|表格填|结构视图|先跳过|跳过这/;
+
+/** 口述一个测试场景 → 拆成 名称/类型/输入/预期/失败原因。不是测试故事返回 null(纯函数,离线可用)。 */
+export function parseTestCaseStory(msg: string): ParsedTestCase | null {
+  const text = msg.trim();
+  if (text.length < 6 || NOT_A_STORY_RE.test(text)) return null;
+  // 口语以逗号/冒号推进,统一切分(前缀标签如"失败的情况:"会独立成短句,天然被排除)
+  const sentences = text
+    .split(/[。;.;;!?!\n,,::]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 2);
+  if (!sentences.length) return null;
+
+  const type: ParsedTestCase["type"] = NA_RE.test(text) ? "NA" : FAILURE_RE.test(text) ? "FAILURE" : BOUNDARY_RE.test(text) ? "BOUNDARY" : "NORMAL";
+  const expectedSentence = sentences.find((s) => EXPECTED_RE.test(s)) ?? "";
+  const reasonSentence = sentences.find((s) => s !== expectedSentence && REASON_RE.test(s)) ?? "";
+  const rest = sentences.filter((s) => s !== expectedSentence && s !== reasonSentence).sort((a, b) => b.length - a.length);
+  const input = (rest[0] ?? (expectedSentence || text)).slice(0, 300);
+  const expected = expectedSentence ? expectedSentence.slice(0, 300) : EXPECT_PENDING;
+  const failureFallback =
+    type === "FAILURE"
+      ? sentences
+          .filter((s) => s !== expectedSentence && s !== input && FAILURE_RE.test(s))
+          .sort((a, b) => b.length - a.length)[0] ?? ""
+      : "";
+  const failureReason =
+    type === "FAILURE" || type === "NA" ? (reasonSentence || failureFallback).slice(0, 300) : "";
+  const name = `${TEST_TYPE_LABELS[type]}例:${input.slice(0, 14)}`.slice(0, 30);
+  return { name, type, input, expected, failureReason };
+}
+
+/** 应用一例新案例后的测试覆盖状态 */
+function testAfter(bundle: BrainBundle, newType?: ParsedTestCase["type"]) {
+  const types = (bundle.testCases ?? []).map((c) => c.type);
+  if (newType) types.push(newType);
+  const count = types.length;
+  const has = (t: string) => types.includes(t);
+  return {
+    count,
+    hasNormal: has("NORMAL"),
+    hasBoundary: has("BOUNDARY"),
+    hasFailOrNa: has("FAILURE") || has("NA"),
+    complete: count >= 5 && has("NORMAL") && has("BOUNDARY") && (has("FAILURE") || has("NA")),
+  };
+}
+
+/** 把 "4.targetUser" 这样的焦点串解析成合法路由目标(供"到对话中重说"使用) */
+export function parseFocus(focus?: string | null): { step: number; key: string } | null {
+  if (!focus) return null;
+  const m = /^([2-6])\.([A-Za-z]+)$/.exec(focus);
+  if (!m) return null;
+  const step = Number(m[1]);
+  const key = m[2];
+  if (step === 3 && key === "track") return { step, key };
+  if (step === 2 && ["startTime", "existingBase", "addedDuringActivity", "externalResources", "helpers"].includes(key)) return { step, key };
+  if ([4, 5, 6].includes(step) && getStepConfig(step)!.fields.some((f) => f.key === key)) return { step, key };
+  return null;
 }
 
 /** 各字段的口语化提问模板(比"XX是什么"更自然) */
@@ -143,20 +222,86 @@ export function chatTurn(input: {
     return { reply, updates, nextTarget: after, grill };
   }
 
-  // 5) 没有明确目标:开启下一个空位
-  const next = firstEmptyField(bundle, team);
-  if (!next) {
-    // 4-6步齐了 → 测试与预检引导
+  // 4.5) 第8步:口述测试案例(一问一例,AI拆解落表)
+  if (lastTarget?.step === 8 && msg) {
+    // 上一例预期缺失,用户正在补充
+    if (lastTarget.key === "testCaseExpected") {
+      updates.push({ step: 8, key: "testCaseExpected", value: msg.slice(0, 200) });
+      const st = testAfter(bundle);
+      return {
+        reply: st.complete ? "预期已补上 ✓ 常规/边界/失败都齐了——去跑提交预检?" : "预期已补上 ✓ 继续讲下一例。",
+        updates,
+        nextTarget: st.complete ? null : { step: 8, key: "testCase", label: "测试案例" },
+        action: st.complete ? "run-precheck" : undefined,
+        grill: null,
+      };
+    }
+    const parsed = parseTestCaseStory(msg);
+    if (parsed) {
+      updates.push({ step: 8, key: "testCase", value: parsed });
+      const after = testAfter(bundle, parsed.type);
+      if (parsed.expected === EXPECT_PENDING) {
+        return {
+          reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})先记下 ✓ 它的预期结果是什么——正常应该出什么?`,
+          updates,
+          nextTarget: { step: 8, key: "testCaseExpected", label: "上一例预期" },
+          grill: null,
+        };
+      }
+      if (after.complete) {
+        return {
+          reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})已落表 ✓ 常规/边界/失败都齐了——去跑提交预检?`,
+          updates,
+          nextTarget: null,
+          action: "run-precheck",
+          grill: null,
+        };
+      }
+      const missing: string[] = [];
+      if (!after.hasNormal) missing.push("常规");
+      if (!after.hasBoundary) missing.push("边界/复杂");
+      if (!after.hasFailOrNa) missing.push("失败或不适用");
+      const need = Math.max(0, 5 - after.count);
+      const hint = need > 0 ? `还差${need}例` : `还缺覆盖:${missing.join("/")}`;
+      const invite = !after.hasFailOrNa ? "最好讲一个失败或不适用的例子——它什么时候会搞砸?" : missing.length ? `补一例${missing[0]}的:` : "再讲一例:";
+      return {
+        reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})已落表 ✓ ${hint} ${invite}`,
+        updates,
+        nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+        grill: null,
+      };
+    }
+    // 讲不出来 → 引导表格(不强迫)
+    const st = testAfter(bundle);
     return {
-      reply: "核心材料齐了。测试案例更适合表格填写,结构视图第8步见;填完回来我们跑预检。",
+      reply: `没关系——已收集${st.count}例。测试案例也可以直接在第8步的表格里填,填完回来跑预检。`,
       updates,
       nextTarget: null,
       action: "open-structure-8",
       grill: null,
     };
   }
-  if (next.step === 8) {
-    return { reply: "测试案例去结构视图第8步填写更顺手。", updates, nextTarget: null, action: "open-structure-8", grill: null };
+
+  // 5) 没有明确目标:开启下一个空位
+  const next = firstEmptyField(bundle, team);
+  if (!next) {
+    // 4-6步齐了 → 邀请口述测试(对话内完成,表格随时可改)
+    const st = testAfter(bundle);
+    if (st.complete) {
+      return {
+        reply: "材料与测试都齐了。下一步:跑一次提交预检,看看四维预检分数。",
+        updates,
+        nextTarget: null,
+        action: "run-precheck",
+        grill: null,
+      };
+    }
+    return {
+      reply: `核心材料齐了 ✓ 现在讲测试——想象你真的在用它,讲一个你会试的场景:给它什么输入、期望出什么?(共需5例:常规、边界/复杂、至少1个失败或不适用;不想说就去第8步表格填)`,
+      updates,
+      nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+      grill: null,
+    };
   }
   return { reply: ASK[next.key] ?? `说说:${next.label}?`, updates, nextTarget: { step: next.step, key: next.key, label: next.label }, grill: null };
 }

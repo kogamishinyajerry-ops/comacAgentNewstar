@@ -421,15 +421,26 @@ export function Wizard({ data }: { data: WizardData }) {
                           />
                         )}
                       </Field>
-                      <span
-                        className={cn(
-                          "absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300",
-                          filled ? "anim-pop-in bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-300"
+                      <div className="absolute right-0 top-0 flex items-center gap-2">
+                        {!data.readOnly && (
+                          <a
+                            href={`/projects/${data.projectId}/chat?focus=${step}.${f.key}`}
+                            className="text-[10px] leading-5 text-ink-300 underline decoration-dotted underline-offset-2 transition-colors hover:text-brand-600"
+                            title="到对话中重说:讲一句新说法,Agent帮你覆盖这一项"
+                          >
+                            💬 重说
+                          </a>
                         )}
-                        aria-hidden
-                      >
-                        ✓
-                      </span>
+                        <span
+                          className={cn(
+                            "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300",
+                            filled ? "anim-pop-in bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-300"
+                          )}
+                          aria-hidden
+                        >
+                          ✓
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
