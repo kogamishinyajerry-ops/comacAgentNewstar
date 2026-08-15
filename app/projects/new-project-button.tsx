@@ -25,7 +25,7 @@ export function NewProjectButton({ disabled }: { disabled?: boolean }) {
       setError(data.error ?? "创建失败");
       return;
     }
-    router.push(`/projects/${data.projectId}`);
+    router.push(`/projects/${data.projectId}/chat`);
   }
 
   if (!open) {

@@ -25,20 +25,18 @@ test("注册→建队→新建想法→第1步勾选前进", async ({ page }) =>
   await page.getByRole("button", { name: "创建队伍" }).click();
   await expect(page).toHaveURL(/\/projects/);
 
-  // 新建想法(建队后出现在工作台)
+  // 新建想法(建队后出现在工作台)→ 进入对话式工作台
   await page.getByRole("button", { name: "+ 新建想法" }).click();
   await page.getByPlaceholder("想法名称,如:变更对比说明小助手").fill("E2E测试想法");
   await page.getByRole("button", { name: "创建", exact: true }).click();
-  await expect(page).toHaveURL(/step=1/);
+  await expect(page).toHaveURL(/\/chat$/);
+  await expect(page.getByText("我不打算给你一张表格")).toBeVisible();
 
-  // 第1步:三项合规勾选后前进
-  const boxes = page.locator('input[type="checkbox"]');
-  await boxes.nth(0).check();
-  await boxes.nth(1).check();
-  await boxes.nth(2).check();
-  await page.getByRole("button", { name: "下一步 →" }).click();
-  await expect(page.getByText("原创与公平披露")).toBeVisible();
-  await expect(page.locator("code").first()).toBeVisible(); // 邀请码
+  // 对话即填写:同意承诺 → 材料被记录
+  const ta = page.getByPlaceholder("用你自己的说说——我在听,也在记录").or(page.getByPlaceholder("用你自己的话说——我在听,也在记录"));
+  await ta.fill("同意");
+  await ta.press("Enter");
+  await expect(page.getByText("三条底线确认", { exact: false })).toBeVisible({ timeout: 8000 });
 });
 
 test("第三人无法加入已满2人队伍", async ({ request }) => {

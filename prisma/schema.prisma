@@ -78,6 +78,7 @@ model IdeaProject {
   agentFeedbacks AgentFeedback[]
   attachments Attachment[]
   assignments ReviewAssignment[]
+  chatMessages ChatMessage[]
 }
 
 // 每个项目每步一份表单数据(JSON 字符串),自动保存覆盖更新
@@ -270,6 +271,17 @@ model Notice {
   link      String?
   readAt    DateTime?
   createdAt DateTime  @default(now())
+}
+
+// 对话式工作台:一个通用聊天入口,结构化字段从对话中提取
+model ChatMessage {
+  id        String   @id @default(cuid())
+  projectId String
+  role      String // user | agent
+  content   String
+  meta      String   @default("{}") // JSON: {targetField?, targetStep?, updates?, action?, stepDone?}
+  createdAt DateTime @default(now())
+  project   IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // AI生成插画(MiniMax生图模型):里程碑专属"盲盒"艺术

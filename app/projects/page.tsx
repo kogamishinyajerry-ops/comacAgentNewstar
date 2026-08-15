@@ -71,7 +71,7 @@ export default async function WorkspacePage() {
                   </span>
                 </p>
               </div>
-              <LinkButton href={`/projects/${active.projectId}?step=${active.progress.currentStep}`} size="lg">
+              <LinkButton href={`/projects/${active.projectId}/chat`} size="lg">
                 继续 →
               </LinkButton>
             </div>
@@ -119,9 +119,9 @@ export default async function WorkspacePage() {
               {data.rows.map((r) => (
                 <div key={r.projectId} className="surface-card surface-card-hover p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Link href={`/projects/${r.projectId}`} className="text-[14px] font-medium text-slate-900 hover:text-brand-600">
-                      {r.title}
-                    </Link>
+                  <Link href={`/projects/${r.projectId}/chat`} className="text-[14px] font-medium text-slate-900 hover:text-brand-600">
+                    {r.title}
+                  </Link>
                     <span className="flex items-center gap-1.5">
                       <StatusBadge status={r.status} />
                       <span className="tnum text-xs font-semibold text-slate-600">{r.progress.overallPct}%</span>

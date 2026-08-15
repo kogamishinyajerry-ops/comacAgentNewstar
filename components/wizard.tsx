@@ -246,6 +246,15 @@ export function Wizard({ data }: { data: WizardData }) {
         <div className="flex items-center gap-3">
           <h1 className="font-display text-xl font-bold tracking-tight">{data.title}</h1>
           <StatusBadge status={data.status} />
+          {!data.readOnly && (
+            <a
+              href={`/projects/${data.projectId}/chat`}
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-ink-900/15 px-2.5 text-[11px] font-medium text-ink-600 transition-colors hover:border-ink-900/40 hover:text-ink-900"
+              title="和Agent对话,说出来我来整理"
+            >
+              💬 对话模式
+            </a>
+          )}
           {data.status === "RETURNED" && data.returnReason && (
             <span className="text-xs text-amber-700">退回原因:{data.returnReason}</span>
           )}
