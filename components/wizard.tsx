@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { STEPS, TEAM_FIELDS, getStepConfig } from "@/lib/steps";
 import { levelOf } from "@/lib/gamification";
 import { StatusBadge, AutoSaveIndicator, Alert, Button, Card, Input, ProgressBar, Textarea, cn, Field } from "./ui";
+import { MissionBar } from "./charts";
 import { burstFromElement, showToast, ArtRevealModal, XpFloat, type ArtRequest } from "./fx";
 import { LevelBadge, XpBar, useAchievementTracker, wizardProgress } from "./achievements";
 import type { WizardData } from "./wizard-types";
@@ -280,6 +281,18 @@ export function Wizard({ data }: { data: WizardData }) {
         </div>
       )}
 
+      {/* 任务里程碑条:真问题 → 闭环 → 证据 → 交付 */}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <MissionBar
+          phases={[
+            { label: "真问题", done: progress.steps[3]?.status === "done", hint: "第4步完整" },
+            { label: "求证闭环", done: progress.closedLoopOk, hint: "判断依据/自动检查/人工确认/停止条件/责任人" },
+            { label: "测试证据", done: progress.tests.passOk && progress.tests.coverageOk, hint: "≥5例且三类覆盖" },
+            { label: "交付", done: ["SUBMITTED", "PRELIMINARY", "FINAL"].includes(data.status) || data.snapshots.length > 0, hint: "提交快照" },
+          ]}
+        />
+      </div>
+
       {/* 步骤条 */}
       <nav className="no-print mb-5 overflow-x-auto" aria-label="步骤导航">
         <ol className="flex min-w-max items-center gap-1 text-xs">
@@ -421,9 +434,8 @@ export function Wizard({ data }: { data: WizardData }) {
             {step === 7 && (
               <div className="space-y-3">
                 <Alert tone="info">
-                  点击右侧「获取Agent诊断」,系统会汇总前六步内容,给出当前判断、关键缺口、追问、最多3条建议与风险标记。所有建议仅供你参考,决策在你。
+                  Agent 汇总前六步,给出判断、缺口、<span className="font-semibold">拷问</span>与建议——它不代写,决策在你。
                 </Alert>
-                <p className="text-xs text-slate-500">诊断历史见右侧面板;已采纳/忽略/已处理的建议会保留记录。</p>
               </div>
             )}
             {step === 8 && (
@@ -465,6 +477,9 @@ export function Wizard({ data }: { data: WizardData }) {
               onFeedback={(f) => setFeedbacks((prev) => [f, ...prev])}
               onUpdateStates={(id, states) =>
                 setFeedbacks((prev) => prev.map((f) => (f.id === id ? { ...f, suggestionStates: states } : f)))
+              }
+              onUpdateAnswers={(id, answers) =>
+                setFeedbacks((prev) => prev.map((f) => (f.id === id ? { ...f, answers } : f)))
               }
             />
           </aside>

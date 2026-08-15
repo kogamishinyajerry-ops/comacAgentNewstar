@@ -152,3 +152,62 @@ describe("Mock Provider 输出", () => {
     expect(fb.next_action.length).toBeGreaterThan(0);
   });
 });
+
+describe("拷问式辅导(grill)", () => {
+  it("频率无数字时,追问直指估算", () => {
+    const base = bundle();
+    const b = bundle({
+      stages: base.stages.map((s) =>
+        s.step === 4
+          ? {
+              step: 4,
+              data: JSON.stringify({
+                targetUser: "新员工", scenario: "x", frequency: "经常", currentProcess: "x",
+                worstStep: "x", currentCost: "x", whyWorth: "x",
+              }),
+            }
+          : s
+      ),
+    });
+    const fb = generateMockFeedback({ bundle: b, step: 4, purpose: "COACH" });
+    const qs = fb.questions.map((q) => (typeof q === "string" ? q : q.q)).join("|");
+    expect(qs).toMatch(/估的|数过/);
+    // 每个对象形态的追问都带教育性 why
+    for (const q of fb.questions) {
+      if (typeof q !== "string") expect(q.why!.length).toBeGreaterThan(4);
+    }
+  });
+
+  it("答过的问题会演进——下一轮针对回答深挖,不重复", () => {
+    const b = bundle();
+    const fb = generateMockFeedback({
+      bundle: b,
+      step: 5,
+      purpose: "COACH",
+      answers: [{ q: "谁说了算?", a: "以系统A导出为准" }],
+    });
+    const qs = fb.questions.map((q) => (typeof q === "string" ? q : q.q)).join("|");
+    expect(qs).toContain("上次回答");
+    expect(qs).toContain("还成立吗");
+  });
+
+  it("AI职责越界时,追问责任归属", () => {
+    const b = bundle({
+      stages: [
+        ...bundle().stages,
+        {
+          step: 6,
+          data: JSON.stringify({
+            oneSentenceMvp: "x", coreUser: "x", coreProblem: "x", coreLoop: "x", verifiableMetric: "快一点",
+            aiResponsibility: "AI负责最终判断与放行", humanResponsibility: "x", autoCheckScope: "x",
+            humanConfirmPoint: "x", finalOwner: "x", tools: "x", notDoing: "x",
+          }),
+        },
+      ],
+    });
+    const fb = generateMockFeedback({ bundle: b, step: 6, purpose: "COACH" });
+    const qs = fb.questions.map((q) => (typeof q === "string" ? q : q.q)).join("|");
+    expect(qs).toMatch(/算谁的|责任/);
+    expect(qs).toMatch(/数字|达标/);
+  });
+});

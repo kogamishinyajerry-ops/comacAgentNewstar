@@ -29,12 +29,18 @@ export const PrecheckScoresSchema = z.object({
   note: z.string().default(PRECHECK_NOTE),
 });
 
+/** 追问:支持字符串或 {q, why}(为什么这么问——教育意义) */
+const QuestionSchema = z.union([
+  z.string(),
+  z.object({ q: z.string(), why: z.string().optional().default("") }),
+]);
+
 export const AgentFeedbackSchema = z
   .object({
     stage_assessment: z.enum(["ready", "needs_revision", "blocked"]),
     summary: z.string().min(1),
     critical_gaps: z.array(z.object({ field: z.string(), reason: z.string() })).max(10).default([]),
-    questions: z.array(z.string()).max(6).default([]),
+    questions: z.array(QuestionSchema).max(6).default([]),
     suggestions: z
       .array(z.object({ title: z.string(), action: z.string(), why: z.string() }))
       .max(6)
@@ -50,6 +56,11 @@ export const AgentFeedbackSchema = z
 
 export type AgentFeedback = z.infer<typeof AgentFeedbackSchema>;
 
+export interface GrillQuestion {
+  q: string;
+  why?: string;
+}
+
 const clamp = (n: number, lo = 0, hi = 10) => Math.max(lo, Math.min(hi, Math.round(n)));
 
 /**
@@ -59,7 +70,7 @@ const clamp = (n: number, lo = 0, hi = 10) => Math.max(lo, Math.min(hi, Math.rou
 export function normalizeFeedback(input: AgentFeedback): AgentFeedback {
   const fb: AgentFeedback = {
     ...input,
-    questions: input.questions.slice(0, 3),
+    questions: input.questions.slice(0, 3).map((q) => (typeof q === "string" ? { q, why: "" } : { q: q.q, why: q.why ?? "" })),
     suggestions: input.suggestions.slice(0, 3),
     critical_gaps: input.critical_gaps.slice(0, 6),
     risk_flags: input.risk_flags.slice(0, 8),
@@ -95,4 +106,9 @@ export function fallbackFeedback(rawText: string): AgentFeedback {
     precheck_scores: null,
     raw_feedback: (rawText || "").slice(0, 2000),
   });
+}
+
+/** 把 questions 归一成 {q, why} 形态(渲染层用) */
+export function asGrillQuestions(fb: AgentFeedback): GrillQuestion[] {
+  return fb.questions.map((q) => (typeof q === "string" ? { q, why: "" } : { q: q.q, why: q.why ?? "" }));
 }

@@ -29,7 +29,7 @@ function truncate(v: unknown): unknown {
 }
 
 /** 生成阶段摘要而不是把全部历史塞进上下文 */
-export function buildUserContext(bundle: ProjectBundle, step: number, purpose: "COACH" | "PRECHECK"): string {
+export function buildUserContext(bundle: ProjectBundle, step: number, purpose: "COACH" | "PRECHECK", qa: { q: string; a: string }[] = []): string {
   const cfg = getStepConfig(step);
   const stageSummary: Record<number, Record<string, unknown>> = {};
   for (const s of [1, 4, 5, 6]) {
@@ -69,6 +69,7 @@ export function buildUserContext(bundle: ProjectBundle, step: number, purpose: "
         has_failure_reason: !!t.failureReason,
       })),
     },
+    recent_qa: qa, // 此前你追问过、用户已回答的内容:请针对回答继续深挖,不要重复问
   };
   return JSON.stringify(payload);
 }
@@ -92,6 +93,31 @@ async function getActivePrompt(purpose: "COACH" | "PRECHECK"): Promise<{ system:
   };
 }
 
+/** 近几轮追问的问答(供追问演进:不重复问,针对回答深挖) */
+async function recentQA(projectId: string): Promise<{ q: string; a: string }[]> {
+  const rows = await prisma.agentFeedback.findMany({
+    where: { projectId, answers: { not: "{}" } },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+  });
+  const qa: { q: string; a: string }[] = [];
+  for (const r of rows) {
+    try {
+      const answers = JSON.parse(r.answers) as Record<string, string>;
+      const content = JSON.parse(r.content) as { questions?: (string | { q?: string })[] };
+      for (const [i, a] of Object.entries(answers)) {
+        if (!a || !a.trim()) continue;
+        const q = content.questions?.[Number(i)];
+        const qText = typeof q === "string" ? q : q?.q;
+        if (qText) qa.push({ q: qText, a });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return qa.slice(0, 5);
+}
+
 export async function runAgent(params: {
   bundle: ProjectBundle;
   step: number;
@@ -100,11 +126,12 @@ export async function runAgent(params: {
   const { bundle, step, purpose } = params;
   const provider = getProvider();
   const { system, label } = await getActivePrompt(purpose);
+  const qa = await recentQA(bundle.project.id);
 
   const isMock = provider instanceof MockProvider;
   const userMessage = isMock
-    ? JSON.stringify({ mockContext: { bundle, step, purpose } })
-    : buildUserContext(bundle, step, purpose);
+    ? JSON.stringify({ mockContext: { bundle, step, purpose, answers: qa } })
+    : buildUserContext(bundle, step, purpose, qa);
 
   const started = Date.now();
   let status: CoachRunResult["status"] = "OK";

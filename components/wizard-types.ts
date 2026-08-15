@@ -20,7 +20,7 @@ export interface FeedbackItem {
     stage_assessment: string;
     summary: string;
     critical_gaps: { field: string; reason: string }[];
-    questions: string[];
+    questions: (string | { q: string; why?: string })[];
     suggestions: { title: string; action: string; why: string }[];
     risk_flags: { type: string; severity: string; message: string }[];
     next_action: string;
@@ -36,6 +36,7 @@ export interface FeedbackItem {
     raw_feedback?: string;
   };
   suggestionStates: Record<string, string>;
+  answers: Record<string, string>;
   createdAt: string;
 }
 

@@ -138,7 +138,7 @@ model AgentSession {
   feedback          AgentFeedback?
 }
 
-// Agent 结构化反馈,只追加不改写;suggestionStates 记录每条建议的采纳状态
+// Agent 结构化反馈,只追加不改写;suggestionStates 记录每条建议的采纳状态;answers 记录追问的回答
 model AgentFeedback {
   id               String   @id @default(cuid())
   sessionId        String   @unique
@@ -146,6 +146,7 @@ model AgentFeedback {
   step             Int
   content          String // JSON,结构见 lib/llm/schema.ts
   suggestionStates String   @default("{}") // JSON: {"0":"adopted|ignored|done", ...}
+  answers          String   @default("{}") // JSON: {"0":"用户对第0个追问的回答", ...}
   createdAt        DateTime @default(now())
   session          AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   project          IdeaProject @relation(fields: [projectId], references: [id], onDelete: Cascade)

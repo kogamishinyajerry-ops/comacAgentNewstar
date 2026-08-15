@@ -34,7 +34,7 @@ export default async function WorkspacePage() {
       <div className="min-w-0 space-y-5">
         <PageHeader
           title={`你好,${user.name}`}
-          desc="按自己的节奏推进——每一步都有填写示例,右侧Agent随时陪跑,卡住了来Office Hour也行。"
+          desc="按自己的节奏——每步有示例,Agent陪跑,卡住可来Office Hour。"
           actions={
             dl != null ? (
               <Badge tone={dl < 0 ? "red" : dl <= 7 ? "amber" : "gray"}>                <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>

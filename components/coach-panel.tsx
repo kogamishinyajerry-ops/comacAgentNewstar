@@ -31,6 +31,7 @@ export function CoachPanel({
   feedbacks,
   onFeedback,
   onUpdateStates,
+  onUpdateAnswers,
 }: {
   projectId: string;
   step: number;
@@ -38,6 +39,7 @@ export function CoachPanel({
   feedbacks: FeedbackItem[];
   onFeedback: (f: FeedbackItem) => void;
   onUpdateStates: (id: string, states: Record<string, string>) => void;
+  onUpdateAnswers: (id: string, answers: Record<string, string>) => void;
 }) {
   const cfg = getStepConfig(step);
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,7 @@ export function CoachPanel({
       purpose: "COACH",
       content: json.feedback,
       suggestionStates: {},
+      answers: {},
       createdAt: new Date().toISOString(),
     };
     setLatest(item);
@@ -96,6 +99,24 @@ export function CoachPanel({
     if (res.ok) {
       const json = await res.json();
       onUpdateStates(fbId, json.states);
+    }
+  }
+
+  const [answering, setAnswering] = useState<number | null>(null);
+  const [answerText, setAnswerText] = useState("");
+  async function submitAnswer(fbId: string, qindex: number) {
+    if (!fbId || !answerText.trim()) return;
+    const res = await fetch(`/api/agent/feedback/${fbId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ qindex, answer: answerText.trim() }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      onUpdateAnswers(fbId, json.answers);
+      setAnswering(null);
+      setAnswerText("");
+      showToast({ tone: "success", icon: "🧠", title: "回答已记录", desc: "下一次诊断,Agent会带着你的回答继续深挖", durationMs: 3600 });
     }
   }
 
@@ -175,11 +196,49 @@ export function CoachPanel({
 
               {fb.questions.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-semibold text-slate-500">需要你回答</p>
-                  <ul className="mt-0.5 list-decimal pl-4 text-[11px] text-slate-600">
-                    {fb.questions.map((q, i) => (
-                      <li key={i}>{q}</li>
-                    ))}
+                  <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-brand-600">
+                    <span>🔥 拷问</span>
+                    <span className="font-normal normal-case tracking-normal text-ink-400">答不出就说明还没想清楚</span>
+                  </p>
+                  <ul className="mt-1.5 space-y-2">
+                    {fb.questions.map((raw, i) => {
+                      const q = typeof raw === "string" ? { q: raw, why: "" } : raw;
+                      const answered = display?.answers?.[String(i)];
+                      return (
+                        <li key={i} className="rounded-lg border border-ink-900/10 bg-paper p-2.5">
+                          <p className="flex gap-1.5 text-[12px] font-medium leading-5 text-ink-900">
+                            <span className="font-display shrink-0 font-bold text-brand-600">{["❶", "❷", "❸"][i] ?? `${i + 1}.`}</span>
+                            {q.q}
+                          </p>
+                          {q.why && <p className="mt-1 pl-6 text-[10px] leading-4 text-ink-400">💡 {q.why}</p>}
+                          {answered ? (
+                            <p className="mt-1.5 rounded border-l-2 border-emerald-500 bg-emerald-50/60 px-2 py-1 pl-2 text-[11px] leading-4 text-emerald-900">
+                              ✓ 你的回答:{answered}
+                            </p>
+                          ) : !readOnly ? (
+                            answering === i ? (
+                              <div className="mt-1.5 flex gap-1">
+                                <input
+                                  autoFocus
+                                  value={answerText}
+                                  onChange={(e) => setAnswerText(e.target.value)}
+                                  onKeyDown={(e) => e.key === "Enter" && submitAnswer(fbId, i)}
+                                  placeholder="想清楚再答,Agent会追问"
+                                  className="min-w-0 flex-1 rounded border border-ink-900/20 bg-[#fffdf8] px-2 py-1 text-[11px] focus:border-brand-500 focus:outline-none"
+                                />
+                                <button className="shrink-0 rounded bg-ink-900 px-2 text-[10px] font-medium text-paper hover:bg-ink-800" onClick={() => submitAnswer(fbId, i)}>
+                                  提交
+                                </button>
+                              </div>
+                            ) : (
+                              <button className="mt-1.5 text-[10px] font-medium text-brand-600 hover:underline" onClick={() => { setAnswering(i); setAnswerText(""); }}>
+                                ✎ 写下你的回答
+                              </button>
+                            )
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

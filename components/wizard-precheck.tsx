@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PRECHECK_NOTE } from "@/lib/constants";
 import { Alert, Badge, Button, Card, Input, cn } from "./ui";
 import { CeremonyOverlay, CountUp, ArtSlot, fireConfetti, showToast } from "./fx";
+import { Radar } from "./charts";
 import type { AttachmentItem, FeedbackItem, HardRuleView, WizardData } from "./wizard-types";
 
 interface PrecheckResponse {
@@ -272,26 +273,37 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
 
           {scores && (
             <Card title="四维预检(Agent)">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {[
-                  { key: "problem_definition", label: "真问题与需求定义" },
-                  { key: "originality", label: "原创过程与独立完成" },
-                  { key: "closed_loop", label: "跑通闭环与人机边界" },
-                  { key: "evidence", label: "验证证据与复盘" },
-                ].map((d) => (
-                  <div key={d.key} className="anim-rise-in rounded-md border border-slate-200 p-3 text-center">
-                    <p className="text-2xl font-bold text-brand-700">
-                      <CountUp value={Number(scores[d.key as keyof typeof scores])} />
-                    </p>
-                    <p className="text-xs text-slate-500">/10</p>
-                    <p className="mt-1 text-xs font-medium text-slate-600">{d.label}</p>
+              <div className="flex flex-col items-center gap-4 sm:flex-row">
+                <Radar
+                  values={[scores.problem_definition, scores.originality, scores.closed_loop, scores.evidence]}
+                  labels={["真问题", "原创", "闭环", "证据"]}
+                  size={190}
+                />
+                <div className="grid flex-1 grid-cols-2 gap-2.5">
+                  {[
+                    { key: "problem_definition", label: "真问题与需求定义" },
+                    { key: "originality", label: "原创过程与独立完成" },
+                    { key: "closed_loop", label: "跑通闭环与人机边界" },
+                    { key: "evidence", label: "验证证据与复盘" },
+                  ].map((d) => (
+                    <div key={d.key} className="anim-rise-in rounded-md border border-ink-900/10 px-3 py-2">
+                      <p className="tnum text-xl font-bold leading-6 text-brand-600">
+                        <CountUp value={Number(scores[d.key as keyof typeof scores])} />
+                        <span className="ml-0.5 text-xs font-normal text-ink-400">/10</span>
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-4 text-ink-500">{d.label}</p>
+                    </div>
+                  ))}
+                  <div className="col-span-2 flex items-baseline justify-center gap-2 border-t border-ink-900/10 pt-2.5">
+                    <span className="text-xs text-ink-400">总分</span>
+                    <span className="tnum font-display text-2xl font-bold text-ink-900">
+                      <CountUp value={scores.total} durationMs={1000} />
+                    </span>
+                    <span className="text-xs text-ink-400">/40</span>
                   </div>
-                ))}
+                </div>
               </div>
-              <p className="mt-3 text-center text-sm">
-                总分 <span className="text-lg font-bold text-brand-700"><CountUp value={scores.total} durationMs={1000} /></span>/40
-              </p>
-              <p className="mt-2 rounded bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-800">{PRECHECK_NOTE}</p>
+              <p className="mt-3 rounded bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-800">{PRECHECK_NOTE}</p>
             </Card>
           )}
 
@@ -332,9 +344,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
       )}
 
       {!result && !busy && (
-        <Alert tone="info">
-          预检会执行:硬规则校验(组队、披露、必填、测试覆盖、求证闭环、敏感信息)、四维40分Agent预检,并生成小实验卡与90秒Demo脚本。
-        </Alert>
+        <Alert tone="info">硬规则校验 + 四维预检 + 三件套生成。</Alert>
       )}
 
       <CeremonyOverlay

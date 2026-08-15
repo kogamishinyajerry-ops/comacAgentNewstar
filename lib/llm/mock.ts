@@ -16,6 +16,70 @@ export interface MockContext {
   bundle: ProjectBundle;
   step: number;
   purpose: "COACH" | "PRECHECK";
+  /** 此前的问答(用于追问演进,不重复问) */
+  answers?: { q: string; a: string }[];
+}
+
+/** 拷问题库:针对用户已写内容找漏洞,每题附 why(教育意义) */
+function grillQuestions(ctx: MockContext): { q: string; why: string }[] {
+  const { bundle, step } = ctx;
+  const out: { q: string; why: string }[] = [];
+  const push = (q: string, why: string) => {
+    if (out.length < 3) out.push({ q, why });
+  };
+  const s4 = getStageData(bundle.stages, 4);
+  const s5 = getStageData(bundle.stages, 5);
+  const s6 = getStageData(bundle.stages, 6);
+  const str = (d: Record<string, unknown>, k: string) => (typeof d[k] === "string" ? (d[k] as string) : "");
+  const hasDigit = (s: string) => /\d/.test(s);
+
+  // 追问演进:有回答就深挖一层,不重复上一问
+  if (ctx.answers && ctx.answers.length > 0) {
+    const last = ctx.answers[ctx.answers.length - 1];
+    push(
+      `你上次回答「${last.a.slice(0, 26)}${last.a.length > 26 ? "…" : ""}」——如果数据源换了、频率变了,这个答案还成立吗?`,
+      "好的判断要经得起条件变化,而不是背一个答案"
+    );
+  }
+
+  if (step === 4) {
+    if (str(s4, "frequency") && !hasDigit(str(s4, "frequency"))) {
+      push(`你说「${str(s4, "frequency").slice(0, 18)}」——这是估的,还是真的数过一次?`, "频率决定这件事值不值得做,估的数字往往差3倍");
+    }
+    if (/所有人|大家|每个人都|全公司|全部门/.test(str(s4, "targetUser"))) {
+      push(`「${str(s4, "targetUser").slice(0, 14)}」——能落到一个具体的人吗?他叫什么、坐哪?`, "用户越具体,判定标准越好写");
+    }
+    if (str(s4, "worstStep") && str(s4, "worstStep").length < 12) {
+      push("最麻烦的那一步,你上一次出错是什么时候?当时具体错在哪?", "错误细节是判定标准的最好原料");
+    }
+  } else if (step === 5) {
+    const js = str(s5, "judgmentSource");
+    if (js && !/(为准|对照|标准|清单|口径)/.test(js)) {
+      push(`「${js.slice(0, 18)}」——如果两份依据打架,谁赢?`, "判定标准必须能裁决冲突,否则等于没有");
+    }
+    if (str(s5, "stopConditions") && !/[、,;,,]/.test(str(s5, "stopConditions"))) {
+      push("只写了一个停止条件?想一个最离谱的输入,它靠什么被拦住?", "异常路径想得越全,人工确认点越可靠");
+    }
+  } else if (step === 6) {
+    const ai = str(s6, "aiResponsibility");
+    if (/(决定|判断|放行|验收|最终)/.test(ai)) {
+      push(`你把「${(ai.match(/(决定|判断|放行|验收|最终)/) ?? ["判断"])[0]}」交给了AI——它出错的那天,算谁的?`, "责任不可外包,这是活动红线也是工程常识");
+    }
+    if (str(s6, "verifiableMetric") && !hasDigit(str(s6, "verifiableMetric"))) {
+      push(`「${str(s6, "verifiableMetric").slice(0, 16)}」里没有数字——多少算达标?`, "没有数字的指标,验证时谁说了算?");
+    }
+  } else if (step === 8) {
+    const f = bundle.testCases.find((t) => (t.verdict === "FAIL" || t.type === "FAILURE") && !t.failureReason);
+    if (f) {
+      push(`失败案例「${f.name.slice(0, 12)}」为什么会失败?一行话说清根因`, "失败原因写清了,它才从事故变成证据");
+    }
+  }
+
+  // 兜底:总有得问
+  if (out.length === 0) {
+    push("如果明天就要给一个陌生同事演示,你敢删掉哪一半功能?为什么留下另一半?", "砍到不能再砍,才知道什么是核心");
+  }
+  return out;
 }
 
 const has = (v: unknown): boolean => typeof v === "string" && v.trim().length > 0;
@@ -181,13 +245,14 @@ export function generateMockFeedback(ctx: MockContext): AgentFeedback {
   else if (step < 4) assessment = missing.length ? "needs_revision" : "ready";
 
   const gaps = missing.slice(0, 4).map((m) => ({ field: m.key, reason: `「${m.label}」还是空的` }));
-  const { questions, suggestions, next_action, summary } = stepCoach(ctx, missing.length === 0);
+  const { suggestions, next_action, summary } = stepCoach(ctx, missing.length === 0);
+  const grill = grillQuestions(ctx);
 
   return {
     stage_assessment: assessment,
     summary,
     critical_gaps: gaps,
-    questions,
+    questions: grill,
     suggestions,
     risk_flags: risks,
     next_action,

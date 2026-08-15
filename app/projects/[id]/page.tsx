@@ -86,6 +86,7 @@ export default async function ProjectWizardPage({
       purpose: f.session.purpose,
       content: JSON.parse(f.content),
       suggestionStates: JSON.parse(f.suggestionStates || "{}"),
+      answers: JSON.parse(f.answers || "{}"),
       createdAt: f.createdAt.toISOString(),
     })),
     snapshots: snapshots.map((s) => ({ version: s.version, createdAt: s.createdAt.toISOString() })),
