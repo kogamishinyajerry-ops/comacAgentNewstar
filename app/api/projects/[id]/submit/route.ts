@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { audit, jsonError } from "@/lib/auth";
 import { projectAccess } from "@/lib/api-helpers";
+import { emitEvent } from "@/lib/events/bus";
 import { runHardRules } from "@/lib/precheck";
 import { precheckInputOf } from "@/lib/projects";
 import { buildDemoScript, buildExperimentCard, buildVisibleResultChecklist } from "@/lib/deliverables";
@@ -60,6 +61,12 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     }),
   ]);
   await audit(user, "project.submit", "IdeaProject", params.id, `v${version}`);
+  await emitEvent({
+    type: "project.submitted",
+    payload: { projectId: params.id, title: bundle.project.title, version, team: bundle.team.name },
+    actor: user,
+    projectId: params.id,
+  });
   return Response.json({ ok: true, version });
 }
 
@@ -75,5 +82,11 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   }
   await prisma.ideaProject.update({ where: { id: params.id }, data: { status: "DRAFT" } });
   await audit(user, "project.withdraw", "IdeaProject", params.id, `from ${bundle.project.status}`);
+  await emitEvent({
+    type: "project.status_changed",
+    payload: { projectId: params.id, title: bundle.project.title, from: bundle.project.status, to: "DRAFT", reason: "队内撤回" },
+    actor: user,
+    projectId: params.id,
+  });
   return Response.json({ ok: true });
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { apiUser, audit, jsonError } from "@/lib/auth";
 import { readJson } from "@/lib/api-helpers";
+import { emitEvent } from "@/lib/events/bus";
 
 const Body = z.object({
   action: z.enum(["return", "preliminary", "final", "archive"]),
@@ -40,5 +41,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     data: { status: t.to, returnReason: action === "return" ? reason : null },
   });
   await audit(user, `project.${action}`, "IdeaProject", params.id, reason ?? "");
+  await emitEvent({
+    type: "project.status_changed",
+    payload: { projectId: params.id, title: project.title, from: project.status, to: t.to, reason: reason ?? null },
+    actor: user,
+    projectId: params.id,
+  });
   return Response.json({ ok: true, status: t.to });
 }

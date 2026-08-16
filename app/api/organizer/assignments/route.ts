@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { apiUser, audit, jsonError } from "@/lib/auth";
 import { readJson } from "@/lib/api-helpers";
+import { emitEvent } from "@/lib/events/bus";
 
 const Body = z.object({
   projectId: z.string().min(1),
@@ -32,6 +33,12 @@ export async function POST(req: Request) {
 
   const assignment = await prisma.reviewAssignment.create({ data: { projectId, judgeId, round } });
   await audit(user, "review.assign", "ReviewAssignment", assignment.id, `${judge.name} → ${project.title} (${round})`);
+  await emitEvent({
+    type: "review.assigned",
+    payload: { assignmentId: assignment.id, projectId, title: project.title, judgeId, judgeName: judge.name, round },
+    actor: user,
+    projectId,
+  });
   return Response.json({ ok: true, assignmentId: assignment.id });
 }
 

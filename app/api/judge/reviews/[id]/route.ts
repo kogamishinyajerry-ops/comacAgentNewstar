@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { apiUser, audit, jsonError } from "@/lib/auth";
 import { readJson } from "@/lib/api-helpers";
+import { emitEvent } from "@/lib/events/bus";
 
 const Body = z.object({
   problemDefinition: z.number().int().min(0).max(10),
@@ -81,5 +82,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     throw e;
   }
   await audit(user, "review.lock", "Review", review.id, `assignment=${assignment.id}`);
+  await emitEvent({ type: "review.locked", payload: { reviewId: review.id, assignmentId: assignment.id, projectId: assignment.projectId }, actor: user, projectId: assignment.projectId });
   return Response.json({ ok: true });
 }

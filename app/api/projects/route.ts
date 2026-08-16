@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { apiUser, jsonError, audit } from "@/lib/auth";
+import { emitEvent } from "@/lib/events/bus";
 
 const Body = z.object({
   title: z.string().trim().min(2, "想法名称至少2个字符").max(60),
@@ -19,5 +20,6 @@ export async function POST(req: Request) {
     data: { teamId: membership.teamId, title: parsed.data.title },
   });
   await audit(user, "project.create", "IdeaProject", project.id, project.title);
+  await emitEvent({ type: "project.created", payload: { projectId: project.id, title: project.title }, actor: user, projectId: project.id });
   return Response.json({ ok: true, projectId: project.id });
 }

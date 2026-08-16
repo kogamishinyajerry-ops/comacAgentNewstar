@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { apiUser, audit, jsonError } from "@/lib/auth";
 import { readJson } from "@/lib/api-helpers";
+import { emitEvent } from "@/lib/events/bus";
 
 const ContentBody = z.object({
   kind: z.enum(["announcement", "inspiration", "officeHour"]),
@@ -32,6 +33,7 @@ export async function POST(req: Request) {
     if (!b.title?.trim() || !b.body?.trim()) return jsonError(400, "公告需要标题与正文");
     const row = await prisma.announcement.create({ data: { title: b.title, body: b.body, pinned: b.pinned ?? false } });
     await audit(user, "content.announcement.create", "Announcement", row.id, b.title);
+    await emitEvent({ type: "announcement.published", payload: { announcementId: row.id, title: row.title, pinned: row.pinned }, actor: user });
     return Response.json({ ok: true, id: row.id });
   }
   if (b.kind === "inspiration") {

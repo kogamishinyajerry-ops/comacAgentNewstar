@@ -9,6 +9,10 @@ import { Seal } from "./seal";
 export async function Nav() {
   const user = await getCurrentUser();
   const unread = user ? await prisma.notice.count({ where: { userId: user.id, readAt: null } }) : 0;
+  const pendingConfirm =
+    user && (user.role === "ORGANIZER" || user.role === "ADMIN")
+      ? await prisma.pendingAction.count({ where: { status: "PENDING" } })
+      : 0;
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-ink-900/10 bg-paper/90 backdrop-blur-md">
@@ -26,6 +30,16 @@ export async function Nav() {
             <NavLink href="/projects">我的工作台</NavLink>
           )}
           {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && <NavLink href="/organizer">组织者</NavLink>}
+          {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && (
+            <span className="relative">
+              <NavLink href="/workbuddy">WorkBuddy</NavLink>
+              {pendingConfirm > 0 && (
+                <span className="tnum pointer-events-none absolute -right-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold leading-none text-paper ring-2 ring-paper">
+                  {pendingConfirm > 9 ? "9+" : pendingConfirm}
+                </span>
+              )}
+            </span>
+          )}
           {user?.role === "JUDGE" && <NavLink href="/judge">评委工作台</NavLink>}
           <span className="mx-1 h-4 w-px bg-slate-200" aria-hidden />
           <NavLink href="/inspirations">案例灵感</NavLink>

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { apiUser, audit, jsonError } from "@/lib/auth";
 import { readJson } from "@/lib/api-helpers";
+import { emitEvent } from "@/lib/events/bus";
 import { loadProjectBundle } from "@/lib/projects";
 import { computeProjectProgress } from "@/lib/progress";
 
@@ -43,5 +44,11 @@ export async function POST(req: Request) {
     })),
   });
   await audit(user, "notice.nudge", "IdeaProject", bundle.project.id, `to ${bundle.members.length}人`);
+  await emitEvent({
+    type: "notice.sent",
+    payload: { projectId: bundle.project.id, title: bundle.project.title, to: bundle.members.length, mode: "project" },
+    actor: user,
+    projectId: bundle.project.id,
+  });
   return Response.json({ ok: true, sent: bundle.members.length });
 }

@@ -307,3 +307,51 @@ model TokenUsage {
   ok               Boolean  @default(true)
   createdAt        DateTime @default(now())
 }
+
+// ---------- 事件中心 / Activity Control / 权限确认 ----------
+
+// 事件中心:全站领域事件追加日志(只增不改),seq 单调递增供消费方做游标
+model DomainEvent {
+  id        String   @id @default(cuid())
+  seq       Int      @unique
+  type      String // 见 lib/events/types.ts EVENT_TYPES
+  payload   String   @default("{}") // JSON,只放 id/标题/状态等非敏感摘要
+  actorId   String?
+  actorName String   @default("system")
+  projectId String?
+  createdAt DateTime @default(now())
+}
+
+// 权限确认:敏感动作先落单(PENDING),人工批准后按冻结的 input 原样执行
+model PendingAction {
+  id               String    @id @default(cuid())
+  actionId         String
+  input            String // JSON,创建时冻结,批准后按此执行
+  summary          String // 一句话说明将要发生什么(确认页/通知展示)
+  risk             String    @default("SENSITIVE")
+  requestedBy      String // 发起者 userId 或 "agent:workbuddy" / "mcp:<prefix>"
+  requestedName    String
+  contextProjectId String?
+  status           String    @default("PENDING") // PENDING | DENIED | EXECUTED | FAILED | EXPIRED
+  resolvedBy       String?
+  resolvedName     String?
+  resolvedAt       DateTime?
+  resolutionNote   String?
+  executedAt       DateTime?
+  result           String? // JSON 执行结果
+  error            String?
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+}
+
+// MCP Server 接入令牌:只存哈希,明文仅创建时展示一次
+model ApiToken {
+  id          String    @id @default(cuid())
+  name        String
+  tokenHash   String    @unique
+  prefix      String // 明文前8位,用于识别
+  userId      String
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}

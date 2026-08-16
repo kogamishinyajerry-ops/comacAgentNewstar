@@ -17,6 +17,12 @@
 - MiniMax 生图:里程碑插画盲盒(8格图鉴)+ 每日灵感卡(全站日缓存)+ 提交庆典插画
 - 实机演示:虚拟鼠标真实操作全流程(execCommand 原生输入),HUD解说/1-3x倍速/停止,`/?demo=1` 直链
 - 组织者:仪表盘/进展中枢(漏斗/矩阵/停滞临期预警)/温和催办通知/评审分配;评委四维40分评分(锁定/回避)
+- **Activity Control / 事件中心 / 权限确认 / WorkBuddy(本轮新增,组织者仪表盘不再重点扩张)**:
+  - **动作注册表 `lib/control/actions.ts`**(8动作:activity.overview/events.recent 只读 SAFE;activity.updateConfig/announcement.publish/notice.send/project.setStatus/review.assign/track.toggle 敏感 SENSITIVE)→ 三个暴露面:REST `/api/control/*`、MCP `POST /api/mcp`、WorkBuddy 工具
+  - **事件中心 `lib/events/`**:`DomainEvent` 追加日志(seq 单调),submit/状态/公告/评审/分配等路由已接线 emit;内置订阅者"待确认→组织者通知";`GET /api/events` 游标轮询
+  - **权限确认**:SENSITIVE→`PendingAction` 冻结输入(24h)→ `/workbuddy` 右栏批准/拒绝→按冻结参数原样执行;条件更新防重复处理;MCP/Agent 只能发起、批准必须登录的人
+  - **MCP Server**:Streamable HTTP / JSON-RPC 2.0(`lib/mcp/protocol.ts` 纯协议层可单测);令牌 `/integrations` 创建(只存 sha256);敏感工具返回 `needsConfirmation` 结构化内容
+  - **WorkBuddy 总控 `/workbuddy`**:对话+待确认队列+事件流三栏;GLM 工具循环≤2轮+白名单;Mock 大脑确定性路由(工具执行与确认流都是真实的);限流10次/分
 - 提交预检:10条硬规则(含求证闭环五要素、敏感信息扫描)+四维雷达图;小实验卡/可见结果/90秒Demo脚本三件套;快照不可变
 - 视觉:纸墨朱砂编辑风(见下)
 
@@ -30,10 +36,15 @@ lib/validation.ts       领域校验(闭环红线/测试覆盖/敏感扫描,纯�
 lib/precheck.ts         硬规则;lib/progress.ts 进度引擎(权重/最小下一步)
 lib/gamification.ts     段位/成就;lib/art-scenes.ts 插画场景表
 lib/llm/                provider.ts(抽象/限流) glm.ts mock.ts schema.ts repair.ts coach.ts chat.ts chat-brain.ts(对话大脑:面试状态机+口述测试拆解+focus路由)
+lib/events/             事件中心:types.ts(事件目录) bus.ts(追加日志+订阅,存储注入,Prisma默认装配)
+lib/control/            Activity Control:actions.ts(动作目录) registry.ts(核心状态机:SAFE直执/SENSITIVE落单/冻结执行,存储注入) index.ts(Prisma装配) zod-json.ts(Zod→JSON Schema)
+lib/mcp/                protocol.ts(JSON-RPC分发,后端注入) tokens.ts(令牌,只存哈希)
+lib/workbuddy/          agent.ts(工具循环+系统提示词) mock-brain.ts(确定性意图路由)
 lib/minimax.ts          生图(真实+离线SVG回退)
-components/             ui.tsx(组件库) seal.tsx charts.tsx wizard*.tsx chat-runner.tsx coach-panel.tsx fx.tsx demo-player.tsx gallery.tsx
-app/api/                auth/teams/projects(含chat/precheck/submit)/agent/art/organizer/judge/notices
-tests/                  102个Vitest单测;tests/e2e Playwright(2用例)
+components/             ui.tsx(组件库) seal.tsx charts.tsx wizard*.tsx chat-runner.tsx coach-panel.tsx fx.tsx demo-player.tsx gallery.tsx workbuddy-console.tsx token-manager.tsx
+app/api/                auth/teams/projects(含chat/precheck/submit)/agent/art/organizer/judge/notices + control/ mcp/ confirmations/ events/ workbuddy/
+app/workbuddy app/integrations   总控台页、MCP令牌管理页
+tests/                  131个Vitest单测;tests/e2e Playwright(2用例)
 ```
 
 ## 三、环境铁律(全部踩过坑,勿再踩)
@@ -61,21 +72,26 @@ tests/                  102个Vitest单测;tests/e2e Playwright(2用例)
 ## 六、质量闸门(每轮改动必须全绿)
 
 ```bash
-npm run lint && npm run typecheck && npm run test    # 102个单测
+npm run lint && npm run typecheck && npm run test    # 131个单测
 npm run build
 # E2E(mock模式):
 npm run db:reset && LLM_MOCK_MODE=true PORT=3000 npm run start &
 E2E_BASE_URL=http://localhost:3000 npx playwright test
+# Activity Control 闭环手工验证(mock即可):
+# 登录organizer → /workbuddy 说"看下活动概览"(SAFE直出) → "发一条公告《X》内容:Y"(SENSITIVE落单)
+# → 右栏批准 → GET /api/events 看到 announcement.published + confirmation.executed;
+# MCP: /integrations 建令牌 → POST /api/mcp {initialize/tools/list/tools/call},坏令牌401
 ```
 
 UI 改动需浏览器截图验证(截图存 /tmp 后用图像分析审查)。演示账号(密码 demo1234):alice(已提交)/bob(草稿)/organizer/judge1/admin。
 
 ## 七、下一步候选(按价值排序,选1-3项执行)
 
-1. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
-2. 演示脚本扩展:第5-9步+口述测试+预检+提交庆典完整走完
-3. 运维:演示账号自动清理、每周进展摘要通知
-4. 对话洞察扩展:组织者进展中枢展示各队"对话活跃度"(仅计数,不看草稿全文,注意红线)
+1. WorkBuddy GLM 实测调优(当前仅 Mock 走通全链路;GLM 模式的计划/总结提示词需实测迭代,注意思维链耗 max_tokens≥8000 铁律)
+2. 事件中心消费端扩展:停滞项目的自动事件(如"3天无进展")、每周摘要通知(订阅者模式,不新增轮询)
+3. MCP 增加 prompts/resources 能力(公告模板、活动手册),令牌 scopes 细分(只读令牌)
+4. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
+5. 既有 organizer REST 路由逐步迁移到动作注册表(消除双轨:notify/status/assignments 已有等价动作)
 
 ## 八、启动
 

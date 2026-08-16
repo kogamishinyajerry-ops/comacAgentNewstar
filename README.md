@@ -87,19 +87,27 @@ npm run e2e          # Playwright E2E(首次:npx playwright install chromium)
 ```
 app/                    页面与API路由
   api/                  auth/teams/projects/agent/precheck/organizer/judge
-  projects/[id]         10步向导 + 小实验卡打印页
+                        control/(Activity Control REST) mcp/(MCP Server) confirmations/ events/ workbuddy/
+  projects/[id]         10步向导 + 小实验卡打印页 + 对话式工作台
   organizer/            仪表盘、作品状态、评审分配、活动配置
+  workbuddy/            总控Agent控制台(对话+待确认队列+事件流)
+  integrations/         MCP 令牌管理(创建/吊销,明文只显示一次)
   judge/                评委工作台(四维40分)
-components/             UI组件、向导、Agent辅导栏
+components/             UI组件、向导、Agent辅导栏、WorkBuddy控制台
 lib/
   constants.ts          角色/赛道/状态/风险类型(四赛道固定)
   steps.ts              10步流程集中配置(字段/必填/示例/预计用时)
   validation.ts         阶段校验、求证闭环红线、测试覆盖、敏感信息扫描(纯函数)
   precheck.ts           提交预检硬规则(纯函数)
   deliverables.ts       小实验卡/可见结果清单/90秒Demo脚本生成器
-  llm/                  Provider抽象:glm.ts / mock.ts / repair.ts / schema.ts / coach.ts
+  llm/                  Provider抽象:glm.ts / mock.ts / repair.ts / schema.ts / coach.ts / chat-brain.ts
+  events/               事件中心:types.ts(目录) bus.ts(落库+订阅,存储注入)
+  control/              Activity Control 动作注册表:actions.ts(目录) registry.ts(核心状态机)
+                        store.ts→index.ts(Prisma装配) zod-json.ts(Zod→JSON Schema)
+  mcp/                  protocol.ts(JSON-RPC分发,后端注入) tokens.ts(令牌:只存哈希)
+  workbuddy/            agent.ts(工具循环) mock-brain.ts(离线确定性大脑)
   auth.ts               Session+RBAC+审计
-prisma/schema.prisma    18个实体;SQLite触发器在seed中创建
+prisma/schema.prisma    21个实体;SQLite触发器在seed中创建
 tests/                  Vitest单元测试 + Playwright E2E
 ```
 
@@ -114,6 +122,23 @@ tests/                  Vitest单元测试 + Playwright E2E
 - **权限**:组织者看不到未提交草稿全文(访问草稿详情页会重定向);评委仅见被分配的已提交作品;普通参与者不能查看他人项目(404)。
 - **GLM Key 安全**:只在服务端路由读取;日志与错误信息只包含 HTTP 状态与响应摘要,不含 Key;思维链(`reasoning_content`)不解析、不存储、不下发。
 - **可见结果材料**:第9步支持添加在线链接与上传文件(≤10MB,存 `data/uploads`),下载走 `/api/attachments/[id]/download` 并复用项目查看权限(未登录401、无权限403);小实验卡页会列出全部材料。
+
+## Activity Control / 事件中心 / 权限确认 / WorkBuddy
+
+组织者仪表盘不再扩张;控制能力收敛为**一套动作注册表、三个暴露面、一条人机边界**:
+
+```
+lib/control/actions.ts(8个动作:概览/事件/配置/公告/通知/状态/评审分配/赛道)
+        │  SAFE(只读)直接执行;SENSITIVE(改状态)必须人工确认
+        ├── REST   POST /api/control/execute + GET /api/control/actions
+        ├── MCP    POST /api/mcp(Streamable HTTP,JSON-RPC 2.0,Bearer 令牌)
+        └── Agent  /workbuddy(WorkBuddy 总控台,对话即控制)
+```
+
+- **事件中心 `lib/events/`**:全站领域事件追加日志(`DomainEvent`,seq 单调递增,游标轮询 `GET /api/events`);提交/状态变更/公告/评审锁定/分配/确认生命周期全部留痕;进程内订阅者(如"有待确认 → 给组织者发站内通知");payload 只放 id/标题/计数,不碰草稿全文与密钥。
+- **权限确认机制**:SENSITIVE 动作 → `PendingAction` 冻结输入落单(24h 过期)→ 组织者在 `/workbuddy` 右栏批准/拒绝 → **按冻结参数原样执行**(条件更新保证一单一处理;执行失败落 FAILED 并保留错误);Agent/MCP 令牌只能"发起",批准必须是登录的人——与活动"求证闭环必须有人工确认点"的哲学同构。
+- **MCP Server `POST /api/mcp`**:`initialize`/`tools/list`/`tools/call`/`ping`;工具=动作注册表(带 readOnlyHint/destructiveHint 注解);令牌在 `/integrations` 创建(只存 sha256,明文仅显示一次),属主角色决定可见工具;`tools/call` 敏感工具返回 `structuredContent.needsConfirmation=true` 而非直接生效。
+- **WorkBuddy 总控 Agent**:GLM 模式=计划→真实执行工具→基于结果总结(≤2轮,目录外动作白名单过滤);Mock 模式=确定性意图路由,同样真实走确认流,演示可复现;限流 10次/分/人,每次调用审计留痕。
 
 ## 拷问式辅导(Grill Coach)
 
