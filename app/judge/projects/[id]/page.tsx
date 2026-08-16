@@ -5,6 +5,8 @@ import { requireRole } from "@/lib/auth";
 import { Badge, Card } from "@/components/ui";
 import { ReviewForm } from "./review-form";
 import { RecuseButton } from "./recuse-button";
+import { chatHistory } from "@/lib/llm/chat";
+import { chatInsight } from "@/lib/chat-insight";
 
 export default async function JudgeProjectPage({ params }: { params: { id: string } }) {
   const user = await requireRole("JUDGE", "ADMIN");
@@ -27,6 +29,10 @@ export default async function JudgeProjectPage({ params }: { params: { id: strin
     header: { title: string; track: string; team: string; members: string };
     sections: { heading: string; rows: { label: string; value: string }[] }[];
   };
+
+  // 对话形成过程:材料在聊天中逐步长出来的留痕,佐证原创维度(提交后对话冻结,与快照时点一致)
+  const messages = await chatHistory(params.id);
+  const insight = chatInsight(messages);
 
   return (
     <div className="space-y-4 py-4">
@@ -63,6 +69,47 @@ export default async function JudgeProjectPage({ params }: { params: { id: strin
         </Card>
 
         <div className="space-y-3">
+          {(insight.turns > 0 || insight.testsNarrated > 0) && (
+            <Card title="对话形成过程 · 原创性佐证">
+              <p className="mb-2 text-[11px] leading-4 text-slate-400">
+                材料是否在对话中逐步形成、拷问是否被正面回答——供「原创过程与独立完成」维度参考,非评分依据本身。
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+                {[
+                  [`${insight.turns}`, "轮对话"],
+                  [`${insight.fieldCount}`, "个字段经对话记录"],
+                  [`${insight.testsNarrated}`, "例测试为口述落表"],
+                  [`${insight.grillAnswered}/${insight.grillAsked}`, "次拷问被正面作答"],
+                ].map(([n, label]) => (
+                  <div key={label} className="flex items-baseline gap-1.5">
+                    <span className="tnum font-display text-lg font-bold text-brand-700">{n}</span>
+                    <span className="text-slate-500">{label}</span>
+                  </div>
+                ))}
+              </div>
+              {insight.highlights.length > 0 && (
+                <details className="group mt-2.5">
+                  <summary className="cursor-pointer list-none text-[11px] text-slate-400 transition-colors hover:text-brand-600">
+                    查看拷问答摘录({insight.highlights.length}组)
+                  </summary>
+                  <ul className="mt-2 space-y-2">
+                    {insight.highlights.map((h, i) => (
+                      <li key={i} className="rounded border-l-2 border-brand-400 bg-brand-50/40 px-2 py-1.5">
+                        <p className="text-[11px] font-medium leading-4 text-brand-800">🔥 {h.q}</p>
+                        <p className="mt-0.5 text-[11px] leading-4 text-slate-600">答:{h.answer}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {insight.firstAt && (
+                <p className="mt-2 text-[10px] text-slate-400">
+                  留痕区间:{new Date(insight.firstAt).toLocaleDateString("zh-CN")} — {new Date(insight.lastAt ?? insight.firstAt).toLocaleDateString("zh-CN")}
+                  {insight.expectedFollowups > 0 && ` · 补充预期 ${insight.expectedFollowups} 次`}
+                </p>
+              )}
+            </Card>
+          )}
           <ReviewForm
             assignmentId={assignment.id}
             locked={assignment.review?.status === "LOCKED"}

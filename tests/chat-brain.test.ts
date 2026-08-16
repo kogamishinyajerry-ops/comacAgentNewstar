@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chatTurn, CHAT_OPENING, parseFocus, parseTestCaseStory, type BrainBundle } from "../lib/llm/chat-brain";
+import { chatTurn, CHAT_OPENING, parseFocus, parseTestCaseCommand, parseTestCaseStory, type BrainBundle } from "../lib/llm/chat-brain";
 
 const bundle = (over: Partial<BrainBundle> = {}): BrainBundle => ({
   project: { track: null },
@@ -207,6 +207,92 @@ describe("口述测试状态机", () => {
       message: "然后呢",
     });
     expect(t.action).toBe("run-precheck");
+  });
+});
+
+describe("parseTestCaseCommand 对话内改删指令", () => {
+  it("删除指令:第N例/最后一例", () => {
+    expect(parseTestCaseCommand("删掉第2例")).toEqual({ op: "delete", index: 2 });
+    expect(parseTestCaseCommand("最后一例不要了")).toEqual({ op: "delete", index: "last" });
+    expect(parseTestCaseCommand("刚才那例删了")).toEqual({ op: "delete", index: "last" });
+  });
+
+  it("修改指令:预期与名称", () => {
+    expect(parseTestCaseCommand("第2例的预期是输出两条对比")).toEqual({ op: "patch", index: 2, patch: { expected: "输出两条对比" } });
+    expect(parseTestCaseCommand("第3例预期改成应该停下来")).toEqual({ op: "patch", index: 3, patch: { expected: "应该停下来" } });
+    expect(parseTestCaseCommand("第1例改名叫常规查询")).toEqual({ op: "patch", index: 1, patch: { name: "常规查询" } });
+    expect(parseTestCaseCommand("最后一例的名称改为敏感输入")).toEqual({ op: "patch", index: "last", patch: { name: "敏感输入" } });
+  });
+
+  it("非指令返回null", () => {
+    expect(parseTestCaseCommand("讲一个失败的情况,它崩了")).toBeNull();
+    expect(parseTestCaseCommand("删")).toBeNull();
+    expect(parseTestCaseCommand("再讲一例常规的")).toBeNull();
+  });
+});
+
+describe("口述测试的对话内编辑", () => {
+  const twoCases = [
+    { type: "NORMAL", name: "常规查询" },
+    { type: "FAILURE", name: "文档冲突" },
+  ];
+
+  it("删掉第2例 → testCaseDelete 更新,回复点名案例", () => {
+    const t = chatTurn({ bundle: fullCoreBundle(twoCases), team, lastTarget: { step: 8, key: "testCase" }, message: "第2例删掉" });
+    expect(t.updates[0]).toEqual({ step: 8, key: "testCaseDelete", value: "2" });
+    expect(t.reply).toContain("文档冲突");
+    expect(t.reply).toContain("还差4例");
+  });
+
+  it("改第1例预期 → testCasePatch 更新", () => {
+    const t = chatTurn({ bundle: fullCoreBundle(twoCases), team, lastTarget: { step: 8, key: "testCase" }, message: "第1例的预期是正确回答并给出出处" });
+    expect(t.updates[0]).toEqual({ step: 8, key: "testCasePatch", value: { index: 1, patch: { expected: "正确回答并给出出处" } } });
+    expect(t.reply).toContain("常规查询");
+  });
+
+  it("删掉最后一例 → value=last", () => {
+    const t = chatTurn({ bundle: fullCoreBundle(twoCases), team, lastTarget: { step: 8, key: "testCase" }, message: "最后一例删掉" });
+    expect(t.updates[0]).toEqual({ step: 8, key: "testCaseDelete", value: "last" });
+  });
+
+  it("越界序号 → 不产生更新,回复澄清", () => {
+    const t = chatTurn({ bundle: fullCoreBundle(twoCases), team, lastTarget: { step: 8, key: "testCase" }, message: "删掉第5例" });
+    expect(t.updates).toHaveLength(0);
+    expect(t.reply).toContain("现在共2例");
+  });
+
+  it("提到第N例但指令不明 → 澄清而非误当新故事", () => {
+    const t = chatTurn({ bundle: fullCoreBundle(twoCases), team, lastTarget: { step: 8, key: "testCase" }, message: "第1例怎么样" });
+    expect(t.updates).toHaveLength(0);
+    expect(t.reply).toMatch(/想对这一例做什么/);
+  });
+
+  it("未受邀(lastTarget为空)也能直接下编辑指令——重说覆盖后的第一句", () => {
+    const t = chatTurn({ bundle: fullCoreBundle(twoCases), team, lastTarget: null, message: "第1例的预期是正确回答并给出处" });
+    expect(t.updates[0]).toMatchObject({ step: 8, key: "testCasePatch", value: { index: 1 } });
+  });
+
+  it("无案例时下编辑指令 → 引导先口述", () => {
+    const t = chatTurn({ bundle: fullCoreBundle([]), team, lastTarget: null, message: "第1例删掉" });
+    expect(t.updates).toHaveLength(0);
+    expect(t.reply).toContain("还没有案例");
+  });
+
+  it("未受邀直接口述(带明确预期) → 直接落表,不出邀请", () => {
+    const t = chatTurn({ bundle: fullCoreBundle([]), team, lastTarget: null, message: "问一句差旅住宿标准,期望给出答案并附出处" });
+    expect(t.updates[0]).toMatchObject({ step: 8, key: "testCase" });
+    expect(t.reply).toContain("已落表");
+  });
+
+  it("闲聊(无明确信号)不会被误记成案例 → 仍然邀请口述", () => {
+    const t = chatTurn({ bundle: fullCoreBundle([]), team, lastTarget: null, message: "材料都填好了,我们继续吧" });
+    expect(t.updates).toHaveLength(0);
+    expect(t.reply).toContain("讲测试");
+  });
+
+  it("未受邀口述失败例(类型关键词明确) → 直接落表", () => {
+    const t = chatTurn({ bundle: fullCoreBundle([]), team, lastTarget: null, message: "两份文档说法不一致的时候它出错了" });
+    expect(t.updates[0]?.value).toMatchObject({ type: "FAILURE" });
   });
 });
 

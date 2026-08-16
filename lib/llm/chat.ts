@@ -11,7 +11,7 @@ import { MockProvider } from "./mock";
 import { isMockEnabled, llmConfig, checkRateLimit } from "./provider";
 import { tryParseJson } from "./repair";
 import { CHAT_SYSTEM_PROMPT } from "../prompts";
-import { chatTurn, parseFocus, EXPECT_PENDING, type ChatTurn, type ParsedTestCase } from "./chat-brain";
+import { chatTurn, parseFocus, EXPECT_PENDING, type ChatTurn, type ParsedTestCase, type TestCasePatch } from "./chat-brain";
 
 const TEAM_KEYS = ["startTime", "existingBase", "addedDuringActivity", "externalResources", "helpers"];
 
@@ -87,9 +87,11 @@ export async function runChatTurn(params: { projectId: string; message: string; 
   const teamRecord = bundle.team as unknown as Record<string, unknown>;
   let turn: ChatTurn;
 
-  // GLM模式:自然语言提取(结构步骤1-3与"重说"焦点交给离线大脑,确定性强)
+  // GLM模式:自然语言提取(结构步骤1-3、"重说"焦点与案例删改指令交给离线大脑,确定性强)
+  const brainTurn = chatTurn({ bundle, team: teamRecord, lastTarget, message });
+  const isEditCommand = brainTurn.updates.some((u) => u.step === 8 && (u.key === "testCaseDelete" || u.key === "testCasePatch"));
   let provider: { name: string; chatJSON: (p: { system: string; user: string }) => Promise<{ text: string }> } | null = null;
-  if (!isMockEnabled() && !focused) provider = new GLMProvider();
+  if (!isMockEnabled() && !focused && !isEditCommand) provider = new GLMProvider();
 
   if (provider) {
     try {
@@ -120,19 +122,18 @@ export async function runChatTurn(params: { projectId: string; message: string; 
       const updates = sanitizeGlm(out, allowed);
       const tc = sanitizeTestCase(out.test_case);
       if (tc && (bundle.testCases ?? []).length < 30) updates.push({ step: 8, key: "testCase", value: tc });
-      const brainFallback = chatTurn({ bundle, team: teamRecord, lastTarget, message });
       turn = {
-        reply: (out.reply && String(out.reply).slice(0, 300)) || brainFallback.reply,
-        updates: updates.length ? updates : brainFallback.updates,
-        nextTarget: tc && !brainFallback.nextTarget ? { step: 8, key: "testCase", label: "测试案例" } : brainFallback.nextTarget,
+        reply: (out.reply && String(out.reply).slice(0, 300)) || brainTurn.reply,
+        updates: updates.length ? updates : brainTurn.updates,
+        nextTarget: tc && !brainTurn.nextTarget ? { step: 8, key: "testCase", label: "测试案例" } : brainTurn.nextTarget,
         grill: out.grill?.q ? { q: out.grill.q.slice(0, 160), why: (out.grill.why ?? "").slice(0, 120) } : null,
-        action: brainFallback.action,
+        action: brainTurn.action,
       };
     } catch {
-      turn = chatTurn({ bundle, team: teamRecord, lastTarget, message });
+      turn = brainTurn;
     }
   } else {
-    turn = chatTurn({ bundle, team: teamRecord, lastTarget, message });
+    turn = brainTurn;
   }
 
   // 落库updates
@@ -183,6 +184,25 @@ export async function runChatTurn(params: { projectId: string; message: string; 
         orderBy: { sortOrder: "desc" },
       });
       if (pending) await prisma.testCase.update({ where: { id: pending.id }, data: { expected: u.value.slice(0, 2000) } });
+    } else if (u.step === 8 && u.key === "testCaseDelete" && typeof u.value === "string") {
+      // 对话内删除已落表的案例(仅草稿期可用,不触已提交快照)
+      const all = await prisma.testCase.findMany({ where: { projectId }, orderBy: { sortOrder: "asc" } });
+      const idx = u.value === "last" ? all.length - 1 : Number(u.value) - 1;
+      if (idx >= 0 && idx < all.length) await prisma.testCase.delete({ where: { id: all[idx].id } });
+    } else if (u.step === 8 && u.key === "testCasePatch" && typeof u.value === "object" && u.value !== null) {
+      const { index, patch } = u.value as TestCasePatch;
+      const all = await prisma.testCase.findMany({ where: { projectId }, orderBy: { sortOrder: "asc" } });
+      const idx = index === "last" ? all.length - 1 : index - 1;
+      const target = all[idx];
+      if (target) {
+        await prisma.testCase.update({
+          where: { id: target.id },
+          data: {
+            ...(patch.expected ? { expected: patch.expected.slice(0, 2000) } : {}),
+            ...(patch.name ? { name: patch.name.slice(0, 80) } : {}),
+          },
+        });
+      }
     }
   }
 
@@ -222,7 +242,7 @@ export interface ChatMsgView {
   role: string;
   content: string;
   meta: {
-    updates?: { step: number; key: string; value: string | boolean | ParsedTestCase }[];
+    updates?: { step: number; key: string; value: string | boolean | ParsedTestCase | TestCasePatch }[];
     nextTarget?: { step: number; key: string; label?: string } | null;
     action?: string | null;
     grill?: { q: string; why?: string } | null;

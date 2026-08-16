@@ -9,8 +9,8 @@ import { TEST_TYPE_LABELS } from "../constants";
 export interface BrainBundle {
   stages: { step: number; data: string }[];
   project: { track: string | null };
-  /** 第8步口述测试需要现状(计数与覆盖);缺省视为0例 */
-  testCases?: { type: string }[];
+  /** 第8步口述测试需要现状(计数/覆盖/名称,供删除确认);缺省视为0例 */
+  testCases?: { type: string; name?: string }[];
 }
 
 /** 口述测试案例 → 结构化一行的中间形状(落库时补 verdict/sortOrder) */
@@ -22,9 +22,15 @@ export interface ParsedTestCase {
   failureReason: string;
 }
 
+/** 对已落表案例的编辑指令(口述的反向操作) */
+export interface TestCasePatch {
+  index: number | "last";
+  patch: { expected?: string; name?: string };
+}
+
 export interface ChatTurn {
   reply: string;
-  updates: { step: number; key: string; value: string | boolean | ParsedTestCase }[];
+  updates: { step: number; key: string; value: string | boolean | ParsedTestCase | TestCasePatch }[];
   nextTarget: { step: number; key: string; label: string } | null;
   action?: "open-structure-8" | "run-precheck";
   grill?: { q: string; why: string } | null;
@@ -32,6 +38,27 @@ export interface ChatTurn {
 
 /** 口述测试的期望值占位:chat.ts 据此把后续补充写回最近一例 */
 export const EXPECT_PENDING = "待补充";
+
+const CASE_IDX_RE = /第\s*(\d+)\s*[例条个]/;
+const CASE_LAST_RE = /(最后|刚才那|上一)[一那]?[例条个]/;
+const CASE_DELETE_RE = /删(掉|除|了)|去掉|移除|不要|撤销/;
+const CASE_EXPECTED_RE = /(?:预期|期望|应该)[^。;;;,,::]*(?:是|改成?|为|:|:)\s*(.{2,300})$/;
+const CASE_NAME_RE = /(?:名字|名称|改名|改叫)[^。;;;,,::]*(?:是|改成?|叫|为|:|:)\s*(.{1,60})$/;
+
+/** "删掉第2例 / 第3例的预期是… / 最后一例改名叫…" → 结构化指令;不是指令返回 null(纯函数) */
+export function parseTestCaseCommand(msg: string): { op: "delete" | "patch"; index: number | "last"; patch?: TestCasePatch["patch"] } | null {
+  const text = msg.trim();
+  if (text.length < 3) return null;
+  const idx = CASE_IDX_RE.exec(text);
+  const index: number | "last" = idx ? Number(idx[1]) : CASE_LAST_RE.test(text) ? "last" : NaN;
+  if (typeof index === "number" && Number.isNaN(index)) return null;
+  if (CASE_DELETE_RE.test(text)) return { op: "delete", index };
+  const exp = CASE_EXPECTED_RE.exec(text);
+  if (exp) return { op: "patch", index, patch: { expected: exp[1].trim() } };
+  const name = CASE_NAME_RE.exec(text);
+  if (name) return { op: "patch", index, patch: { name: name[1].trim() } };
+  return null;
+}
 
 const NA_RE = /不适用|用不上|无数据|没有这种|不存在这种|压根没有/;
 const FAILURE_RE = /失败|出错|报错|错了|没成|不行|崩了?|异常|搞砸|翻车|出问题|识别错|编了|编出|瞎编|胡编/;
@@ -222,8 +249,19 @@ export function chatTurn(input: {
     return { reply, updates, nextTarget: after, grill };
   }
 
-  // 4.5) 第8步:口述测试案例(一问一例,AI拆解落表)
+  // 4.5) 第8步:口述测试案例(一问一例,AI拆解落表;支持对话内改/删)
   if (lastTarget?.step === 8 && msg) {
+    const cmd = parseTestCaseCommand(msg);
+    if (cmd) return testCommandTurn(bundle, cmd);
+    // 提到"第N例"但指令不明 → 澄清,避免误当成新故事
+    if (CASE_IDX_RE.test(msg) || CASE_LAST_RE.test(msg)) {
+      return {
+        reply: `想对这一例做什么?说"删掉第N例"、"第N例的预期是…",或"第N例改名叫…"。`,
+        updates,
+        nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+        grill: null,
+      };
+    }
     // 上一例预期缺失,用户正在补充
     if (lastTarget.key === "testCaseExpected") {
       updates.push({ step: 8, key: "testCaseExpected", value: msg.slice(0, 200) });
@@ -237,40 +275,7 @@ export function chatTurn(input: {
       };
     }
     const parsed = parseTestCaseStory(msg);
-    if (parsed) {
-      updates.push({ step: 8, key: "testCase", value: parsed });
-      const after = testAfter(bundle, parsed.type);
-      if (parsed.expected === EXPECT_PENDING) {
-        return {
-          reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})先记下 ✓ 它的预期结果是什么——正常应该出什么?`,
-          updates,
-          nextTarget: { step: 8, key: "testCaseExpected", label: "上一例预期" },
-          grill: null,
-        };
-      }
-      if (after.complete) {
-        return {
-          reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})已落表 ✓ 常规/边界/失败都齐了——去跑提交预检?`,
-          updates,
-          nextTarget: null,
-          action: "run-precheck",
-          grill: null,
-        };
-      }
-      const missing: string[] = [];
-      if (!after.hasNormal) missing.push("常规");
-      if (!after.hasBoundary) missing.push("边界/复杂");
-      if (!after.hasFailOrNa) missing.push("失败或不适用");
-      const need = Math.max(0, 5 - after.count);
-      const hint = need > 0 ? `还差${need}例` : `还缺覆盖:${missing.join("/")}`;
-      const invite = !after.hasFailOrNa ? "最好讲一个失败或不适用的例子——它什么时候会搞砸?" : missing.length ? `补一例${missing[0]}的:` : "再讲一例:";
-      return {
-        reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})已落表 ✓ ${hint} ${invite}`,
-        updates,
-        nextTarget: { step: 8, key: "testCase", label: "测试案例" },
-        grill: null,
-      };
-    }
+    if (parsed) return testStoryTurn(bundle, parsed);
     // 讲不出来 → 引导表格(不强迫)
     const st = testAfter(bundle);
     return {
@@ -285,7 +290,7 @@ export function chatTurn(input: {
   // 5) 没有明确目标:开启下一个空位
   const next = firstEmptyField(bundle, team);
   if (!next) {
-    // 4-6步齐了 → 邀请口述测试(对话内完成,表格随时可改)
+    // 4-6步齐了 → 测试阶段(未受邀也允许直接口述/编辑)
     const st = testAfter(bundle);
     if (st.complete) {
       return {
@@ -296,6 +301,20 @@ export function chatTurn(input: {
         grill: null,
       };
     }
+    const cmd = parseTestCaseCommand(msg);
+    if (cmd) {
+      return st.count > 0
+        ? testCommandTurn(bundle, cmd)
+        : { reply: "还没有案例可改——先讲一个场景:给它什么输入、期望出什么?", updates, nextTarget: { step: 8, key: "testCase", label: "测试案例" }, grill: null };
+    }
+    // 直接开始口述:仅在信号明确时(带预期句,或明确失败/不适用/边界关键词),避免闲聊被误记成案例
+    const story = parseTestCaseStory(msg);
+    if (story && story.expected !== EXPECT_PENDING && !CASE_IDX_RE.test(msg) && !CASE_LAST_RE.test(msg)) {
+      return testStoryTurn(bundle, story);
+    }
+    if (story && story.type !== "NORMAL" && !CASE_IDX_RE.test(msg) && !CASE_LAST_RE.test(msg)) {
+      return testStoryTurn(bundle, story);
+    }
     return {
       reply: `核心材料齐了 ✓ 现在讲测试——想象你真的在用它,讲一个你会试的场景:给它什么输入、期望出什么?(共需5例:常规、边界/复杂、至少1个失败或不适用;不想说就去第8步表格填)`,
       updates,
@@ -304,6 +323,75 @@ export function chatTurn(input: {
     };
   }
   return { reply: ASK[next.key] ?? `说说:${next.label}?`, updates, nextTarget: { step: next.step, key: next.key, label: next.label }, grill: null };
+}
+
+/** 删/改已落表案例的一轮(指令已解析;越界给澄清) */
+function testCommandTurn(bundle: BrainBundle, cmd: NonNullable<ReturnType<typeof parseTestCaseCommand>>): ChatTurn {
+  const cases = bundle.testCases ?? [];
+  const count = cases.length;
+  const idx = cmd.index === "last" ? count : cmd.index;
+  const updates: ChatTurn["updates"] = [];
+  if (idx < 1 || idx > count) {
+    return {
+      reply: `没有第${idx}例——现在共${count}例。说"删掉第N例",或继续讲一个新场景。`,
+      updates,
+      nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+      grill: null,
+    };
+  }
+  const target = cases[idx - 1];
+  if (cmd.op === "delete") {
+    updates.push({ step: 8, key: "testCaseDelete", value: cmd.index === "last" ? "last" : String(cmd.index) });
+    return {
+      reply: `已删掉「${target?.name ?? "该例"}」✓ 还剩${count - 1}例${count - 1 < 5 ? `,还差${5 - (count - 1)}例` : ""}——继续讲,或说"第N例的预期是…"来改。`,
+      updates,
+      nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+      grill: null,
+    };
+  }
+  updates.push({ step: 8, key: "testCasePatch", value: { index: cmd.index, patch: cmd.patch ?? {} } });
+  return {
+    reply: `「${target?.name ?? "该例"}」的${cmd.patch?.expected ? "预期" : "名称"}已更新 ✓`,
+    updates,
+    nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+    grill: null,
+  };
+}
+
+/** 口述一例落表的一轮(故事已拆解) */
+function testStoryTurn(bundle: BrainBundle, parsed: ParsedTestCase): ChatTurn {
+  const updates: ChatTurn["updates"] = [{ step: 8, key: "testCase", value: parsed }];
+  const after = testAfter(bundle, parsed.type);
+  if (parsed.expected === EXPECT_PENDING) {
+    return {
+      reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})先记下 ✓ 它的预期结果是什么——正常应该出什么?`,
+      updates,
+      nextTarget: { step: 8, key: "testCaseExpected", label: "上一例预期" },
+      grill: null,
+    };
+  }
+  if (after.complete) {
+    return {
+      reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})已落表 ✓ 常规/边界/失败都齐了——去跑提交预检?`,
+      updates,
+      nextTarget: null,
+      action: "run-precheck",
+      grill: null,
+    };
+  }
+  const missing: string[] = [];
+  if (!after.hasNormal) missing.push("常规");
+  if (!after.hasBoundary) missing.push("边界/复杂");
+  if (!after.hasFailOrNa) missing.push("失败或不适用");
+  const need = Math.max(0, 5 - after.count);
+  const hint = need > 0 ? `还差${need}例` : `还缺覆盖:${missing.join("/")}`;
+  const invite = !after.hasFailOrNa ? "最好讲一个失败或不适用的例子——它什么时候会搞砸?" : missing.length ? `补一例${missing[0]}的:` : "再讲一例:";
+  return {
+    reply: `第${after.count}例(${TEST_TYPE_LABELS[parsed.type]})已落表 ✓ ${hint} ${invite}`,
+    updates,
+    nextTarget: { step: 8, key: "testCase", label: "测试案例" },
+    grill: null,
+  };
 }
 
 /** 应用updates后重新计算下一空位(不改入参) */

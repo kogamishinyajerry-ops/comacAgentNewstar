@@ -8,7 +8,7 @@ import { Badge, Button, ProgressBar, ProgressRing, StatusBadge, cn } from "./ui"
 import { Seal } from "./seal";
 import { MissionBar } from "./charts";
 import { LevelBadge, XpBar } from "./achievements";
-import { CHAT_OPENING, type ParsedTestCase } from "@/lib/llm/chat-brain";
+import { CHAT_OPENING, type ParsedTestCase, type TestCasePatch } from "@/lib/llm/chat-brain";
 import { showToast } from "./fx";
 
 export interface ChatMsg {
@@ -16,7 +16,7 @@ export interface ChatMsg {
   role: string;
   content: string;
   meta: {
-    updates?: { step: number; key: string; value: string | boolean | ParsedTestCase }[];
+    updates?: { step: number; key: string; value: string | boolean | ParsedTestCase | TestCasePatch }[];
     nextTarget?: { step: number; key: string; label?: string } | null;
     action?: string | null;
     grill?: { q: string; why?: string } | null;
@@ -49,6 +49,8 @@ const TEAM_LABEL: Record<string, string> = {
 function fieldLabel(step: number, key: string, value?: unknown): string {
   if (step === 8) {
     if (key === "testCaseExpected") return "补充预期";
+    if (key === "testCaseDelete") return "删除测试案例";
+    if (key === "testCasePatch") return "修改测试案例";
     const t = (value as ParsedTestCase | undefined)?.type;
     return t ? `测试案例(${TEST_TYPE_LABELS[t] ?? t})` : "测试案例";
   }
@@ -56,6 +58,15 @@ function fieldLabel(step: number, key: string, value?: unknown): string {
   if (step === 3) return "赛道";
   if (step === 1) return "活动承诺";
   return getStepConfig(step)?.fields.find((f) => f.key === key)?.label.split("(")[0].slice(0, 12) ?? key;
+}
+
+/** 胶囊后缀:不同动作不同动词,避免把删改也说成"落表" */
+function pillSuffix(u: { step: number; key: string; value: unknown }): string {
+  if (u.step === 8 && u.key === "testCase") return " 已落表";
+  if (u.step === 8 && u.key === "testCaseDelete") return " 已删除";
+  if (u.step === 8 && u.key === "testCasePatch") return " 已修改";
+  if (typeof u.value === "object" && u.value !== null) return "";
+  return " 已记录";
 }
 
 export function ChatRunner({
@@ -216,22 +227,19 @@ export function ChatRunner({
                   </div>
                   {m.meta.updates && m.meta.updates.length > 0 && (
                     <div className="flex flex-wrap gap-1 pl-1">
-                      {m.meta.updates.map((u, i) => (
-                        <span
-                          key={i}
-                          title={
-                            typeof u.value === "string"
-                              ? u.value
-                              : typeof u.value === "object" && u.value !== null
-                                ? `${(u.value as ParsedTestCase).input} → ${(u.value as ParsedTestCase).expected}`
-                                : "已确认"
-                          }
-                          className="anim-pop-in inline-flex max-w-[240px] items-center gap-1 rounded-full border border-emerald-600/25 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
-                        >
-                          ✓ {fieldLabel(u.step, u.key, u.value)}
-                          {typeof u.value === "object" && u.value !== null ? " 已落表" : " 已记录"}
-                        </span>
-                      ))}
+                      {m.meta.updates.map((u, i) => {
+                        const tc = typeof u.value === "object" && u.value !== null && "input" in (u.value as ParsedTestCase) ? (u.value as ParsedTestCase) : null;
+                        return (
+                          <span
+                            key={i}
+                            title={typeof u.value === "string" ? u.value : tc ? `${tc.input} → ${tc.expected}` : "已确认"}
+                            className="anim-pop-in inline-flex max-w-[240px] items-center gap-1 rounded-full border border-emerald-600/25 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
+                          >
+                            ✓ {fieldLabel(u.step, u.key, u.value)}
+                            {pillSuffix(u)}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

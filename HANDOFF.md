@@ -9,7 +9,8 @@
 ## 一、项目现状(全部已完成并验证,勿重做)
 
 - **对话式工作台是主入口**(`/projects/[id]/chat`):一个聊天框,Agent 面试式一次问一个,回答实时提取为结构化材料(承诺/披露/赛道/第4-6步全字段、**第8步测试案例口述落表**);原10步向导降级为"结构视图"
-- **第8步测试案例对话化**:4-6步齐后 Agent 邀请口述"讲一个你会试的场景",`parseTestCaseStory` 启发式拆成名称/类型(常规/边界/失败/不适用)/输入/预期/失败原因**追加**落表(不覆盖表格);预期缺失会追问补上;≥5例且覆盖齐→引导预检;GLM 模式输出 `test_case` 对象(白名单净化)
+- **第8步测试案例对话化**:4-6步齐后 Agent 邀请口述"讲一个你会试的场景",`parseTestCaseStory` 启发式拆成名称/类型(常规/边界/失败/不适用)/输入/预期/失败原因**追加**落表(不覆盖表格);预期缺失会追问补上;≥5例且覆盖齐→引导预检;GLM 模式输出 `test_case` 对象(白名单净化);**对话内改删**:"删掉第N例/最后一例""第N例的预期是…""第N例改名叫…"(未受邀直接说也认得;编辑指令走离线大脑保证确定性)
+- **评委端"对话形成过程"卡**(`lib/chat-insight.ts` 纯函数):轮数/字段去重数/口述案例数/拷问答次数+摘录,佐证原创维度;提交后对话冻结(非DRAFT拒POST),与快照时点一致
 - **结构视图字段"到对话中重说"**:4-6步与团队披露每字段右上角"💬 重说"→ `/chat?focus=step.key`,重说引导卡+首轮定向覆盖(服务端 parseFocus 校验,焦点轮走离线大脑保证确定性)
 - 拷问式 Agent:先拷问再建议、追问引用用户原话、每问带 why、答过深挖不重复;辅导栏追问可作答形成苏格拉底循环
 - 游戏化:6段位/11成就/字段✓微奖励/XP浮动/过步彩带(canvas-confetti)/史诗成就全屏仪式(双侧礼炮)
@@ -32,7 +33,7 @@ lib/llm/                provider.ts(抽象/限流) glm.ts mock.ts schema.ts repa
 lib/minimax.ts          生图(真实+离线SVG回退)
 components/             ui.tsx(组件库) seal.tsx charts.tsx wizard*.tsx chat-runner.tsx coach-panel.tsx fx.tsx demo-player.tsx gallery.tsx
 app/api/                auth/teams/projects(含chat/precheck/submit)/agent/art/organizer/judge/notices
-tests/                  84个Vitest单测;tests/e2e Playwright(2用例)
+tests/                  102个Vitest单测;tests/e2e Playwright(2用例)
 ```
 
 ## 三、环境铁律(全部踩过坑,勿再踩)
@@ -60,7 +61,7 @@ tests/                  84个Vitest单测;tests/e2e Playwright(2用例)
 ## 六、质量闸门(每轮改动必须全绿)
 
 ```bash
-npm run lint && npm run typecheck && npm run test    # 84个单测
+npm run lint && npm run typecheck && npm run test    # 102个单测
 npm run build
 # E2E(mock模式):
 npm run db:reset && LLM_MOCK_MODE=true PORT=3000 npm run start &
@@ -73,9 +74,8 @@ UI 改动需浏览器截图验证(截图存 /tmp 后用图像分析审查)。演
 
 1. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
 2. 演示脚本扩展:第5-9步+口述测试+预检+提交庆典完整走完
-3. 组织者端"对话洞察":把 grill 问答与口述测试过程摘要呈现给评委(原创性佐证)
-4. 口述测试表格编辑回写:对话里也能改/删已落表的案例(现在只能追加)
-5. 运维:演示账号自动清理、每周进展摘要通知
+3. 运维:演示账号自动清理、每周进展摘要通知
+4. 对话洞察扩展:组织者进展中枢展示各队"对话活跃度"(仅计数,不看草稿全文,注意红线)
 
 ## 八、启动
 
