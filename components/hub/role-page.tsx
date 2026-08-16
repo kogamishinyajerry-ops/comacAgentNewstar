@@ -3,13 +3,53 @@ import { roles } from "@/config/activity";
 import { Reveal } from "./reveal";
 import { CoachOrb } from "./coach-orb";
 
+type HubRoleKey = (typeof roles)[number]["key"];
+type ProtectedWorkspaceHref = "/projects" | "/judge" | "/organizer";
+
+type ProtectedWorkspaceHandoff = {
+  href: ProtectedWorkspaceHref;
+  label: string;
+  description: string;
+  secondary?: {
+    href: "/workbuddy";
+    label: string;
+  };
+};
+
+/**
+ * 公共 Hub 只交接到既有受保护工作区，绝不在这里复刻其数据、权限或动作。
+ * `satisfies` 让三种公开角色与目标入口保持一一对应。
+ */
+const protectedWorkspaceHandoffs = {
+  participant: {
+    href: "/projects",
+    label: "进入受保护的参赛者工作区",
+    description: "先完成问题探索；具备访问权限后，再在个人工作区继续沉淀与实践。",
+  },
+  reviewer: {
+    href: "/judge",
+    label: "进入受保护的评委工作区",
+    description: "在独立理解项目与证据后，由既有评委工作区承接后续的人类判断。",
+  },
+  organizer: {
+    href: "/organizer",
+    label: "进入受保护的组织者工作区",
+    description: "由既有组织者工作区承接已获授权的协作与管理流程。",
+    secondary: {
+      href: "/workbuddy",
+      label: "查看 WorkBuddy 受保护入口",
+    },
+  },
+} as const satisfies Record<HubRoleKey, ProtectedWorkspaceHandoff>;
+
 /**
  * 角色说明页共用骨架:你会看到什么 / 你需要做什么 / 系统不会替你做什么。
  * 只做说明,不做空壳工作台(红线)。
  */
-export function RolePage({ roleKey }: { roleKey: "participant" | "reviewer" | "organizer" }) {
+export function RolePage({ roleKey }: { roleKey: HubRoleKey }) {
   const role = roles.find((r) => r.key === roleKey)!;
   const others = roles.filter((r) => r.key !== roleKey);
+  const handoff: ProtectedWorkspaceHandoff = protectedWorkspaceHandoffs[roleKey];
 
   return (
     <div className="hub-container pb-24">
@@ -77,17 +117,50 @@ export function RolePage({ roleKey }: { roleKey: "participant" | "reviewer" | "o
       {roleKey === "reviewer" && (
         <Reveal className="mt-6">
           <p className="hub-caption max-w-[640px]">
-            治理原则:评委在独立判断前不会看到其他评委意见;AI 不做正式预评分。阶段一不提供任何评分功能。
+            治理原则:评委在独立判断前不会看到其他评委意见;AI 不做正式预评分。公共 Hub 不展示或代行评分，正式评分由已授权评委在受保护工作区完成。
           </p>
         </Reveal>
       )}
       {roleKey === "organizer" && (
         <Reveal className="mt-6">
           <p className="hub-caption max-w-[640px]">
-            治理原则:管理干预透明、可确认、可撤销;组织者只看已确认或主动共享的信息。阶段一不提供态势仪表盘。
+            治理原则:管理干预透明、可确认、可撤销;组织者只看已确认或主动共享的信息。公共 Hub 不展示态势仪表盘，已授权组织者在受保护工作区按规则处理管理事项。
           </p>
         </Reveal>
       )}
+
+      <Reveal className="mt-10">
+        <section
+          aria-labelledby={`${roleKey}-protected-workspace`}
+          className="border-t border-[var(--border-subtle)] pt-8"
+          data-role-handoff={roleKey}
+        >
+          <p className="hub-eyebrow">受保护的下一步</p>
+          <h2 id={`${roleKey}-protected-workspace`} className="mt-3 text-[22px] font-bold text-[var(--text-primary)]">
+            下一步在受保护的工作区完成
+          </h2>
+          <p className="hub-body mt-3 max-w-[680px]">{handoff.description}</p>
+          <p className="hub-caption mt-4 max-w-[680px]">
+            {roleKey === "participant"
+              ? "目标入口会校验你的账户。"
+              : "目标入口会校验你的账户与既有角色权限。"}
+            公共 Hub 不读取、不展示项目、评分或管理数据，也不执行管理动作。
+          </p>
+          <div className="mt-5 flex flex-wrap gap-4">
+            <Link
+              href={handoff.href}
+              className={`hub-btn ${roleKey === "participant" ? "hub-btn--secondary" : "hub-btn--primary"}`}
+            >
+              {handoff.label}
+            </Link>
+            {handoff.secondary && (
+              <Link href={handoff.secondary.href} className="hub-btn hub-btn--ghost">
+                {handoff.secondary.label}
+              </Link>
+            )}
+          </div>
+        </section>
+      </Reveal>
 
       <Reveal className="mt-14">
         <section aria-label="其他角色" className="border-t border-[var(--border-subtle)] pt-8">

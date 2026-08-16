@@ -28,7 +28,16 @@ Never copy generated-image text or fictional metrics as product truth.
 
 ## Current milestone
 
-Implement only the **phase-one public Hub and lightweight deterministic Coach preview**.
+Phase one is delivered. The user explicitly authorized a bounded **phase-two
+continuation** on 2026-08-17; see `IMPLEMENTATION_PLAN.md` §9. The public Hub
+and deterministic state machine remain the base. Phase two may add only:
+
+- activity-configuration validation, single-source consumption, and an exact
+  authorized local-logo handoff (unknown business facts stay pending);
+- a no-DB, server-only real Coach adapter with strict output validation,
+  same-origin protection, bounded limiting, and deterministic fallback;
+- static handoffs from public role pages to existing protected old-side routes;
+- accessibility and responsive regression coverage.
 
 Do not expand the milestone into:
 
@@ -36,7 +45,8 @@ Do not expand the milestone into:
 - full Artifacts management;
 - a reviewer scoring system;
 - an organizer dashboard;
-- backend, database, SSO, object storage, or real LLM integration;
+- a new backend, database, SSO, object storage, or any LLM path outside the
+  bounded public Coach adapter above;
 - a Coding IDE, online debugger, model runtime, or benchmark executor;
 - rankings, health scores, completion-rate dashboards, or fabricated activity statistics.
 

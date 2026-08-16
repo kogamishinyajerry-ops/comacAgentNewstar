@@ -7,19 +7,58 @@ import {
   platformBoundaries,
   journeySteps,
 } from "@/config/activity";
+import type { ActivityRules } from "@/lib/hub/activity-config";
+import { site } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "活动指南 · COMAC 青年 AI Agent 创新实践月",
-  description: "活动如何进行:参与路径、平台边界与当前配置状态。",
+  title: `活动指南 · ${site.title}`,
+  description: `${site.brand.name}活动指南：参与路径、平台边界与当前配置状态。`,
 };
+
+type GuideFact = {
+  label: string;
+  value: string;
+  links?: Array<{ href: string; label: string }>;
+};
+
+const RULE_LABELS: Record<keyof ActivityRules, string> = {
+  participation: "参与方式",
+  teamSize: "团队人数",
+  workRelated: "工作关联",
+  externalTools: "外部工具",
+  dataSecurityAndIp: "数据、保密与知识产权",
+  submissionMaterials: "提交材料",
+  evaluation: "评审方式",
+};
+
+const publicRules: ActivityRules = activity.rules;
+
+const configuredRules = (Object.keys(RULE_LABELS) as Array<keyof ActivityRules>).flatMap((key) => {
+  const rule = publicRules[key];
+  return rule ? [{ label: RULE_LABELS[key], summary: rule.summary, sourceUrl: rule.sourceUrl }] : [];
+});
 
 const FACTS = [
   { label: "活动周期", value: `${activityFact(activity.dates.startDate)} — ${activityFact(activity.dates.endDate)}` },
   { label: "报名截止", value: activityFact(activity.dates.registrationDeadline) },
-  { label: "报名方式", value: activityFact(activity.links.registration) },
+  activity.links.registration
+    ? {
+        label: "报名方式",
+        value: "前往报名入口",
+        links: [{ href: activity.links.registration, label: "打开报名入口" }],
+      }
+    : { label: "报名方式", value: activity.displayFallback },
   { label: "主办单位", value: activity.organizers.length > 0 ? activity.organizers.join(" · ") : activity.displayFallback },
-  { label: "团队与提交规则", value: activity.displayFallback },
-];
+  {
+    label: "团队与提交规则",
+    value: configuredRules.length > 0
+      ? configuredRules.map((rule) => `${rule.label}：${rule.summary}`).join("；")
+      : activity.displayFallback,
+    links: configuredRules.flatMap((rule) => rule.sourceUrl
+      ? [{ href: rule.sourceUrl, label: `${rule.label}正式来源` }]
+      : []),
+  },
+] satisfies GuideFact[];
 
 export default function GuidePage() {
   return (
@@ -47,6 +86,17 @@ export default function GuidePage() {
                 <dt className="text-[13px] font-semibold tracking-[0.04em] text-[var(--text-tertiary)]">{f.label}</dt>
                 <dd className={`mt-1 text-[14.5px] ${f.value === activity.displayFallback ? "text-[var(--text-tertiary)]" : "text-[var(--text-primary)]"}`}>
                   {f.value}
+                  {f.links?.map((link) => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hub-quiet-link ml-3 text-[13px]"
+                    >
+                      {link.label}<span className="sr-only">（在新窗口打开）</span>
+                    </a>
+                  ))}
                 </dd>
               </div>
             ))}

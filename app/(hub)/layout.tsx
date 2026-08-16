@@ -9,7 +9,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         跳到主要内容
       </a>
       <HubHeader />
-      <main id="hub-main" className="hub-main">
+      <main id="hub-main" className="hub-main" tabIndex={-1}>
         {children}
       </main>
       <HubFooter />

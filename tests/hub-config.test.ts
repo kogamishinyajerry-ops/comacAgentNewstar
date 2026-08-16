@@ -1,16 +1,18 @@
 // 阶段一:配置红线——未确认的活动事实必须保持待确认,不得编造
 import { describe, expect, it } from "vitest";
 import {
+  ACTIVITY_LOGO_PATH_WHITELIST,
   activity,
   activityFact,
   activityTimeline,
+  approvedActivityLogoPath,
   journeySteps,
   platformBoundaries,
   roles,
   PENDING_LABEL,
 } from "../config/activity";
 import { site } from "../config/site";
-import { coachDemoActs, seedCopy } from "../fixtures/coach-demo";
+import { coachDemoActs, coachPrivacyNotice, seedCopy } from "../fixtures/coach-demo";
 
 describe("config/activity:活动事实待确认", () => {
   it("日期与链接未确认时为 null", () => {
@@ -35,10 +37,20 @@ describe("config/activity:活动事实待确认", () => {
     expect(activity.organizers).toHaveLength(0);
     expect(activity.brand.approvedLogoPath).toBeNull();
     expect(activity.brand.useTextMarkUntilApproved).toBe(true);
+    expect(ACTIVITY_LOGO_PATH_WHITELIST).toEqual([]);
+    expect(approvedActivityLogoPath).toBeNull();
+    expect(Object.values(activity.rules)).toEqual([null, null, null, null, null, null, null]);
   });
 });
 
 describe("config/site:导航与首屏", () => {
+  it("活动身份只从 activity 配置单向派生", () => {
+    expect(site.title).toBe(activity.identity.name);
+    expect(site.brand.name).toBe(activity.identity.name);
+    expect(site.brand.shortName).toBe(activity.identity.shortName);
+    expect(site.hero.eyebrow).toBe(activity.identity.eyebrow);
+  });
+
   it("首屏双入口不等权且指向 Coach 预览", () => {
     expect(site.hero.primaryAction.href).toBe("/start");
     expect(site.hero.secondaryAction.href).toBe("/start?entry=idea");
@@ -88,9 +100,10 @@ describe("config/activity:叙事结构", () => {
 });
 
 describe("fixtures/coach-demo:种子文案", () => {
-  it("种子 CTA 有真实去向,预览声明明确", () => {
+  it("种子 CTA 有真实去向,并明确说明 AI 服务与隐私边界", () => {
     expect(seedCopy.cta.href).toBe("/guide");
-    expect(seedCopy.previewNote).toContain("未接入真实 AI");
+    expect(coachPrivacyNotice).toBe("回答不会保存为项目，但可能发送至 AI 服务；请勿输入保密、个人或未公开信息。");
+    expect(seedCopy.previewNote).toContain(coachPrivacyNotice);
   });
 
   it("两条入口文案互不相同(不同起点的确定性路径)", () => {

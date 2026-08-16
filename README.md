@@ -1,8 +1,8 @@
 # COMAC 青年 AI Agent 创新实践月
 
-> 阶段一(2026-08):公共网页 Hub + 确定性三幕 AI Coach 预览。旧"青年AI轻创导航站"MVP 完整保留在 `(app)` 路由分组中,URL 不变。
+> 阶段一(2026-08)交付公共网页 Hub + 确定性三幕 Coach 预览；阶段二在该底座上增量接入有严格回退的真实 Coach、活动配置校验、受保护工作区交接和无障碍深化。旧"青年AI轻创导航站"MVP 完整保留在 `(app)` 路由分组中，URL 不变。
 
-## 阶段一:公共 Hub(当前主线)
+## 公共 Hub:阶段一基础与阶段二演进
 
 产品转向:**一个由 AI Coach 驱动的创新实践入口**——强编排、弱干预;一问一幕,一幕一决策;前台只有"主张—证据—缺口",没有健康分、排行榜与完成率。视觉母题为**安静的认知画布**(浅色画布、深海军蓝文字、克制钴蓝、抽象 Coach 光核),与旧"纸墨朱砂"风格通过路由分组完全隔离。
 
@@ -21,13 +21,20 @@
 
 - `styles/tokens.css` — 语义 Design Token + 组件类 + 动效语言(端上来/收拢/吸附/长出来/取到眼前/退到背景/凝结),仅 `(hub)` 布局加载,与旧 `globals.css` 互斥;
 - `components/hub/coach-orb.tsx` — SVG 光核五状态(idle/listening/challenging/condensing/confirmed),`data-state` 驱动;
-- `lib/hub/coach-machine.ts` — 纯 reducer 状态机 + 问题种子合成(无网络/无 DB,22 个单测);
+- `lib/hub/coach-machine.ts` — 纯 reducer 状态机 + 问题种子合成（无 DB，仍是确定性兜底与最终收束）；
 - `fixtures/coach-demo.ts` — 两条入口 × 三幕的确定性文案(严格但建设性,已有想法入口第一问挑战方案先行);
 - `config/site.ts` / `config/activity.ts` — 品牌、导航、FAQ 与全部活动事实(未确认项 `null` + `待活动配置确认`);
-- 无障碍:键盘全流程可完成、`aria-live` 播报场景更迭、`prefers-reduced-motion` 降级、无 JS 时内容可见;
+- 无障碍:键盘全流程可完成、`aria-live` 播报场景更迭、`prefers-reduced-motion` 降级、无 JS 时内容可见，并有 Axe、1024×768 与移动抽屉焦点回归；
 - 验收:`tests/e2e/hub.spec.ts` 覆盖开工提示词 §14 十条流程,截图在 `docs/screenshots/phase1/`。
 
-阶段一边界:不接真实 LLM/后端,不做完整工作台、评分系统、仪表盘、IDE、Benchmark;详见 `IMPLEMENTATION_PLAN.md` 与 `AGENTS.md`。
+### 阶段二：受控真实 Coach 与配置能力
+
+- `POST /api/hub/coach` 与 `lib/hub/coach-provider.ts` 是唯一真实 Coach 链路：仅服务端读取既有 GLM Coding Plan 配置，严格只接收“当前判断／最大风险／一个问题”三字段；不读写 Prisma、不返回原始错误、token 或思维链。Mock、无 Key、超时、同源拒绝、限流或非法模型输出都会继续走确定性 fixture；第三幕问题种子始终由纯状态机凝结。
+- 公开入口默认使用同源共享限流桶；只有确认 Cloudflare 等代理会覆盖客户端地址头时，才将 `HUB_COACH_TRUST_PROXY=true`，以其 `CF-Connecting-IP` 做分桶。多实例生产仍须由 Cloudflare/WAF 提供外层门禁。
+- 活动身份、日期、链接、规则和品牌资产均收敛在 `config/activity.ts`。`npm run validate:activity-config` 会校验完整契约；`npm run build` 自动执行它。Logo 只会消费精确白名单中的 `public/brand/` 本地资产，当前无获准资产，故仍显示文字标识。
+- 角色说明页只深链到旧侧受保护入口：参赛者 `/projects`、评委 `/judge`、组织者 `/organizer`（次级 `/workbuddy`）。公共 Hub 不读取、不展示或执行任何项目、评分、管理数据或动作。
+
+活动正式名称、日期、组织单位、规则、链接和 Logo 尚未提供，继续显示“待活动配置确认”。本轮不部署、不重启生产服务，也不把公共 Hub 扩展为完整工作台、评分系统、仪表盘、IDE 或 Benchmark；详见 `IMPLEMENTATION_PLAN.md` 与 `AGENTS.md`。
 
 ## 旧产品:青年AI轻创导航站(保留在 (app) 分组)
 
@@ -97,6 +104,7 @@ npm run build && npm run start
 | `GLM_BASE_URL` / `GLM_MODEL` | 默认 `https://open.bigmodel.cn/api/coding/paas/v4`(Coding Plan 端点;普通资源包改为 `/api/paas/v4`)/ `glm-5.3` |
 | `GLM_TIMEOUT_MS` | GLM 调用超时,默认 90000(思维链较慢) |
 | `LLM_MOCK_MODE` | `true` 强制 Mock Provider |
+| `HUB_COACH_TRUST_PROXY` | 默认 `false`；只有入口代理会覆盖 `CF-Connecting-IP` 时才设为 `true`，否则公共 Coach 使用同源共享限流桶 |
 | `UPLOAD_MAX_MB` | 附件上限,默认 10MB |
 
 ## 常用命令
@@ -105,8 +113,9 @@ npm run build && npm run start
 npm run dev          # 开发
 npm run lint         # ESLint
 npm run typecheck    # TypeScript 检查
-npm run test         # Vitest 单元测试(102例)
-npm run build        # 生产构建
+npm run test         # Vitest 单元测试
+npm run validate:activity-config  # 活动配置与获准 Logo 资产校验
+npm run build        # 先校验活动配置，再生产构建
 npm run db:reset     # 重置数据库并重新种子
 npm run e2e          # Playwright E2E(首次:npx playwright install chromium)
 ```

@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "npm run validate:activity-config && prisma generate && next build",
+    "validate:activity-config": "tsx scripts/validate-activity-config.ts",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -29,6 +30,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.48.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.0",

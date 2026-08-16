@@ -1,18 +1,31 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { approvedActivityLogoPath } from "@/config/activity";
 import { site } from "@/config/site";
 
-/** 品牌标识:未获授权前只用文字 + 中性几何标记,不伪造官方 Logo(docs/product/03 §7) */
+/** 品牌标识:只有配置校验与精确白名单均通过时才显示获准 Logo。 */
 function BrandMark() {
   return (
     <Link href="/" className="hub-brand" aria-label={`${site.brand.name} 首页`}>
-      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false">
-        <circle cx="13" cy="13" r="11" fill="none" stroke="var(--accent-coach)" strokeWidth="1.6" />
-        <circle cx="13" cy="13" r="5.5" fill="var(--accent-coach)" opacity="0.85" />
-        <circle cx="13" cy="13" r="1.8" fill="#fff" />
-      </svg>
+      {approvedActivityLogoPath ? (
+        <Image
+          src={approvedActivityLogoPath}
+          alt={`${site.brand.name} 标识`}
+          className="hub-brand-logo"
+          width={26}
+          height={26}
+          priority
+        />
+      ) : (
+        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false">
+          <circle cx="13" cy="13" r="11" fill="none" stroke="var(--accent-coach)" strokeWidth="1.6" />
+          <circle cx="13" cy="13" r="5.5" fill="var(--accent-coach)" opacity="0.85" />
+          <circle cx="13" cy="13" r="1.8" fill="#fff" />
+        </svg>
+      )}
       <span className="flex flex-col leading-tight">
         <span>{site.brand.shortName}</span>
         <span className="text-[10.5px] font-medium tracking-[0.08em] text-[var(--text-tertiary)]">
@@ -33,11 +46,12 @@ export function HubHeader() {
     if (returnFocus) burgerRef.current?.focus();
   }, []);
 
-  /* Esc 关闭;焦点圈定在抽屉内;打开时锁定背景滚动 */
+  /* Esc 关闭;焦点圈定在抽屉内;打开时锁定背景滚动。 */
   useEffect(() => {
     if (!open) return;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    drawerRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+    drawerRef.current?.querySelector<HTMLElement>("[data-drawer-initial-focus]")?.focus();
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -48,7 +62,9 @@ export function HubHeader() {
       const scope = drawerRef.current;
       if (!scope) return;
       const focusables = Array.from(
-        scope.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")
+        scope.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
       );
       if (focusables.length === 0) return;
       const first = focusables[0];
@@ -64,7 +80,7 @@ export function HubHeader() {
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
     };
   }, [open, close]);
 
@@ -110,10 +126,19 @@ export function HubHeader() {
         ref={drawerRef}
         className="hub-drawer md:hidden"
         role="dialog"
-        aria-modal="true"
+        aria-modal={open}
+        aria-hidden={!open}
         aria-label="站点导航"
         data-open={open}
       >
+        <button
+          type="button"
+          className="hub-drawer-close"
+          data-drawer-initial-focus
+          onClick={() => close()}
+        >
+          关闭导航菜单
+        </button>
         <nav aria-label="移动端主导航" className="flex flex-col">
           {site.nav.map((item) => (
             <Link

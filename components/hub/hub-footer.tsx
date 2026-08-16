@@ -35,9 +35,6 @@ export function HubFooter() {
             </p>
             <p className="hub-caption">活动时间:{activityFact(activity.dates.startDate)} 起</p>
             <p className="hub-caption">报名方式:{activityFact(activity.links.registration)}</p>
-            <Link href="/dev/scenarios" className="hub-quiet-link !text-[13px]" tabIndex={-1}>
-              组件与动效验收页
-            </Link>
           </div>
         </div>
 

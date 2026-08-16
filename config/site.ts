@@ -2,9 +2,11 @@
  * 站点级配置:品牌、导航、首屏文案、FAQ。
  * 纯数据模块,不得引入服务端依赖(需可被单测与客户端组件直接引用)。
  */
+import { activity } from "@/config/activity";
 
 export const site = {
-  title: "COMAC 青年 AI Agent 创新实践月",
+  /** 活动身份只从 config/activity.ts 单向派生，禁止在这里重复维护。 */
+  title: activity.identity.name,
   description:
     "一个由 AI Coach 驱动的创新实践入口,帮助青年员工把真实问题逐步变成可构建、可验证、可展示的 AI Agent 作品。",
   positioning:
@@ -12,8 +14,8 @@ export const site = {
 
   brand: {
     /** 正式 Logo 待授权;获准前使用文字标识 + 中性几何标记(docs/product/03 §7) */
-    name: "COMAC 青年 AI Agent 创新实践月",
-    shortName: "AI Agent 创新实践月",
+    name: activity.identity.name,
+    shortName: activity.identity.shortName,
     tagline: "从一个真实问题开始",
   },
 
@@ -26,7 +28,7 @@ export const site = {
   primaryCta: { label: "开始探索", href: "/start" },
 
   hero: {
-    eyebrow: "COMAC 青年 AI Agent 创新实践月",
+    eyebrow: activity.identity.eyebrow,
     title: "把一个真实问题,变成可验证的 AI Agent 作品",
     subtitle:
       "AI Coach 不替你写答案。它一次只追问一个关键问题,帮助你把模糊想法逐步变成可构建、可验证、可展示的项目。",

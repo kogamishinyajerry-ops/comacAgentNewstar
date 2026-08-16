@@ -68,7 +68,11 @@ test.describe("桌面 1440×900", () => {
     // 种子包含三幕摘录与缺口
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
     await expect(page.getByRole("link", { name: "进入完整实践流程" })).toBeVisible();
-    await expect(page.getByText("未接入真实 AI").first()).toBeVisible();
+    await expect(
+      page
+        .getByText("回答不会保存为项目，但可能发送至 AI 服务；请勿输入保密、个人或未公开信息。")
+        .first()
+    ).toBeVisible();
   });
 
   test("3. 次 CTA 进入已有想法预览:第一问挑战方案先行,不直接认可", async ({ page }) => {

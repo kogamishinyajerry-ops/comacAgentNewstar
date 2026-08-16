@@ -62,7 +62,7 @@ export function RoleSection() {
             ))}
             <Reveal>
               <p className="hub-caption">
-                评委页不含评分系统,组织者页不含态势仪表盘——这两项能力属于后续阶段,当前只有真实说明。
+                角色说明页只讲清入口与边界；实际工作区仍通过账户与角色权限校验，公共 Hub 不读取项目、评分或管理数据。
               </p>
             </Reveal>
           </div>

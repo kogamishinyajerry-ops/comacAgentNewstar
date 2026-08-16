@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CoachFlow } from "@/components/hub/coach-flow";
 import { Reveal } from "@/components/hub/reveal";
-import type { CoachEntry } from "@/fixtures/coach-demo";
+import { coachPrivacyNotice, type CoachEntry } from "@/fixtures/coach-demo";
 
 const ENTRIES: { key: CoachEntry; label: string; href: string; note: string }[] = [
   {
@@ -32,7 +32,7 @@ export default async function StartPage({
         <Link href="/" className="hub-quiet-link">
           ← 回到活动主页
         </Link>
-        <span className="hub-pending">确定性前端预览 · 未接入真实 AI</span>
+        <span className="hub-pending">AI Coach 预览 · 一问一幕</span>
       </div>
 
       <Reveal className="mt-10">
@@ -73,7 +73,7 @@ export default async function StartPage({
       </div>
 
       <p className="hub-caption mt-12 text-center">
-        回答只保存在本页浏览器内存中,刷新即清空;完整实践流程将在活动配置确认后开放。
+        {coachPrivacyNotice} 刷新后当前会话会清空;完整实践流程将在活动配置确认后开放。
       </p>
     </div>
   );

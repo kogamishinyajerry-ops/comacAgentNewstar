@@ -18,11 +18,12 @@
   /* 文字 */
   --text-primary: #172238;
   --text-secondary: #667085;
-  --text-tertiary: #8b95a7;
+  --text-tertiary: #5b687c;
 
   /* 边界 */
   --border-subtle: #e2e8f0;
   --border-strong: #cbd5e1;
+  --border-control: #7b8799;
 
   /* 强调 */
   --accent-coach: #3568e8;
@@ -30,10 +31,10 @@
   --accent-coach-soft: rgba(53, 104, 232, 0.14);
   --accent-purple: #7c62e8;
   --accent-purple-soft: rgba(124, 98, 232, 0.12);
-  --accent-evidence: #16836f;
-  --accent-evidence-soft: rgba(22, 131, 111, 0.12);
-  --accent-gap: #bd7418;
-  --accent-gap-soft: rgba(189, 116, 24, 0.12);
+  --accent-evidence: #0f7564;
+  --accent-evidence-soft: rgba(15, 117, 100, 0.12);
+  --accent-gap: #9d5c00;
+  --accent-gap-soft: rgba(157, 92, 0, 0.12);
   --state-danger: #b54747;
 
   /* 动效 */
@@ -108,7 +109,7 @@
     z-index: 90;
     border-radius: var(--radius-sm);
     background: var(--surface-primary);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-control);
     padding: 8px 14px;
     font-size: 14px;
     transition: top var(--dur-micro) var(--ease-soft);
@@ -218,7 +219,7 @@
   .hub-btn--secondary {
     background: var(--surface-primary);
     color: var(--text-primary);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-control);
     box-shadow: 0 1px 2px rgba(23, 34, 56, 0.04);
   }
   .hub-btn--secondary:hover {
@@ -268,7 +269,7 @@
     min-height: 108px;
     resize: vertical;
     background: var(--surface-primary);
-    border: 1px solid var(--border-strong);
+    border: 1px solid var(--border-control);
     border-radius: var(--radius-md);
     padding: 14px 16px;
     font-family: inherit;
@@ -318,6 +319,13 @@
     color: var(--text-primary);
     letter-spacing: 0.01em;
   }
+
+  .hub-brand-logo {
+    width: 26px;
+    height: 26px;
+    flex: none;
+    object-fit: contain;
+  }
   .hub-nav-link {
     position: relative;
     padding: 8px 2px;
@@ -352,7 +360,7 @@
     height: 44px;
     padding: 10px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--border-control);
     background: var(--surface-primary);
   }
   .hub-burger span {
@@ -392,6 +400,20 @@
   }
   .hub-drawer[data-open="true"] {
     transition: opacity var(--dur-rise) var(--ease-soft);
+  }
+  .hub-drawer-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-sm);
+    background: var(--surface-primary);
+    color: var(--text-primary);
+    font-size: 14.5px;
+    font-weight: 600;
   }
   .hub-drawer-link {
     display: flex;
@@ -462,21 +484,16 @@
     position: relative;
   }
   .coach-act {
-    transition: opacity var(--dur-scene) var(--ease-soft),
-      transform var(--dur-scene) var(--ease-soft), filter var(--dur-scene) var(--ease-soft);
+    transition: transform var(--dur-scene) var(--ease-soft);
   }
   /* 退到背景:已回答的一幕让出焦点 */
   .coach-act[data-phase="transition"] {
-    opacity: 0.28;
     transform: translateY(-10px) scale(0.985);
-    filter: blur(1.5px);
     pointer-events: none;
   }
   /* 收拢:第三幕结束后向光核凝结 */
   .coach-act[data-condensing="true"] {
     transform: translateY(-26px) scale(0.9);
-    filter: blur(6px);
-    opacity: 0;
   }
   .coach-meta {
     border-left: 2px solid var(--border-subtle);
@@ -536,7 +553,10 @@
     transition: opacity var(--dur-rise) var(--ease-soft), transform var(--dur-rise) var(--ease-soft);
   }
   .journey-step[data-current="false"] {
-    opacity: 0.55;
+    opacity: 1;
+  }
+  .journey-step[data-current="false"] .journey-dot {
+    border-color: var(--border-control);
   }
   .journey-step[data-current="true"] {
     opacity: 1;
@@ -655,20 +675,20 @@
      ============================================================ */
   @media (prefers-reduced-motion: no-preference) {
     @keyframes hub-rise {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: none; }
+      from { transform: translateY(20px); }
+      to { transform: none; }
     }
     @keyframes hub-grow {
-      from { opacity: 0; transform: scaleY(0.55); transform-origin: 50% 0%; }
-      to { opacity: 1; transform: none; }
+      from { transform: scaleY(0.55); transform-origin: 50% 0%; }
+      to { transform: none; }
     }
     @keyframes hub-condense {
-      from { opacity: 0; transform: scale(1.14); filter: blur(10px); }
-      to { opacity: 1; transform: none; filter: blur(0); }
+      from { transform: scale(1.14); filter: blur(10px); }
+      to { transform: none; filter: blur(0); }
     }
     @keyframes hub-approach {
-      from { opacity: 0; transform: scale(0.94) translateY(10px); }
-      to { opacity: 1; transform: none; }
+      from { transform: scale(0.94) translateY(10px); }
+      to { transform: none; }
     }
     @keyframes hub-pulse-once {
       0% { transform: scale(1); }
@@ -699,14 +719,17 @@
       animation: hub-pulse-once 620ms var(--ease-soft) both;
     }
 
-    /* 滚动显现:仅在 JS 挂载后才隐藏初始态(无 JS 时内容直接可见) */
+    /* 滚动显现:仅在 JS 挂载后平移端上来;文字始终保持可读。 */
     .reveal[data-js="true"] {
-      opacity: 0;
       transform: translateY(22px);
-      transition: opacity var(--dur-rise) var(--ease-soft),
-        transform var(--dur-rise) var(--ease-soft);
+      transition: transform var(--dur-rise) var(--ease-soft);
     }
     .reveal[data-js="true"].is-in {
+      opacity: 1;
+      transform: none;
+    }
+    /* 键盘焦点不能落在尚在端上来的内容里。 */
+    .reveal[data-js="true"]:focus-within {
       opacity: 1;
       transform: none;
     }
@@ -730,6 +753,17 @@
 
   /* 减弱动态:位移/缩放/滤镜动画取消,信息顺序不变 */
   @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto !important;
+    }
+    .hub-root,
+    .hub-root *,
+    .hub-root *::before,
+    .hub-root *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
     .motion-rise, .motion-grow, .motion-condense, .motion-approach,
     .motion-pulse-once, .motion-stagger > *,
     .hero-beat-1, .hero-beat-2, .hero-beat-3 {
@@ -749,6 +783,14 @@
     .coach-orb[data-state="idle"] .orb-core,
     .coach-orb[data-state="confirmed"] .orb-core {
       animation: none !important;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .hub-quiet-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
     }
   }
 }

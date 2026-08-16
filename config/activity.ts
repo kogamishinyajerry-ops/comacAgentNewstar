@@ -4,37 +4,81 @@
  * 红线(docs/product/04):日期、链接、主办、规则、奖项等未获正式确认前,
  * 一律为 null / 空数组,UI 展示时统一使用 `PENDING_LABEL` 兜底,不得编造。
  * 对齐 config/activity.example.json 的结构与默认值。
+ *
+ * 这里不读取文件系统,可安全被 Hub 客户端组件消费；构建期校验在
+ * scripts/validate-activity-config.ts 中完成。
  */
+import {
+  DEFAULT_PENDING_LABEL,
+  resolveApprovedLogoPath,
+  type ActivityConfig,
+} from "@/lib/hub/activity-config";
 
-export const PENDING_LABEL = "待活动配置确认";
+export const PENDING_LABEL = DEFAULT_PENDING_LABEL;
+
+/**
+ * 仅允许经过品牌授权、位于 public/brand/ 的精确资产路径。
+ * 当前没有得到授权的 Logo，因此白名单必须为空。
+ */
+export const ACTIVITY_LOGO_PATH_WHITELIST = [] as const;
 
 export const activity = {
-  name: "COMAC 青年 AI Agent 创新实践月",
-  status: "configuration_pending" as const,
+  /** 阶段一既有显示名，不代表活动正式名称已确认；site.ts 只能从此处派生同一身份。 */
+  identity: {
+    name: "COMAC 青年 AI Agent 创新实践月",
+    shortName: "AI Agent 创新实践月",
+    eyebrow: "COMAC 青年 AI Agent 创新实践月",
+  },
+  status: "configuration_pending",
 
   /** 主办/承办/协办正式写法未确认 */
-  organizers: [] as string[],
+  organizers: [],
 
   dates: {
-    registrationDeadline: null as string | null,
-    startDate: null as string | null,
-    endDate: null as string | null,
+    registrationDeadline: null,
+    startDate: null,
+    endDate: null,
   },
 
   links: {
-    registration: null as string | null,
-    login: null as string | null,
-    guide: null as string | null,
-    support: null as string | null,
+    registration: null,
+    login: null,
+    guide: null,
+    support: null,
+  },
+
+  /** 正式规则未提供，因此每项保持为 nullable 的结构化记录。 */
+  rules: {
+    participation: null,
+    teamSize: null,
+    workRelated: null,
+    externalTools: null,
+    dataSecurityAndIp: null,
+    submissionMaterials: null,
+    evaluation: null,
+  },
+
+  /** 产品能力开关；不是对外活动规则或正式事实。 */
+  featureFlags: {
+    /** 阶段二已获用户授权；仍受服务端环境、同源与限流边界约束。 */
+    realLlm: true,
   },
 
   brand: {
-    approvedLogoPath: null as string | null,
+    approvedLogoPath: null,
     useTextMarkUntilApproved: true,
   },
 
   displayFallback: PENDING_LABEL,
-} as const;
+} satisfies ActivityConfig;
+
+/**
+ * 供未来品牌组件消费的唯一安全 Logo 接口。白名单为空时稳定返回 null。
+ */
+export const approvedActivityLogoPath = resolveApprovedLogoPath(
+  activity.brand.approvedLogoPath,
+  ACTIVITY_LOGO_PATH_WHITELIST,
+);
 
 /** 取活动事实;未确认时返回兜底文案 */
 export function activityFact(value: string | null | undefined): string {
@@ -142,7 +186,7 @@ export const roles = [
     wontDo: [
       "不会看到 AI 预先给出的分数或排名",
       "不会在独立判断前被推送其他评委的意见",
-      "不需要在阶段一使用任何评分功能(尚未建设)",
+      "公共 Hub 不展示或代行评分；正式评分由已授权评委在受保护工作区完成",
     ],
   },
   {
@@ -163,7 +207,7 @@ export const roles = [
     wontDo: [
       "不会看到参赛者的私人探索过程",
       "不会让系统未经确认就执行管理动作",
-      "阶段一不提供任何态势仪表盘(尚未建设)",
+      "公共 Hub 不展示态势仪表盘；已授权组织者在受保护工作区按规则处理管理事项",
     ],
   },
 ] as const;

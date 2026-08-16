@@ -15,7 +15,11 @@ export function CoachScene({
   value,
   error,
   transitioning,
+  pending,
   condensing,
+  privacyNotice,
+  providerStatus,
+  providerError,
   onChange,
   onResponderFocus,
   onSubmit,
@@ -27,12 +31,17 @@ export function CoachScene({
   value: string;
   error: string | null;
   transitioning: boolean;
+  pending: boolean;
   condensing: boolean;
+  privacyNotice: string;
+  providerStatus: string | null;
+  providerError: string | null;
   onChange: (v: string) => void;
   onResponderFocus: (focused: boolean) => void;
   onSubmit: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const answerDescription = ["coach-answer-privacy", error ? "coach-answer-error" : null].filter(Boolean).join(" ");
 
   /* 首幕不抢焦点;后续幕在用户刚提交后接续焦点,键盘路径不断 */
   useEffect(() => {
@@ -75,9 +84,9 @@ export function CoachScene({
             <label htmlFor="coach-answer" className="sr-only">
               你的回答
             </label>
-            <h3 className="coach-question" id="coach-question">
+            <h2 className="coach-question" id="coach-question">
               {act.question}
-            </h3>
+            </h2>
             <textarea
               id="coach-answer"
               ref={textareaRef}
@@ -86,7 +95,10 @@ export function CoachScene({
               value={value}
               rows={4}
               maxLength={600}
-              aria-describedby={error ? "coach-answer-error" : undefined}
+              aria-labelledby="coach-question"
+              aria-describedby={answerDescription}
+              aria-invalid={Boolean(error)}
+              disabled={transitioning || pending}
               onChange={(e) => onChange(e.target.value)}
               onFocus={() => onResponderFocus(true)}
               onBlur={() => onResponderFocus(false)}
@@ -103,12 +115,24 @@ export function CoachScene({
                 {error}
               </p>
             )}
+            {providerError && (
+              <p className="hub-field-error mt-2.5" id="coach-provider-error" role="alert">
+                {providerError}
+              </p>
+            )}
             <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-              <button type="submit" className="hub-btn hub-btn--primary">
-                提交这一问的回答
+              <button type="submit" className="hub-btn hub-btn--primary" disabled={transitioning || pending}>
+                {transitioning || pending ? "Coach 正在整理…" : "提交这一问的回答"}
               </button>
-              <span className="hub-caption">回答只保存在本页 · ⌘/Ctrl + Enter 可直接提交</span>
+              <span className="hub-caption" id="coach-answer-privacy">
+                {privacyNotice} ⌘/Ctrl + Enter 可直接提交
+              </span>
             </div>
+            {providerStatus && (
+              <p className="hub-caption mt-3" aria-hidden="true">
+                {providerStatus}
+              </p>
+            )}
           </form>
         </div>
       </div>

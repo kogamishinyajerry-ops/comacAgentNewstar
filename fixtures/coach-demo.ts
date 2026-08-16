@@ -70,12 +70,18 @@ export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
   ],
 };
 
+/**
+ * Public Hub privacy boundary. The API never writes a project, but the first
+ * two completed scenes may be sent to the server-side AI adapter.
+ */
+export const coachPrivacyNotice =
+  "回答不会保存为项目，但可能发送至 AI 服务；请勿输入保密、个人或未公开信息。";
+
 /** 三幕完成后问题种子的固定提示文案 */
 export const seedCopy = {
   title: "问题种子",
   subtitle: "三幕回答凝结而成的一份草稿——不是项目创建成功,只是值得继续追问的起点。",
-  previewNote:
-    "当前为确定性前端预览,未接入真实 AI 服务。进入完整实践流程后,Coach 将基于这份种子继续逐幕追问。",
+  previewNote: `${coachPrivacyNotice} 问题种子只在当前页面会话中凝结，不代表项目已创建或提交。`,
   cta: { label: "进入完整实践流程", href: "/guide" },
   restart: "换一条入口重新体验",
   slots: {

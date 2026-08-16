@@ -7,6 +7,7 @@ import { Boundaries } from "@/components/hub/boundaries";
 import { FinalCta } from "@/components/hub/final-cta";
 import { FaqList } from "@/components/hub/faq-list";
 import { Reveal } from "@/components/hub/reveal";
+import { coachPrivacyNotice } from "@/fixtures/coach-demo";
 
 /**
  * 公共 Landing / Hub:A 顶部导航(布局内)→ B Hero → C 价值观 → D 实践路径
@@ -41,7 +42,7 @@ export default function HubHomePage() {
           </Reveal>
           <Reveal>
             <p className="hub-caption mx-auto mt-10 max-w-[520px] text-center">
-              本模块为确定性前端预览,未接入真实 AI 服务;你的回答只保留在本页。
+              {coachPrivacyNotice}
             </p>
           </Reveal>
         </div>

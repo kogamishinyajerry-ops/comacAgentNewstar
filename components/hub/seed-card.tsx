@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { RefObject } from "react";
 import { seedCopy } from "@/fixtures/coach-demo";
 import type { QuestionSeed } from "@/lib/hub/coach-machine";
 
@@ -6,11 +7,21 @@ import type { QuestionSeed } from "@/lib/hub/coach-machine";
  * 问题种子:三幕回答凝结出的草稿。
  * 不是"项目创建成功"——明确标注缺口,保持主张—证据—缺口的姿态。
  */
-export function SeedCard({ seed }: { seed: QuestionSeed }) {
+export function SeedCard({
+  seed,
+  headingRef,
+  headingId = "coach-seed-title",
+}: {
+  seed: QuestionSeed;
+  headingRef?: RefObject<HTMLHeadingElement>;
+  headingId?: string;
+}) {
   return (
-    <div className="seed-card hub-card motion-condense p-7 sm:p-9">
+    <section className="seed-card hub-card motion-condense p-7 sm:p-9" aria-labelledby={headingId}>
       <p className="seed-slot-label">{seedCopy.title}</p>
-      <h3 className="hub-title mt-2 text-[24px] sm:text-[27px]">{seedCopy.subtitle}</h3>
+      <h2 ref={headingRef} id={headingId} tabIndex={-1} className="hub-title mt-2 text-[24px] sm:text-[27px]">
+        {seedCopy.subtitle}
+      </h2>
 
       <dl className="mt-7 flex flex-col gap-6">
         <div>
@@ -53,6 +64,6 @@ export function SeedCard({ seed }: { seed: QuestionSeed }) {
         </Link>
         <p className="hub-caption max-w-[300px]">{seedCopy.previewNote}</p>
       </div>
-    </div>
+    </section>
   );
 }
