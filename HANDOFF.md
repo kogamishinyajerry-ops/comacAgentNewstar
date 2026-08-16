@@ -94,11 +94,17 @@ UI 改动需浏览器截图验证(截图存 /tmp 后用图像分析审查)。演
 4. 既有 organizer REST 路由逐步迁移到动作注册表(消除双轨:notify/status/assignments 已有等价动作)
 5. WorkBuddy 对话记忆持久化(当前无状态,刷新即失;可落 DomainEvent 或独立表)
 
-## 八、启动
+## 八、启动与线上部署
 
 ```bash
 npm install && npm run db:push && npm run db:seed && npm run dev
 # 或 npm run build && npm run start;Docker: docker compose up --build
 ```
+
+**线上(2026-08-16 已部署)**:`https://ynav.kogamishinyajerry.com`(Cloudflare Tunnel → 本机 127.0.0.1:3600)。
+- 应用 LaunchAgent:`~/Library/LaunchAgents/com.user.ynav.plist`(PORT=3600,KeepAlive 崩溃自拉起,日志 /tmp/ynav.launchd.*.log;`launchctl load/unload` 同隧道用法)
+- 隧道:复用 kogami-workbench 隧道,`~/.cloudflared/config.yml` 加了 ynav ingress;**protocol 已从 http2 改为 quic**(http2 到边缘 TLS 握手被网络重置 EOF,precheck 建议 quic);改前备份 config.yml.bak-*
+- GLM Key 已写入 .env(gitignored);线上是真实 GLM 模式
+- 注意:登录页公开展示演示账号(demo1234),对外真办活动前应移除或改密
 
 现在开始:检查 `git log --oneline | head -20` 与 README,输出不超过15行的计划,然后立即执行。
