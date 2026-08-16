@@ -124,6 +124,9 @@ describe("coach-machine:两条入口的人格红线", () => {
       for (const act of acts) {
         expect(act.judgment.length).toBeGreaterThan(6);
         expect(act.risk.length).toBeGreaterThan(6);
+        expect(act.judgment).not.toMatch(/[?？]/);
+        expect(act.risk).not.toMatch(/[?？]/);
+        expect(act.question.match(/[?？]/g) ?? []).toHaveLength(1);
         expect(act.question.endsWith("?")).toBe(true);
         expect(act.placeholder.length).toBeGreaterThan(6);
       }

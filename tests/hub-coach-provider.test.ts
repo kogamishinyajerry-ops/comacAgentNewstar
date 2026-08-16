@@ -6,6 +6,7 @@ import {
   getHubCoachAct,
   hubCoachLlmConfig,
   isHubCoachActRequestable,
+  isHubCoachLiveConfigured,
   type HubCoachLlmConfig,
 } from "../lib/hub/coach-provider";
 
@@ -68,15 +69,42 @@ describe("hub Coach provider:安全的下一幕适配", () => {
     });
   });
 
-  it("在 Mock、无 key 或非 GLM 配置下不调用提供器，而是稳定使用下一幕 fixture", async () => {
+  it("GLM 模拟结果中的 reasoning_content 永不进入公开 Coach 结果", async () => {
+    const privateReasoning = "这是仅供模型内部使用的推理内容，绝不能发送给浏览器。";
+    const chatJSON = vi.fn().mockResolvedValue({
+      text: JSON.stringify({
+        judgment: "现场已经被说明，但影响对象和损失仍缺少可复核的边界。",
+        risk: "若不先锁定受影响对象，后续方案会围绕不稳定的假设展开。",
+        question: "这个问题具体影响的是谁？",
+      }),
+      provider: "glm",
+      model: "glm-5.3",
+      reasoning_content: privateReasoning,
+    });
+
+    const result = await getHubCoachAct(nextActRequest(), {
+      config: liveConfig,
+      provider: { chatJSON },
+    });
+
+    expect(result.mode).toBe("live");
+    expect(result).not.toHaveProperty("reasoning_content");
+    expect(result.act).not.toHaveProperty("reasoning_content");
+    expect(JSON.stringify(result)).not.toContain(privateReasoning);
+  });
+
+  it("在 Mock、无 key、非 GLM 或非 Coding Plan 端点下不调用提供器，而是稳定使用下一幕 fixture", async () => {
     const chatJSON = vi.fn();
 
     for (const config of [
       { ...liveConfig, mockMode: true },
       { ...liveConfig, apiKey: "" },
       { ...liveConfig, provider: "other" },
+      { ...liveConfig, baseUrl: "https://open.bigmodel.cn/api/paas/v4" },
+      { ...liveConfig, baseUrl: "https://untrusted.example/api/coding/paas/v4" },
       { ...liveConfig, enabled: false },
     ]) {
+      expect(isHubCoachLiveConfigured(config)).toBe(false);
       const result = await getHubCoachAct(nextActRequest(), { config, provider: { chatJSON } });
       expect(result).toEqual({ mode: "fixture", act: coachDemoActs.problem[1] });
     }

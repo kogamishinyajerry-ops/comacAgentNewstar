@@ -185,12 +185,15 @@ npx playwright test                      # 含旧 full-flow 回归 + 新 hub.spe
 | B16 | `npm run build` 先跑 `validate:activity-config`；Header 仅消费精确 Logo 白名单，Guide 消费报名链接与结构化规则 | “单一事实源”必须可构建验证且真实到达 DOM；当前白名单和所有外部事实仍为空/PENDING |
 | B17 | 角色页按真实旧侧守卫表述：参赛者仅账户守卫，评委/组织者账户加角色守卫 | 不把 `/projects` 误说成角色 RBAC；Hub 只链接，不触碰旧侧数据或动作 |
 | B18 | a11y 验收使用零豁免 Axe + 键盘/焦点/1024×768 Playwright；屏幕阅读器仍须单列真实辅助技术证据 | 自动化可阻止可检测回归，但不能伪装成 VoiceOver/NVDA 人工体验 |
+| B19 | 确定性 fixture 与真实 Provider 共用“判断/风险无问号、问题只含一个末尾问号”的幕次契约 | 回退路径本身也必须落实一问一幕，不能只约束模型输出 |
 
 ### 9.7 阶段二收口验收记录（2026-08-17）
 
-- `npm run lint`、`npm run typecheck`、`npm run test`、`npm run build` 全部通过；Vitest 为 **18 files / 174 tests**，构建为 **51 routes**，并在构建前实际执行活动配置校验。
-- `LLM_MOCK_MODE=true npx playwright test` 全部通过：**29/29**。其中包含三类角色受保护交接、匿名旧侧登录守卫、1024×768 无溢出/桌面导航、移动抽屉焦点闭环、reduced motion、默认 PENDING 与 **零豁免 Axe** 扫描。
+- 收口后重新执行 `npm run lint`、`npm run typecheck`、`npm run test`、`npm run build`，全部通过；Vitest 为 **18 files / 177 tests**，构建为 **51 routes**，并在构建前实际执行活动配置校验。
+- 收口后重新执行 `LLM_MOCK_MODE=true npx playwright test`，全部通过：**35/35**。其中包含三类角色受保护交接、匿名与已登录错误角色的旧侧守卫、1024×768 无溢出/桌面导航、移动抽屉焦点闭环、reduced motion、默认 PENDING 与 **零豁免 Axe** 扫描。
 - 两次独立只读审查已收口：配置校验/Logo DOM/Guide 规则消费、Coach 单问题与 50–150 字契约、同源/限流、角色守卫文案均无剩余 P1。
 - 本地真实 Provider 探针使用已配置的 Coding Plan endpoint 与无害虚构输入；上游返回 HTTP 429，公开 API 正确返回 fixture 而不暴露上游错误。代码链路已可用，但“真实 live 回包”仍取决于 GLM Coding Plan 的账户/配额恢复，不能伪造为已验收。
-- 当前宿主环境没有可用的 VoiceOver 自动化凭据/依赖，故**未把 Axe 或 DOM 焦点断言冒充为真实 SR 实测**。上线前人工 VoiceOver 最小验收：跳过链接朗读并落到 `main`；移动抽屉打开、首尾循环和 Esc 归还；Coach 问题、空回答错误与“问题种子”焦点朗读；FAQ 和三类角色交接入口朗读。
+- 本机曾短暂启动 VoiceOver 并尝试读取其 `last phrase`，但系统 AppleEvent 持续超时，未能取得可审计的朗读文本，随后已关闭该临时会话；故**未把 Axe、DOM 焦点或该启动尝试冒充为真实 SR 实测**。上线前仍须人工 VoiceOver 最小验收：跳过链接朗读并落到 `main`；移动抽屉打开、首尾循环和 Esc 归还；Coach 问题、空回答错误与“问题种子”焦点朗读；FAQ 和三类角色交接入口朗读。
 - 正式活动名称、组织单位、日期、规则、外部链接和获准 Logo 仍无来源，按 B2/B16 保持 PENDING；未进行部署、3600 端口重启、推送或生产数据变更。
+- 收口复核修正了两条 fixture 第二幕的“双问”文案，并新增 machine 契约断言；1024×768 本机 Chromium 截图复核了首页与 Coach 首幕，二者均无横向溢出（`scrollWidth === 1024`）、桌面导航与单回答器可见。
+- 新增 Provider/route 回归：非 Coding Plan endpoint 不出站、`reasoning_content` 不泄露、每客户端第 7 次与全局第 25 次请求稳定 fixture 回退；新增浏览器回归：500、网络中断和畸形 JSON 时可见 `role="alert"`、`aria-busy` 复位、三幕继续且不显示原始诊断，以及跨源 Origin 的 403 不回显输入。

@@ -1,5 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { coachDemoActs } from "../fixtures/coach-demo";
+
+const { getHubCoachActMock } = vi.hoisted(() => ({
+  getHubCoachActMock: vi.fn(),
+}));
+
+vi.mock("@/lib/hub/coach-provider", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../lib/hub/coach-provider")>();
+  return { ...actual, getHubCoachAct: getHubCoachActMock };
+});
+
 import { resetHubCoachRateLimiterForTests } from "../lib/hub/coach-provider";
 import { POST } from "../app/api/hub/coach/route";
 import {
@@ -30,6 +40,11 @@ describe("POST /api/hub/coach", () => {
     delete process.env.GLM_API_KEY;
     delete process.env.HUB_COACH_TRUST_PROXY;
     resetHubCoachRateLimiterForTests();
+    getHubCoachActMock.mockReset();
+    getHubCoachActMock.mockResolvedValue({
+      mode: "fixture",
+      act: coachDemoActs.problem[1],
+    });
   });
 
   afterEach(() => {
@@ -112,5 +127,46 @@ describe("POST /api/hub/coach", () => {
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ ok: false, error: "请求来源不正确" });
+  });
+
+  it("同一客户端到达第七次请求时在路由层安全回退 fixture，不再调用 Coach", async () => {
+    const body = {
+      entry: "problem",
+      completedAct: 0,
+      answers: ["试验异常记录分散在多处，复核时常常找不到对应依据。"],
+    };
+    getHubCoachActMock.mockResolvedValue({ mode: "live", act: coachDemoActs.problem[1] });
+
+    const payloads = await Promise.all(
+      Array.from({ length: 7 }, async () => (await POST(request(body))).json())
+    );
+
+    expect(payloads.slice(0, 6)).toEqual(
+      Array.from({ length: 6 }, () => ({ ok: true, mode: "live", act: coachDemoActs.problem[1] }))
+    );
+    expect(payloads[6]).toEqual({ ok: true, mode: "fixture", act: coachDemoActs.problem[1] });
+    expect(getHubCoachActMock).toHaveBeenCalledTimes(6);
+  });
+
+  it("受信代理下不同客户端耗尽全局预算时，第二十五次也在路由层安全回退 fixture", async () => {
+    const body = {
+      entry: "idea",
+      completedAct: 0,
+      answers: ["一个初步想法，但还缺少可验证的受益对象和证据。"],
+    };
+    process.env.HUB_COACH_TRUST_PROXY = "true";
+    getHubCoachActMock.mockResolvedValue({ mode: "live", act: coachDemoActs.idea[1] });
+
+    const payloads = [];
+    for (let index = 1; index <= 25; index += 1) {
+      const response = await POST(request(body, { "cf-connecting-ip": `203.0.113.${index}` }));
+      payloads.push(await response.json());
+    }
+
+    expect(payloads.slice(0, 24)).toEqual(
+      Array.from({ length: 24 }, () => ({ ok: true, mode: "live", act: coachDemoActs.idea[1] }))
+    );
+    expect(payloads[24]).toEqual({ ok: true, mode: "fixture", act: coachDemoActs.idea[1] });
+    expect(getHubCoachActMock).toHaveBeenCalledTimes(24);
   });
 });

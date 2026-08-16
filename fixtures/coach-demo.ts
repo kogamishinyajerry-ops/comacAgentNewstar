@@ -33,7 +33,7 @@ export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
     {
       judgment: "瞬间有了,但一个瞬间要成为问题,需要说明它落在谁身上、代价是什么。",
       risk: "如果说不清谁受影响、损失是什么,后面所有技术选择都会失去判断依据。",
-      question: "这个问题影响的是谁?损失具体体现在哪里?",
+      question: "这个问题对谁造成了什么具体损失?",
       placeholder: "例如:影响试验工程师和复核人;每次对账多花两小时,版本对不上还会返工……",
       emptyHint: "试着点出具体的人和具体的代价——时间、返工、等待,都算。",
     },
@@ -56,7 +56,7 @@ export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
     {
       judgment: "现象开始浮现。它要立得住,需要指明落点和代价。",
       risk: "影响面说不清的问题,无法证明被改善,也就无法证明作品的价值。",
-      question: "这个问题影响的是谁?怎样算证明了它被改善?",
+      question: "这个问题影响谁，又如何证明它已经被改善?",
       placeholder: "例如:影响一线工程师;从“每周约三小时手工汇总”降到“十分钟核对”,就算改善……",
       emptyHint: "给出人和代价,再给一个能观察到的改善信号。",
     },
