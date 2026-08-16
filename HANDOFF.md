@@ -22,7 +22,8 @@
   - **事件中心 `lib/events/`**:`DomainEvent` 追加日志(seq 单调),submit/状态/公告/评审/分配等路由已接线 emit;内置订阅者"待确认→组织者通知";`GET /api/events` 游标轮询
   - **权限确认**:SENSITIVE→`PendingAction` 冻结输入(24h)→ `/workbuddy` 右栏批准/拒绝→按冻结参数原样执行;条件更新防重复处理;MCP/Agent 只能发起、批准必须登录的人
   - **MCP Server**:Streamable HTTP / JSON-RPC 2.0(`lib/mcp/protocol.ts` 纯协议层可单测);令牌 `/integrations` 创建(只存 sha256);敏感工具返回 `needsConfirmation` 结构化内容
-  - **WorkBuddy 总控 `/workbuddy`**:对话+待确认队列+事件流三栏;GLM 工具循环≤2轮+白名单;Mock 大脑确定性路由(工具执行与确认流都是真实的);限流10次/分
+  - **WorkBuddy 总控 `/workbuddy`**:对话+待确认队列+事件流三栏;GLM 工具循环(链式允许:先查 projectId 再发起操作;计划自带回复即终止;白名单过滤);Mock 大脑确定性路由(工具执行与确认流都是真实的);限流10次/分
+  - **GLM 实测调优(2026-08-16,真实 Key)**:WorkBuddy 提示词含全部工具 schema,思维链更长——**maxTokens 必须 12000**(8000 会截断→空content→落兜底);实测延迟:简单查询 3-12s,链式两步 6-10s,极端思考 60s+(UI 有"处理中"态);**projectId 只在 activity.overview 的 projects 清单里**(含草稿摘要,催办/退回全靠它定位;events.recent 不含项目清单,提示词已点名);实测脚本 `npx tsx scripts/wb-smoke.ts`(GLM_API_KEY 从 shell 继承)
 - 提交预检:10条硬规则(含求证闭环五要素、敏感信息扫描)+四维雷达图;小实验卡/可见结果/90秒Demo脚本三件套;快照不可变
 - 视觉:纸墨朱砂编辑风(见下)
 
@@ -87,11 +88,11 @@ UI 改动需浏览器截图验证(截图存 /tmp 后用图像分析审查)。演
 
 ## 七、下一步候选(按价值排序,选1-3项执行)
 
-1. WorkBuddy GLM 实测调优(当前仅 Mock 走通全链路;GLM 模式的计划/总结提示词需实测迭代,注意思维链耗 max_tokens≥8000 铁律)
-2. 事件中心消费端扩展:停滞项目的自动事件(如"3天无进展")、每周摘要通知(订阅者模式,不新增轮询)
-3. MCP 增加 prompts/resources 能力(公告模板、活动手册),令牌 scopes 细分(只读令牌)
-4. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
-5. 既有 organizer REST 路由逐步迁移到动作注册表(消除双轨:notify/status/assignments 已有等价动作)
+1. 事件中心消费端扩展:停滞项目的自动事件(如"3天无进展")、每周摘要通知(订阅者模式,不新增轮询)
+2. MCP 增加 prompts/resources 能力(公告模板、活动手册),令牌 scopes 细分(只读令牌)
+3. 图鉴 8 格拼图分享卡(canvas 合成一张可下载图)
+4. 既有 organizer REST 路由逐步迁移到动作注册表(消除双轨:notify/status/assignments 已有等价动作)
+5. WorkBuddy 对话记忆持久化(当前无状态,刷新即失;可落 DomainEvent 或独立表)
 
 ## 八、启动
 

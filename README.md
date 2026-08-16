@@ -138,7 +138,7 @@ lib/control/actions.ts(8个动作:概览/事件/配置/公告/通知/状态/评�
 - **事件中心 `lib/events/`**:全站领域事件追加日志(`DomainEvent`,seq 单调递增,游标轮询 `GET /api/events`);提交/状态变更/公告/评审锁定/分配/确认生命周期全部留痕;进程内订阅者(如"有待确认 → 给组织者发站内通知");payload 只放 id/标题/计数,不碰草稿全文与密钥。
 - **权限确认机制**:SENSITIVE 动作 → `PendingAction` 冻结输入落单(24h 过期)→ 组织者在 `/workbuddy` 右栏批准/拒绝 → **按冻结参数原样执行**(条件更新保证一单一处理;执行失败落 FAILED 并保留错误);Agent/MCP 令牌只能"发起",批准必须是登录的人——与活动"求证闭环必须有人工确认点"的哲学同构。
 - **MCP Server `POST /api/mcp`**:`initialize`/`tools/list`/`tools/call`/`ping`;工具=动作注册表(带 readOnlyHint/destructiveHint 注解);令牌在 `/integrations` 创建(只存 sha256,明文仅显示一次),属主角色决定可见工具;`tools/call` 敏感工具返回 `structuredContent.needsConfirmation=true` 而非直接生效。
-- **WorkBuddy 总控 Agent**:GLM 模式=计划→真实执行工具→基于结果总结(≤2轮,目录外动作白名单过滤);Mock 模式=确定性意图路由,同样真实走确认流,演示可复现;限流 10次/分/人,每次调用审计留痕。
+- **WorkBuddy 总控 Agent**(已用真实 GLM Key 实测调优):链式工具调用(如"催办草稿项目"=activity.overview 查 projectId→notice.send 拟话术→确认单),计划自带回复即终止(典型 2 次 LLM 调用、6-10 秒),目录外动作白名单过滤;WorkBuddy 提示词含全部工具 schema,`maxTokens=12000`(8000 会被思维链截断);Mock 模式=确定性意图路由,同样真实走确认流;限流 10次/分/人,每次调用审计留痕;实测脚本 `npx tsx scripts/wb-smoke.ts`。
 
 ## 拷问式辅导(Grill Coach)
 

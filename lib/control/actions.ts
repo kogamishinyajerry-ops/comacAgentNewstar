@@ -17,13 +17,13 @@ const ORGANIZER_ROLES = ["ORGANIZER", "ADMIN"] as const;
 export const activityOverview: ActionDef = {
   id: "activity.overview",
   title: "活动总览",
-  description: "查询活动全局快照:活动配置(名称/日期/截止)、各状态项目计数、队伍数、待确认敏感操作数、最近领域事件。回答『活动进展如何/有多少提交』这类问题先用它。",
+  description: "查询活动全局快照:活动配置(名称/日期/截止)、各状态项目计数、队伍数、待确认敏感操作数、最近领域事件,以及项目清单(含 id/标题/状态/队伍;草稿只有摘要,无材料全文)。回答『活动进展如何/有多少提交』,或催办与状态变更前查找 projectId,先用它。",
   risk: "SAFE",
   roles: [...ORGANIZER_ROLES],
   input: z.object({}).passthrough(),
   summary: () => "查询活动总览",
   async execute() {
-    const [config, byStatus, teams, judges, pending, recent, submitted] = await Promise.all([
+    const [config, byStatus, teams, judges, pending, recent, projects] = await Promise.all([
       prisma.activityConfig.findUnique({ where: { id: "main" } }),
       prisma.ideaProject.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.team.count(),
@@ -31,10 +31,9 @@ export const activityOverview: ActionDef = {
       prisma.pendingAction.count({ where: { status: "PENDING" } }),
       listEvents({ limit: 8 }),
       prisma.ideaProject.findMany({
-        where: { status: { in: ["SUBMITTED", "PRELIMINARY", "FINAL"] } },
-        select: { id: true, title: true, status: true, track: true, submittedAt: true },
-        orderBy: { submittedAt: "desc" },
-        take: 20,
+        select: { id: true, title: true, status: true, track: true, currentStep: true, updatedAt: true, team: { select: { name: true } } },
+        orderBy: { updatedAt: "desc" },
+        take: 30,
       }),
     ]);
     const counts: Record<string, number> = {};
@@ -48,7 +47,15 @@ export const activityOverview: ActionDef = {
       judgeCount: judges,
       pendingConfirmations: pending,
       recentEvents: recent.map((e) => ({ seq: e.seq, type: e.type, summary: e.payload.summary ?? null, actorName: e.actorName, at: e.createdAt })),
-      submittedProjects: submitted,
+      projects: projects.map((p) => ({
+        id: p.id,
+        title: p.title,
+        status: p.status,
+        track: p.track,
+        currentStep: p.currentStep,
+        team: p.team.name,
+        updatedAt: p.updatedAt.toISOString(),
+      })),
     };
   },
 };
@@ -56,7 +63,7 @@ export const activityOverview: ActionDef = {
 export const eventsRecent: ActionDef<{ types?: string[]; limit?: number }> = {
   id: "events.recent",
   title: "最近事件",
-  description: "查询事件中心最近的领域事件(提交/状态变更/公告/评审/确认生命周期等),可按类型过滤。用于排查『刚才发生了什么』。",
+  description: "查询事件中心最近的领域事件(提交/状态变更/公告/评审/确认生命周期等),可按类型过滤。用于排查『刚才发生了什么』;返回的是事件流水,不含项目清单,不能用来查 projectId。",
   risk: "SAFE",
   roles: [...ORGANIZER_ROLES],
   input: z.object({

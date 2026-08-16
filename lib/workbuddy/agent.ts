@@ -57,14 +57,15 @@ export const WORKBUDDY_SYSTEM_PROMPT = `你是 WorkBuddy——青年AI轻创活�
 
 ## 职责
 1. 用中文简洁回答活动运营问题;数据一律来自工具结果,绝不编造数字。
-2. 需要操作时调用工具:查询类(SAFE)直接调用;敏感类(announcement.publish / activity.updateConfig / notice.send / project.setStatus / review.assign / track.toggle)也直接调用——系统会自动生成待人工确认的确认单,不需要你先征求许可。
+2. 需要操作时直接调用工具:查询类(SAFE)直接调用;敏感类(announcement.publish / activity.updateConfig / notice.send / project.setStatus / review.assign / track.toggle)同样直接调用。系统会自动生成待人工确认的确认单——**确认环节由确认单承担,不要在对话里再口头征求许可或等用户说"确认"**;用户已明确表达的意图(如"催办X""退回X""发公告")一口气执行到生成确认单为止。
 3. 一次最多调用 2 个工具;参数从用户原话提取,拿不准就先追问,不要猜 ID。
-4. 活动红线你也要守:不展示未提交草稿全文、不处理敏感明文数据、Agent 分数只供参考。
+4. 需要 projectId 的操作(催办/状态变更/评审分配):projectId 只来自 activity.overview 返回的 projects 清单(events.recent 不含项目清单);按标题或队伍名匹配,**唯一匹配→直接调用目标工具**;多个候选或零匹配→列出候选让用户选。
+5. 活动红线你也要守:不展示未提交草稿全文、不处理敏感明文数据、Agent 分数只供参考。
 
 ## 输出协议(严格 JSON,不要输出其他内容)
 {"reply":"给组织者的中文回复(本轮要调用工具时可为空串)","toolCalls":[{"id":"t1","action":"<动作id>","input":{}}]}
 
-工具执行结果会以 {"toolResults":[...]} 回传;收到后基于结果给出最终回复,并停止调用工具。`;
+工具执行结果会以 {"toolResults":[...]} 回传;收到后:用户意图已达成→只给最终中文回复;还需一步(如先查 projectId 再发起操作)→继续调用工具。`;
 
 export function buildSystemPrompt(deps: BuddyDeps): string {
   const s = deps.snapshot;
@@ -91,13 +92,18 @@ function conversationOf(history: BuddyMessage[]): string {
 }
 
 async function llmPlan(deps: BuddyDeps, prompt: string, allowTools: boolean): Promise<BuddyPlan> {
-  const out = await deps.chatJSON({ system: buildSystemPrompt(deps), user: prompt, maxTokens: 8000 });
+  // WorkBuddy 的系统提示词含全部工具 schema,思维链更长;8000 会被截断(finish_reason=length→空content),
+  // 实测 12000 稳定
+  const out = await deps.chatJSON({ system: buildSystemPrompt(deps), user: prompt, maxTokens: 12000 });
   const parsed = PlanSchema.safeParse(tryParseJson(out.text, true) ?? {});
   const plan = parsed.success ? parsed.data : { reply: "", toolCalls: [] };
-  if (!allowTools || !plan.toolCalls.length) return { reply: plan.reply || "我处理一下……(模型未给出可用回复,请重试或换个说法)" };
-  // 白名单过滤:只允许目录内的动作
+  const reply = plan.reply || "";
+  if (!allowTools || !plan.toolCalls.length) {
+    return { reply: reply || "我处理一下……(模型未给出可用回复,请重试或换个说法)" };
+  }
+  // 白名单过滤:只允许目录内的动作;reply 一并带回(模型常在调用工具时附带说明,轮次终止时直接采用)
   const known = new Set(deps.tools.map((t) => t.id));
-  return { toolCalls: plan.toolCalls.filter((t) => known.has(t.action)).slice(0, 2) };
+  return { reply, toolCalls: plan.toolCalls.filter((t) => known.has(t.action)).slice(0, 2) };
 }
 
 async function executeToolCalls(deps: BuddyDeps, calls: NonNullable<BuddyPlan["toolCalls"]>): Promise<BuddyToolRun[]> {
@@ -140,14 +146,16 @@ export async function runWorkBuddyTurn(deps: BuddyDeps, history: BuddyMessage[])
 
   let prompt = `${conversationOf(history)}\n\n(请按输出协议回复 JSON)`;
   let carriedRuns: BuddyToolRun[] = [];
+  let lastReply = "";
   for (let round = 0; round < rounds; round++) {
     const plan = await llmPlan(deps, prompt, true);
-    if (!plan.toolCalls?.length) {
-      return { reply: plan.reply || mockReplyAfterTools(carriedRuns) || "处理完毕。", toolRuns: carriedRuns };
-    }
-    const runs = await executeToolCalls(deps, plan.toolCalls);
-    carriedRuns = carriedRuns.concat(runs);
-    prompt = `${conversationOf(history)}\n\n工具执行结果:\n${JSON.stringify(runs, null, 1)}\n\n(工具已执行,请基于结果给出最终中文回复;不要再调用工具)`;
+    lastReply = plan.reply || lastReply;
+    if (!plan.toolCalls?.length) break; // 意图已达成,模型只给最终回复
+    carriedRuns = carriedRuns.concat(await executeToolCalls(deps, plan.toolCalls));
+    // 计划自带结论性回复 → 用它,不再追加一轮(两步意图保持 2 次 LLM 调用)
+    if (plan.reply) break;
+    if (round === rounds - 1) break;
+    prompt = `${conversationOf(history)}\n\n工具执行结果:\n${JSON.stringify(carriedRuns, null, 1)}\n\n(工具已执行。用户意图已达成→只给最终中文回复,toolCalls 置空;还需一步操作(如已查到 projectId,现在发起催办/状态变更)→继续调用相应工具,reply 可带一句说明)`;
   }
-  return { reply: mockReplyAfterTools(carriedRuns) || "处理完毕。", toolRuns: carriedRuns };
+  return { reply: lastReply || mockReplyAfterTools(carriedRuns) || "处理完毕。", toolRuns: carriedRuns };
 }
