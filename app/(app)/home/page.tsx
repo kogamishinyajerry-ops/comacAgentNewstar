@@ -48,7 +48,7 @@ export default async function HomePage() {
                   <LinkButton href="/login" variant="secondary" size="lg">登录</LinkButton>
                 </>
               )}
-              <LinkButton href="/?demo=1" variant="ghost" size="lg" className="text-ink-500">▶ 观看自动演示</LinkButton>
+              <LinkButton href="/home?demo=1" variant="ghost" size="lg" className="text-ink-500">▶ 观看自动演示</LinkButton>
               <LinkButton href="/inspirations" variant="ghost" size="lg" className="text-ink-500">案例灵感</LinkButton>
             </div>
             {config?.submissionDeadline && (

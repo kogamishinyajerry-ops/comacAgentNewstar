@@ -1,0 +1,31 @@
+{
+  "activityName": "COMAC 青年 AI Agent 创新实践月",
+  "eyebrow": "COMAC 青年 AI Agent 创新实践月",
+  "status": "configuration_pending",
+  "organizers": [],
+  "dates": {
+    "registrationDeadline": null,
+    "startDate": null,
+    "endDate": null
+  },
+  "links": {
+    "registration": null,
+    "login": null,
+    "guide": null,
+    "support": null
+  },
+  "brand": {
+    "approvedLogoPath": null,
+    "useTextMarkUntilApproved": true
+  },
+  "displayFallback": "待活动配置确认",
+  "featureFlags": {
+    "publicHub": true,
+    "deterministicCoachPreview": true,
+    "realLlm": false,
+    "backend": false,
+    "participantWorkbench": false,
+    "reviewerScoring": false,
+    "organizerDashboard": false
+  }
+}
