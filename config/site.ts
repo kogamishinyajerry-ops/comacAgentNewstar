@@ -20,12 +20,11 @@ export const site = {
   },
 
   nav: [
-    { label: "活动介绍", href: "/#intro" },
-    { label: "实践路径", href: "/#journey" },
-    { label: "不同角色", href: "/#roles" },
-    { label: "常见问题", href: "/#faq" },
+    { label: "问题探索", href: "/" },
+    { label: "活动指南", href: "/guide" },
+    { label: "参赛者入口", href: "/role/participant" },
   ],
-  primaryCta: { label: "开始探索", href: "/start" },
+  primaryCta: { label: "开始探索", href: "/" },
 
   hero: {
     eyebrow: activity.identity.eyebrow,

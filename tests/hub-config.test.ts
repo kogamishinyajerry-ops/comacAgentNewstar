@@ -58,9 +58,10 @@ describe("config/site:导航与首屏", () => {
     expect(site.hero.secondaryAction.label).toBe("我已经有一个想法");
   });
 
-  it("导航锚点与页内模块对应", () => {
+  it("固定视口主入口不再挂接已移除的长卷锚点", () => {
     const anchors = site.nav.map((n) => n.href);
-    expect(anchors).toEqual(["/#intro", "/#journey", "/#roles", "/#faq"]);
+    expect(anchors).toEqual(["/", "/guide", "/role/participant"]);
+    expect(anchors.every((href) => !href.startsWith("/#"))).toBe(true);
   });
 
   it("FAQ 恰好五问且回答克制(2–4 句)", () => {

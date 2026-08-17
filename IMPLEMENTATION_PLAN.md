@@ -227,3 +227,34 @@ npx playwright test                      # 含旧 full-flow 回归 + 新 hub.spe
 - 在构建后关闭已失效的本仓库 3000 开发进程，由 Playwright 启动当前代码服务执行 `LLM_MOCK_MODE=true npx playwright test`，最终 **38/38** 通过；3600 生产服务未触碰；
 - `design-qa.md` 以 916px 同宽真值和浏览器全页做并排审查，另覆盖 1440、1024、390 响应式与 1280×720 实机首屏；最终结论为 `passed`；
 - 本轮未部署、未推送、未重启生产 LaunchAgent，也未填入任何尚无正式来源的活动事实或 Logo。
+
+---
+
+## 11. 固定视口 Coach 工作台（2026-08-17）
+
+用户在看到长卷实现后明确覆盖 C1：主入口不应再出现任何页面级上下翻动，活动背景信息也不应占据核心界面。视觉仍沿用已选定的暖白纸张、海军蓝／钴蓝与航空证据图谱气质，但 3D 核心视觉继续退出，改由高质量平面资产承担状态变化。
+
+### 11.1 决策与边界
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| D1 | `/` 与 `/start` 统一为固定视口的轻量 Coach 预览；`html/body/main` 不产生页面级滚动 | 用户明确要求整个 UI 不上下翻动；兼容入口与状态机不分叉 |
+| D2 | 唯一允许纵向滚动的是中部会话记录区，回答器固定在同一面板底部 | 长对话可回看，同时入口、当前问题和提交动作保持稳定 |
+| D3 | 主入口只保留入口选择、三幕进度、当前问题、回答器、判断／风险和状态插画 | 移除无关背景噪声，落实同屏唯一焦点 |
+| D4 | 活动介绍、角色说明、规则与待确认事实继续保留在 `/guide` 与 `/role/*`，不删除可复用组件 | 信息退出主舞台但能力与 URL 不回退 |
+| D5 | idle/listening/challenging/condensing/confirmed 分别使用五张独立 1254px RGBA 平面插画 | 不再用同一资产换滤镜假装状态；以构图而非旁白表达状态 |
+| D6 | 390px 将入口与三幕压缩为顶部控制带，状态插画成为右上角视觉锚点；916px 继续三栏 | 保持桌面认知分区，同时让移动端不产生页面溢出 |
+
+### 11.2 机械验收
+
+- `tests/e2e/hub-visual-direction.spec.ts` 在 1440×900、916×800、390×844 断言 `documentElement.scrollHeight <= innerHeight + 1` 且无横向溢出；
+- 同一测试断言会话区 `overflow-y: auto`、页脚不可见、状态资产自然宽度不低于 1024、页面无 `audio` / `video` 和 Coach SVG；
+- 三幕交互、确定性回退、Axe、键盘焦点、移动抽屉、角色守卫与旧应用流程继续由既有 Playwright 套件回归；
+- 视觉资产来源、生成方向和原始文件路径记录在 `public/hub/art/README.md`；最终视觉比较与缺陷分级记录在 `design-qa.md`。
+
+### 11.3 验收记录
+
+- 最终执行 `npm run lint && npm run typecheck && npm run test && npm run build`，全部通过：Vitest **18 files / 177 tests**，生产构建 **51 routes**，活动配置校验实际随 build 执行；
+- 构建后关闭本仓库旧 3000 进程，由 Playwright 启动当前代码服务执行 `LLM_MOCK_MODE=true npx playwright test`，最终 **39/39** 通过；包含 1440／916／390 固定视口、1024 无溢出、零豁免 Axe、三幕 Coach、异常回退、角色守卫与旧 full-flow；
+- `design-qa.md` 以 916 × 800 同尺寸源图裁切与实现做真实并排比较，并单列 1440 与 390 实现证据；最终无 P0/P1/P2，`final result: passed`；
+- 本轮未部署、未推送、未重启 3600 生产 LaunchAgent，也未填入任何缺乏正式来源的活动事实或 Logo。

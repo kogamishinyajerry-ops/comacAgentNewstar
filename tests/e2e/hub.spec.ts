@@ -32,15 +32,15 @@ async function answerActs(page: Page, questions: readonly string[], label: strin
 test.describe("桌面 1440×900", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("1. 首屏:活动定位、主 CTA、次 CTA 与低强调链接", async ({ page }) => {
+  test("1. 首屏:固定视口 Coach、双入口与无背景信息堆叠", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("COMAC 青年 AI Agent 创新实践月").first()).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "把一个真实问题,变成可验证的 AI Agent 作品" })
+      page.getByRole("heading", { name: "把问题压实到可验证" })
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "从一个真实问题开始" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "我已经有一个想法" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "先了解活动如何进行" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "真实问题", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "已有想法", exact: true })).toBeVisible();
+    await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
+    await expect(page.locator(".hub-footer")).toBeHidden();
     // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分
     const body = await page.textContent("body");
     for (const banned of ["排行榜", "健康分", "完成率"]) {
@@ -49,10 +49,8 @@ test.describe("桌面 1440×900", () => {
     await page.screenshot({ path: `${SHOTS}/home-first-1440.png` });
   });
 
-  test("2. 主 CTA 进入真实问题 Coach 预览,三幕后生成问题种子", async ({ page }) => {
+  test("2. 真实问题入口三幕后生成问题种子", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "从一个真实问题开始" }).click();
-    await expect(page).toHaveURL(/\/start/);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     // 第一问交互中:截取 Coach 互动预览(第二幕已端上来)
     await page.locator("#coach-answer").fill("试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
@@ -75,10 +73,10 @@ test.describe("桌面 1440×900", () => {
     ).toBeVisible();
   });
 
-  test("3. 次 CTA 进入已有想法预览:第一问挑战方案先行,不直接认可", async ({ page }) => {
+  test("3. 已有想法入口第一问挑战方案先行,不直接认可", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "我已经有一个想法" }).click();
-    await expect(page).toHaveURL(/\/start\?entry=idea/);
+    await page.getByRole("link", { name: "已有想法", exact: true }).click();
+    await expect(page).toHaveURL(/\?entry=idea/);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
     await answerActs(page, ACT_QUESTIONS.idea, "已有想法");
   });
@@ -86,29 +84,21 @@ test.describe("桌面 1440×900", () => {
   test("4. Coach 同屏只有一个主要问题和一个回答器", async ({ page }) => {
     for (const url of ["/", "/start"]) {
       await page.goto(url);
-      if (url === "/") {
-        await page.locator("#coach-preview").scrollIntoViewIfNeeded();
-      }
       await expect(page.locator("#coach-answer")).toHaveCount(1);
       await expect(page.locator("#coach-question")).toHaveCount(1);
     }
   });
 
   test("5. 三类角色入口均能进入相应说明页", async ({ page }) => {
-    await page.goto("/");
-    await page.locator("#roles").scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${SHOTS}/home-roles-1440.png` });
     for (const [href, heading] of [
       ["/role/participant", "我是参赛者"],
       ["/role/reviewer", "我是评委"],
       ["/role/organizer", "我是组织者"],
     ] as const) {
-      await page.locator(`#roles a[href="${href}"]`).click();
+      await page.goto(href);
       await expect(page).toHaveURL(new RegExp(href.replace("/", "\\/")));
       await expect(page.getByRole("heading", { name: heading })).toBeVisible();
       await expect(page.getByRole("heading", { name: "系统不会替你做什么" })).toBeVisible();
-      await page.goBack();
-      await page.locator("#roles").scrollIntoViewIfNeeded();
     }
   });
 
@@ -131,7 +121,7 @@ test.describe("桌面 1440×900", () => {
         .filter((h) => h.startsWith("/") && !h.startsWith("/#") && !h.includes("://"))
         .map((h) => h.split("#")[0])
     );
-    expect(routes.size).toBeGreaterThanOrEqual(5);
+    expect(routes.size).toBeGreaterThanOrEqual(3);
     for (const route of routes) {
       const res = await request.get(route);
       expect(res.status(), `GET ${route}`).toBeLessThan(400);
@@ -142,9 +132,9 @@ test.describe("桌面 1440×900", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: "把一个真实问题,变成可验证的 AI Agent 作品" })
+      page.getByRole("heading", { name: "把问题压实到可验证" })
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "从一个真实问题开始" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "真实问题", exact: true })).toBeVisible();
     await page.goto("/start");
     await answerActs(page, ACT_QUESTIONS.problem, "减弱动态");
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
@@ -189,18 +179,19 @@ test.describe("桌面 1440×900", () => {
 test.describe("移动端 390×844", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("10. 无横向滚动,CTA 可见可点", async ({ page }) => {
+  test("10. 无页面级滚动,已有想法入口可切换", async ({ page }) => {
     await page.goto("/");
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );
     expect(overflow).toBeLessThanOrEqual(0);
-    const cta = page.getByRole("link", { name: "从一个真实问题开始" });
-    await cta.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(845);
+    const cta = page.getByRole("link", { name: "已有想法", exact: true });
     await expect(cta).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/home-first-390.png` });
     await cta.tap();
-    await expect(page).toHaveURL(/\/start/);
+    await expect(page).toHaveURL(/\?entry=idea/);
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
   });
 
   test("11. 移动端 Coach 单焦点场景与抽屉导航", async ({ page }) => {
@@ -218,7 +209,7 @@ test.describe("移动端 390×844", () => {
     const burger = page.getByRole("button", { name: "打开导航菜单" });
     await burger.click();
     await expect(page.locator("#hub-drawer")).toHaveAttribute("data-open", "true");
-    await expect(page.locator("#hub-drawer").getByRole("link", { name: "活动介绍" })).toBeVisible();
+    await expect(page.locator("#hub-drawer").getByRole("link", { name: "活动指南" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator("#hub-drawer")).toHaveAttribute("data-open", "false");
     await expect(burger).toBeFocused();

@@ -4,12 +4,11 @@
 
 ## 公共 Hub:阶段一基础与阶段二演进
 
-产品转向:**一个由 AI Coach 驱动的创新实践入口**——强编排、弱干预;一问一幕,一幕一决策;前台只有"主张—证据—缺口",没有健康分、排行榜与完成率。视觉母题演进为**平面证据图谱长卷**:浅色纸张画布、深海军蓝文字、克制钴蓝、平面套色 Coach 标记与连续章节轨道；不再把 3D 球体或体积光作为视觉中心。它与旧"纸墨朱砂"风格仍通过路由分组完全隔离。
+产品转向:**一个由 AI Coach 驱动的创新实践入口**——强编排、弱干预;一问一幕,一幕一决策;前台只有"主张—证据—缺口",没有健康分、排行榜与完成率。主入口现为**固定视口的平面证据工作台**:浅色纸张画布、深海军蓝文字、克制钴蓝、五张独立 Coach 状态插画；页面本身不滚动，只有会话记录区可纵向滚动。它不是参赛者完整工作台，角色与活动事实仍在独立路由；旧"纸墨朱砂"风格继续通过路由分组完全隔离。
 
 ```text
-/                     公共 Landing(A 顶部导航 → B Hero 三拍 → C 价值观 → D 五段路径
-                      → E Coach 预览 → F 三类角色 → G 平台边界 → H 终局 CTA → I FAQ)
-/start                确定性三幕 Coach 预览(?entry=problem|idea 两条入口,凝结问题种子)
+/                     固定视口三幕 Coach 预览(?entry=problem|idea；仅会话记录区可滚动)
+/start                同一 Coach 预览的兼容入口(URL 与状态机不变)
 /guide                活动说明(未确认配置统一显示"待活动配置确认")
 /role/participant     参赛者说明页(主视觉)
 /role/reviewer        评委说明页(无评分系统)
@@ -19,9 +18,10 @@
 
 关键实现:
 
-- `styles/tokens.css` — 语义 Design Token + 平面证据图谱长卷布局 + 动效语言(端上来/收拢/吸附/长出来/取到眼前/退到背景/凝结),仅 `(hub)` 布局加载,与旧 `globals.css` 互斥;
-- `public/hub/art/` — ImageGen 制作并入库的纸张肌理、Coach 等高线、证据定位靶与问题种子平面资产；页面不依赖 3D 素材;
-- `components/hub/coach-orb.tsx` — 兼容原调用接口的平面 Coach 状态标记，五状态(idle/listening/challenging/condensing/confirmed)由真实插画资产的套色错位/收拢驱动;
+- `styles/tokens.css` — 语义 Design Token + 固定视口三栏工作台 + 仅会话区滚动的响应式布局 + 七种空间动词，仅 `(hub)` 布局加载,与旧 `globals.css` 互斥;
+- `public/hub/art/` — ImageGen 制作并入库的纸张肌理及五张 Coach 状态平面插画；页面不依赖 3D 素材、CSS 假画或媒体旁白;
+- `components/hub/coach-workbench.tsx` / `coach-workspace-scene.tsx` — 主入口的固定视口壳与唯一可滚动会话区；1440、916、390 三档都禁止页面级溢出;
+- `components/hub/coach-orb.tsx` — 兼容原调用接口的平面 Coach 状态标记，五状态(idle/listening/challenging/condensing/confirmed)分别使用独立构图资产;
 - `lib/hub/coach-machine.ts` — 纯 reducer 状态机 + 问题种子合成（无 DB，仍是确定性兜底与最终收束）；
 - `fixtures/coach-demo.ts` — 两条入口 × 三幕的确定性文案(严格但建设性,已有想法入口第一问挑战方案先行);
 - `config/site.ts` / `config/activity.ts` — 品牌、导航、FAQ 与全部活动事实(未确认项 `null` + `待活动配置确认`);
@@ -35,7 +35,7 @@
 - 活动身份、日期、链接、规则和品牌资产均收敛在 `config/activity.ts`。`npm run validate:activity-config` 会校验完整契约；`npm run build` 自动执行它。Logo 只会消费精确白名单中的 `public/brand/` 本地资产，当前无获准资产，故仍显示文字标识。
 - 角色说明页只深链到旧侧受保护入口：参赛者 `/projects`、评委 `/judge`、组织者 `/organizer`（次级 `/workbuddy`）。公共 Hub 不读取、不展示或执行任何项目、评分、管理数据或动作。
 
-活动正式名称、日期、组织单位、规则、链接和 Logo 尚未提供，继续显示“待活动配置确认”。本轮不部署、不重启生产服务，也不把公共 Hub 扩展为完整工作台、评分系统、仪表盘、IDE 或 Benchmark；详见 `IMPLEMENTATION_PLAN.md` 与 `AGENTS.md`。
+活动正式名称、日期、组织单位、规则、链接和 Logo 尚未提供，继续在 `/guide` 显示“待活动配置确认”。这些背景信息不再挤占主入口。本轮不部署、不重启生产服务，也不把公共 Hub 扩展为完整参赛者工作台、评分系统、仪表盘、IDE 或 Benchmark；详见 `IMPLEMENTATION_PLAN.md` 与 `AGENTS.md`。
 
 ## 旧产品:青年AI轻创导航站(保留在 (app) 分组)
 

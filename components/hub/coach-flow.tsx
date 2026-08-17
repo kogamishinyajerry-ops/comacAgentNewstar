@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { CoachOrb } from "./coach-orb";
+import Link from "next/link";
+import { CoachOrb, COACH_STATE_LABELS } from "./coach-orb";
 import { CoachScene } from "./coach-scene";
+import { CoachWorkspaceScene } from "./coach-workspace-scene";
 import { SeedCard } from "./seed-card";
 import { coachPrivacyNotice, seedCopy, type CoachAct, type CoachEntry } from "@/fixtures/coach-demo";
 import {
   ACT_COUNT,
   advance,
+  actsFor,
   clearError,
   composeSeed,
   createCoachState,
@@ -51,6 +54,7 @@ const ENTRY_LABELS: Record<CoachEntry, string> = {
 
 const CLIENT_FALLBACK_NOTICE = "AI 服务暂不可用，本幕已按确定性追问继续。";
 const CLIENT_REQUEST_TIMEOUT_MS = 100_000;
+const WORKSPACE_STAGES = ["工作瞬间", "影响证据", "Agent 必要性"] as const;
 
 /** transition 期满时长:默认与场景切换动效一致;减弱动态时缩短 */
 function transitionMs(): number {
@@ -113,10 +117,14 @@ export function CoachFlow({
   entry,
   orbIdPrefix = "coach-flow",
   compact = false,
+  variant = "stage",
+  entryBasePath = "/start",
 }: {
   entry: CoachEntry;
   orbIdPrefix?: string;
   compact?: boolean;
+  variant?: "stage" | "workspace";
+  entryBasePath?: "/" | "/start";
 }) {
   const [state, dispatch] = useReducer(reducer, entry, createCoachState);
   const [answer, setAnswer] = useState("");
@@ -210,6 +218,7 @@ export function CoachFlow({
 
   const fallbackAct = currentAct(state);
   const act = remoteActs[state.actIndex] ?? fallbackAct;
+  const resolvedActs = actsFor(state.entry).map((fixture, index) => remoteActs[index] ?? fixture);
   const providerStatus = transitioning
     ? providerPending
       ? "AI Coach 正在整理这一幕的回答。"
@@ -242,6 +251,132 @@ export function CoachFlow({
     setProviderPending(false);
     setProviderMode(null);
     setProviderError(null);
+  }
+
+  if (variant === "workspace") {
+    const problemHref = entryBasePath;
+    const ideaHref = `${entryBasePath}?entry=idea`;
+    const seed = state.phase === "seed" ? composeSeed(state) : null;
+
+    return (
+      <div className="coach-workspace-grid coach-stage" aria-busy={transitioning || providerPending}>
+        <aside className="coach-workspace-rail" aria-label="探索设置与三幕路径">
+          <div>
+            <p className="coach-workspace-kicker">AI Coach · 受控预览</p>
+            <h1 className="coach-workspace-title">把问题压实到可验证</h1>
+            <p className="coach-workspace-intro">三幕，一幕一问。回答留在当前会话，刷新后清空。</p>
+          </div>
+
+          <div className="coach-entry-switch" role="group" aria-label="选择探索入口">
+            <Link
+              href={problemHref}
+              aria-current={state.entry === "problem" ? "true" : undefined}
+              className="coach-entry-option"
+            >
+              真实问题
+            </Link>
+            <Link
+              href={ideaHref}
+              aria-current={state.entry === "idea" ? "true" : undefined}
+              className="coach-entry-option"
+            >
+              已有想法
+            </Link>
+          </div>
+
+          <ol className="coach-stage-list" aria-label="三幕探索路径">
+            {WORKSPACE_STAGES.map((label, index) => {
+              const status = state.phase === "seed" || index < state.actIndex
+                ? "complete"
+                : index === state.actIndex
+                  ? "current"
+                  : "upcoming";
+              return (
+                <li key={label} className="coach-stage-item" data-status={status}>
+                  <span className="coach-stage-number">{String(index + 1).padStart(2, "0")}</span>
+                  <span>{label}</span>
+                </li>
+              );
+            })}
+          </ol>
+
+          <p className="coach-workspace-privacy">只保留任务所需信息。请勿输入保密、个人或未公开内容。</p>
+        </aside>
+
+        {seed ? (
+          <div className="coach-workspace-dialog coach-workspace-dialog--seed">
+            <div className="coach-workspace-dialog-head">
+              <div>
+                <p className="coach-workspace-kicker">会话结果</p>
+                <p className="coach-workspace-dialog-title">问题种子已凝结</p>
+              </div>
+              <p className="coach-workspace-count">03 / 03</p>
+            </div>
+            <div className="coach-conversation-scroll" data-coach-conversation-scroll tabIndex={0}>
+              <SeedCard seed={seed} headingRef={seedHeadingRef} headingId={`${orbIdPrefix}-seed-title`} />
+            </div>
+            <div className="coach-workspace-seed-actions">
+              <button type="button" className="hub-btn hub-btn--ghost" onClick={resetFlow}>
+                重新开始
+              </button>
+            </div>
+          </div>
+        ) : (
+          <CoachWorkspaceScene
+            act={act}
+            resolvedActs={resolvedActs}
+            answers={state.answers}
+            actIndex={state.actIndex}
+            actCount={ACT_COUNT}
+            value={answer}
+            error={state.error}
+            transitioning={transitioning}
+            pending={providerPending}
+            privacyNotice={coachPrivacyNotice}
+            providerStatus={providerStatus}
+            providerError={providerError}
+            onChange={(value) => {
+              setAnswer(value);
+              if (state.error) dispatch({ type: "clearError" });
+              if (providerError) setProviderError(null);
+            }}
+            onResponderFocus={setListening}
+            onSubmit={handleSubmit}
+          />
+        )}
+
+        <aside className="coach-workspace-insight" aria-label="Coach 当前读法">
+          <div className="coach-workspace-art">
+            <CoachOrb state={visual} idPrefix={orbIdPrefix} size={270} decorative={false} />
+          </div>
+          <div className="coach-workspace-state-row">
+            <span className="coach-workspace-state-dot" aria-hidden="true" />
+            <span>{COACH_STATE_LABELS[visual]}</span>
+          </div>
+          {seed ? (
+            <div className="coach-insight-block">
+              <p className="coach-insight-label">当前结果</p>
+              <p className="coach-insight-value">问题已被压实为工作瞬间、影响与 Agent 必要性。</p>
+            </div>
+          ) : (
+            <dl className="coach-insight-list">
+              <div>
+                <dt>当前判断</dt>
+                <dd>{act.judgment}</dd>
+              </div>
+              <div>
+                <dt>最大风险</dt>
+                <dd>{act.risk}</dd>
+              </div>
+            </dl>
+          )}
+        </aside>
+
+        <p aria-live="polite" className="sr-only">
+          {seed ? `三幕完成，已凝结为问题种子。${seedCopy.subtitle}` : providerStatus ?? act.question}
+        </p>
+      </div>
+    );
   }
 
   return (

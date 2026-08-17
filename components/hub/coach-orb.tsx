@@ -9,6 +9,14 @@ export const COACH_STATE_LABELS: Record<CoachVisualState, string> = {
   confirmed: "已确认",
 };
 
+const COACH_STATE_ART: Record<CoachVisualState, string> = {
+  idle: "/hub/art/coach-state-idle.png",
+  listening: "/hub/art/coach-state-listening.png",
+  challenging: "/hub/art/coach-state-challenging.png",
+  condensing: "/hub/art/coach-state-condensing.png",
+  confirmed: "/hub/art/coach-state-confirmed.png",
+};
+
 interface CoachOrbProps {
   state: CoachVisualState;
   /** 同页多枚状态标记的稳定标识；保留既有调用接口。 */
@@ -21,7 +29,7 @@ interface CoachOrbProps {
 
 /**
  * AI Coach 平面状态标记。
- * 两层真实插画资产通过轻微套色错位表达状态，不再模拟球体、体积光或玻璃材质。
+ * 五张真实平面插画分别表达状态，不再用同一资产假装变化。
  */
 export function CoachOrb({
   state,
@@ -41,17 +49,7 @@ export function CoachOrb({
       style={{ width: size, height: size }}
     >
       <Image
-        src="/hub/art/flat-coach-field.png"
-        alt=""
-        width={size}
-        height={size}
-        sizes={`${size}px`}
-        className="coach-orb-layer coach-orb-layer--echo"
-        draggable={false}
-        unoptimized
-      />
-      <Image
-        src="/hub/art/flat-coach-field.png"
+        src={COACH_STATE_ART[state]}
         alt=""
         width={size}
         height={size}
@@ -59,7 +57,7 @@ export function CoachOrb({
         className="coach-orb-layer coach-orb-layer--main"
         data-coach-art="flat"
         draggable={false}
-        priority={idPrefix.startsWith("hero")}
+        priority={idPrefix.startsWith("hero") || idPrefix.startsWith("workbench")}
         unoptimized
       />
     </div>

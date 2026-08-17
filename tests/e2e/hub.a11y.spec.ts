@@ -11,25 +11,27 @@ async function expectNoAxeViolations(page: Page) {
 }
 
 test.describe("Hub 无障碍与响应式深化", () => {
-  test("1024×768: 无横向溢出，首屏 CTA 可见且可用", async ({ page }) => {
+  test("1024×768: 无页面级溢出，Coach 回答器可见且可用", async ({ page }) => {
     await page.setViewportSize(tablet);
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "把一个真实问题,变成可验证的 AI Agent 作品" })
+      page.getByRole("heading", { name: "把问题压实到可验证" })
     ).toBeVisible();
     await expect(page.getByRole("navigation", { name: "主导航" })).toBeVisible();
     await expect(page.getByRole("button", { name: "打开导航菜单" })).toHaveCount(0);
     await expect(page.locator(".hub-brand img")).toHaveCount(0);
-    const primaryCta = page.getByRole("link", { name: "从一个真实问题开始" });
+    const primaryCta = page.getByRole("link", { name: "真实问题", exact: true });
     await expect(primaryCta).toBeVisible();
 
     const metrics = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - window.innerWidth,
-      ctaBottom: document.querySelector<HTMLAnchorElement>('a[href="/start"]')?.getBoundingClientRect().bottom,
+      documentHeight: document.documentElement.scrollHeight,
+      ctaBottom: document.querySelector<HTMLAnchorElement>('.coach-entry-option[href="/"]')?.getBoundingClientRect().bottom,
       viewportHeight: window.innerHeight,
     }));
     expect(metrics.overflow).toBeLessThanOrEqual(0);
+    expect(metrics.documentHeight).toBeLessThanOrEqual(metrics.viewportHeight + 1);
     expect(metrics.ctaBottom).toBeLessThanOrEqual(metrics.viewportHeight);
     await expect(page.getByRole("link", { name: "组件与动效验收页" })).toHaveCount(0);
 
@@ -66,7 +68,7 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await expect(drawer).toHaveAttribute("aria-hidden", "false");
     await expect(close).toBeFocused();
 
-    for (const label of ["活动介绍", "实践路径", "不同角色", "常见问题", "开始探索"]) {
+    for (const label of ["问题探索", "活动指南", "参赛者入口", "开始探索"]) {
       await page.keyboard.press("Tab");
       await expect(drawer.getByRole("link", { name: label })).toBeFocused();
     }
@@ -89,9 +91,9 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "把一个真实问题,变成可验证的 AI Agent 作品" })
+      page.getByRole("heading", { name: "把问题压实到可验证" })
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "从一个真实问题开始" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "真实问题", exact: true })).toBeVisible();
 
     const motion = await page.locator(".hub-btn").first().evaluate((button) => ({
       scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
@@ -103,11 +105,11 @@ test.describe("Hub 无障碍与响应式深化", () => {
     expect(motion.animationName).toBe("none");
   });
 
-  test("移动端低强调链接保留 44px 触控热区", async ({ page }) => {
+  test("移动端入口选择保留 44px 触控热区", async ({ page }) => {
     await page.setViewportSize(mobile);
     await page.goto("/");
 
-    const quietLink = page.getByRole("link", { name: "先了解活动如何进行" });
+    const quietLink = page.getByRole("link", { name: "真实问题", exact: true });
     const height = await quietLink.evaluate((link) => link.getBoundingClientRect().height);
     expect(height).toBeGreaterThanOrEqual(44);
   });
