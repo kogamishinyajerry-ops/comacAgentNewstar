@@ -10,25 +10,25 @@
 
 :root {
   /* 表面 */
-  --surface-canvas: #f5f7fa;
-  --surface-primary: #ffffff;
-  --surface-focus: #f8fbff;
-  --surface-muted: #eef2f7;
+  --surface-canvas: #f4f1e9;
+  --surface-primary: #fffefb;
+  --surface-focus: #f7f4ec;
+  --surface-muted: #ece9e1;
 
   /* 文字 */
   --text-primary: #172238;
-  --text-secondary: #667085;
+  --text-secondary: #596477;
   --text-tertiary: #5b687c;
 
   /* 边界 */
-  --border-subtle: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --border-subtle: #d9d8d2;
+  --border-strong: #b9bdc6;
   --border-control: #7b8799;
 
   /* 强调 */
-  --accent-coach: #3568e8;
-  --accent-coach-strong: #2b55c9;
-  --accent-coach-soft: rgba(53, 104, 232, 0.14);
+  --accent-coach: #2b55c9;
+  --accent-coach-strong: #2147b3;
+  --accent-coach-soft: rgba(43, 85, 201, 0.14);
   --accent-purple: #7c62e8;
   --accent-purple-soft: rgba(124, 98, 232, 0.12);
   --accent-evidence: #0f7564;
@@ -44,15 +44,16 @@
   --dur-scene: 540ms;
 
   /* 形态 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --shadow-card: 0 1px 2px rgba(23, 34, 56, 0.04), 0 10px 28px rgba(23, 34, 56, 0.06);
-  --shadow-lift: 0 2px 4px rgba(23, 34, 56, 0.05), 0 16px 40px rgba(23, 34, 56, 0.1);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --shadow-card: 0 2px 3px rgba(23, 34, 56, 0.04), 0 14px 36px rgba(23, 34, 56, 0.07);
+  --shadow-lift: 0 3px 5px rgba(23, 34, 56, 0.06), 0 18px 46px rgba(23, 34, 56, 0.11);
 
   /* 字体 */
   --font-hub: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-hub-display: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
 
   --focus-ring: 0 0 0 3px rgba(53, 104, 232, 0.3);
 }
@@ -95,12 +96,118 @@
   }
   .hub-container {
     width: 100%;
-    max-width: 1128px;
+    max-width: 1200px;
     margin-inline: auto;
     padding-inline: clamp(20px, 4.5vw, 44px);
   }
   .hub-section {
-    padding-block: clamp(76px, 11vh, 128px);
+    padding-block: clamp(64px, 8vw, 96px);
+  }
+  .atlas-home {
+    background-color: var(--surface-canvas);
+    background-image: url("/hub/art/paper-atlas-texture.png");
+    background-size: 1254px 1254px;
+    background-position: top center;
+  }
+  .hub-hero {
+    min-height: 560px;
+    padding-block: clamp(40px, 5vw, 50px) 20px;
+    border-bottom: 1px solid rgba(53, 104, 232, 0.24);
+  }
+  .hub-hero-grid {
+    display: grid;
+    align-items: center;
+    gap: 28px 44px;
+    grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.94fr);
+    grid-template-areas: "text orb" "cta orb";
+  }
+  .hub-hero-grid > .hero-beat-1 { grid-area: text; }
+  .hub-hero-grid > .hero-beat-2 { grid-area: orb; }
+  .hub-hero-grid > .hero-beat-3 { grid-area: cta; }
+  .hub-hero-art {
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .atlas-hero-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  .atlas-hero-note::before {
+    content: "";
+    width: 22px;
+    height: 1px;
+    background: var(--accent-coach);
+  }
+  .atlas-section {
+    position: relative;
+    border-top: 1px solid rgba(53, 104, 232, 0.14);
+  }
+  .atlas-section::before {
+    content: attr(data-atlas-chapter);
+    position: absolute;
+    top: clamp(64px, 8vw, 96px);
+    left: max(22px, calc((100vw - 1200px) / 2 + 44px));
+    z-index: 1;
+    font-family: var(--font-hub-display);
+    font-size: 28px;
+    line-height: 1;
+    color: var(--accent-coach);
+  }
+  .atlas-section::after {
+    content: "";
+    position: absolute;
+    top: calc(clamp(64px, 8vw, 96px) + 48px);
+    bottom: 0;
+    left: max(34px, calc((100vw - 1200px) / 2 + 56px));
+    width: 1px;
+    background: rgba(53, 104, 232, 0.28);
+  }
+  .atlas-section#intro::before {
+    top: 48px;
+  }
+  .atlas-section > .hub-container {
+    padding-left: clamp(88px, 10vw, 136px);
+  }
+  .atlas-coach-sheet,
+  .atlas-evidence-sheet,
+  .atlas-final-sheet {
+    background: rgba(255, 254, 251, 0.94);
+    border: 1px solid rgba(53, 104, 232, 0.2);
+    box-shadow: var(--shadow-card);
+  }
+  .atlas-coach-sheet {
+    max-width: 920px;
+    padding: clamp(26px, 4vw, 46px);
+  }
+  .atlas-evidence-sheet {
+    min-width: 0;
+    padding: clamp(24px, 3vw, 38px);
+  }
+  .atlas-evidence-art {
+    width: min(72%, 340px);
+    margin: -14px 0 12px auto;
+  }
+  .atlas-final-sheet {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 72px);
+    padding: clamp(30px, 5vw, 64px);
+  }
+  .atlas-seed-art {
+    width: min(100%, 360px);
+    justify-self: center;
+  }
+  .atlas-appendix {
+    border-top: 1px solid rgba(53, 104, 232, 0.14);
+    background: rgba(255, 254, 251, 0.6);
   }
   .hub-skip-link {
     position: absolute;
@@ -136,14 +243,16 @@
     opacity: 0.55;
   }
   .hub-display {
-    font-size: clamp(38px, 4.6vw, 62px);
-    line-height: 1.18;
-    letter-spacing: -0.015em;
+    font-family: var(--font-hub-display);
+    font-size: clamp(40px, 4.7vw, 66px);
+    line-height: 1.16;
+    letter-spacing: -0.025em;
     font-weight: 700;
     color: var(--text-primary);
     text-wrap: balance;
   }
   .hub-title {
+    font-family: var(--font-hub-display);
     font-size: clamp(28px, 3vw, 38px);
     line-height: 1.3;
     letter-spacing: -0.01em;
@@ -326,6 +435,12 @@
     flex: none;
     object-fit: contain;
   }
+  .hub-brand-rule {
+    width: 24px;
+    height: 2px;
+    flex: none;
+    background: var(--accent-coach);
+  }
   .hub-nav-link {
     position: relative;
     padding: 8px 2px;
@@ -427,57 +542,47 @@
     border-bottom: 1px solid var(--border-subtle);
   }
 
-  /* ---------- Coach 光核(SVG 状态驱动) ---------- */
+  /* ---------- Coach 平面状态标记(真实插画资产 + 套色错位) ---------- */
   .coach-orb {
+    position: relative;
     display: block;
     overflow: visible;
+    flex: none;
   }
-  .coach-orb .orb-core {
-    transition: r var(--dur-scene) var(--ease-soft),
-      fill var(--dur-scene) var(--ease-soft), opacity var(--dur-scene) var(--ease-soft);
-  }
-  .coach-orb .orb-film {
+  .coach-orb-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
     transition: transform var(--dur-scene) var(--ease-soft),
-      opacity var(--dur-scene) var(--ease-soft), stroke var(--dur-scene) var(--ease-soft);
-    transform-box: fill-box;
-    transform-origin: center;
+      opacity var(--dur-scene) var(--ease-soft), filter var(--dur-scene) var(--ease-soft);
   }
-  .coach-orb .orb-line {
-    transition: opacity var(--dur-scene) var(--ease-soft), stroke var(--dur-scene) var(--ease-soft);
+  .coach-orb-layer--echo {
+    opacity: 0.16;
+    filter: saturate(1.35) contrast(1.04);
   }
 
   /* idle:安静收束 */
-  .coach-orb[data-state="idle"] .orb-film-1 { transform: scale(0.86); opacity: 0.35; }
-  .coach-orb[data-state="idle"] .orb-film-2 { transform: scale(0.78); opacity: 0.28; }
-  .coach-orb[data-state="idle"] .orb-film-3 { transform: scale(0.7); opacity: 0.2; }
-  .coach-orb[data-state="idle"] .orb-line { opacity: 0; }
-  .coach-orb[data-state="idle"] .orb-core { opacity: 0.9; }
+  .coach-orb[data-state="idle"] .coach-orb-layer--main { transform: scale(0.93) rotate(-1deg); opacity: 0.94; }
+  .coach-orb[data-state="idle"] .coach-orb-layer--echo { transform: translate(7px, -5px) scale(0.97) rotate(4deg); }
 
   /* listening:向回答器轻微展开 */
-  .coach-orb[data-state="listening"] .orb-film-1 { transform: scale(1.02) ; opacity: 0.6; }
-  .coach-orb[data-state="listening"] .orb-film-2 { transform: scale(1.08) rotate(2deg); opacity: 0.45; }
-  .coach-orb[data-state="listening"] .orb-film-3 { transform: scale(1.14) rotate(-2deg); opacity: 0.3; }
-  .coach-orb[data-state="listening"] .orb-line { opacity: 0.5; }
-  .coach-orb[data-state="listening"] .orb-core { opacity: 1; }
+  .coach-orb[data-state="listening"] .coach-orb-layer--main { transform: scale(1.02) rotate(1deg); opacity: 1; }
+  .coach-orb[data-state="listening"] .coach-orb-layer--echo { transform: translate(-8px, 6px) scale(1.08) rotate(-5deg); opacity: 0.24; }
 
-  /* challenging:轮廓集中 + 淡紫/琥珀信号 */
-  .coach-orb[data-state="challenging"] .orb-film-1 { transform: scale(0.96); opacity: 0.66; stroke: var(--accent-purple); }
-  .coach-orb[data-state="challenging"] .orb-film-2 { transform: scale(0.9) rotate(-3deg); opacity: 0.5; stroke: var(--accent-purple); }
-  .coach-orb[data-state="challenging"] .orb-film-3 { transform: scale(0.84); opacity: 0.34; stroke: var(--accent-gap); }
-  .coach-orb[data-state="challenging"] .orb-line { opacity: 0.9; stroke: var(--accent-gap); }
-  .coach-orb[data-state="challenging"] .orb-core { opacity: 1; fill: url(#coach-core-challenge); }
+  /* challenging:轮廓集中，套色偏移更明确 */
+  .coach-orb[data-state="challenging"] .coach-orb-layer--main { transform: scale(0.96) rotate(4deg); filter: contrast(1.14) saturate(1.12); }
+  .coach-orb[data-state="challenging"] .coach-orb-layer--echo { transform: translate(11px, 4px) scale(0.9) rotate(-7deg); opacity: 0.3; }
 
-  /* condensing:向光核收拢(一次性动画,见关键帧) */
-  .coach-orb[data-state="condensing"] .orb-film-1 { transform: scale(0.72); opacity: 0.5; }
-  .coach-orb[data-state="condensing"] .orb-film-2 { transform: scale(0.6); opacity: 0.4; }
-  .coach-orb[data-state="condensing"] .orb-film-3 { transform: scale(0.5); opacity: 0.3; }
-  .coach-orb[data-state="condensing"] .orb-line { opacity: 0.85; }
+  /* condensing:两层向同一中心收拢 */
+  .coach-orb[data-state="condensing"] .coach-orb-layer--main { transform: scale(0.7) rotate(-4deg); opacity: 0.82; }
+  .coach-orb[data-state="condensing"] .coach-orb-layer--echo { transform: scale(0.56) rotate(7deg); opacity: 0.2; }
 
   /* confirmed:短暂脉冲后静止 */
-  .coach-orb[data-state="confirmed"] .orb-film-1 { transform: scale(1); opacity: 0.62; stroke: var(--accent-evidence); }
-  .coach-orb[data-state="confirmed"] .orb-film-2 { transform: scale(0.93); opacity: 0.46; stroke: var(--accent-evidence); }
-  .coach-orb[data-state="confirmed"] .orb-film-3 { transform: scale(0.86); opacity: 0.3; stroke: var(--accent-evidence); }
-  .coach-orb[data-state="confirmed"] .orb-line { opacity: 0.55; stroke: var(--accent-evidence); }
+  .coach-orb[data-state="confirmed"] .coach-orb-layer--main { transform: scale(0.88); filter: saturate(0.82) contrast(1.12); }
+  .coach-orb[data-state="confirmed"] .coach-orb-layer--echo { transform: scale(0.98); opacity: 0.1; }
 
   /* ---------- Coach 场景 ---------- */
   .coach-stage {
@@ -491,7 +596,7 @@
     transform: translateY(-10px) scale(0.985);
     pointer-events: none;
   }
-  /* 收拢:第三幕结束后向光核凝结 */
+  /* 收拢:第三幕结束后向平面标记凝结 */
   .coach-act[data-condensing="true"] {
     transform: translateY(-26px) scale(0.9);
   }
@@ -695,9 +800,9 @@
       40% { transform: scale(1.045); }
       100% { transform: scale(1); }
     }
-    @keyframes hub-core-breathe {
-      0%, 100% { opacity: 0.92; }
-      50% { opacity: 1; }
+    @keyframes hub-flat-drift {
+      0%, 100% { transform: rotate(-1.5deg) translateY(0); }
+      50% { transform: rotate(1.5deg) translateY(-4px); }
     }
 
     /* 端上来:内容自下浮现 */
@@ -710,12 +815,12 @@
     .motion-approach { animation: hub-approach var(--dur-rise) var(--ease-soft) both; }
     /* confirmed:一次脉冲后静止 */
     .motion-pulse-once { animation: hub-pulse-once 620ms var(--ease-soft) both; }
-    /* listening 内核极缓慢的亮度呼吸(非闪烁,振幅 8%) */
-    .coach-orb[data-state="listening"] .orb-core,
-    .coach-orb[data-state="idle"] .orb-core {
-      animation: hub-core-breathe 6.5s ease-in-out infinite;
+    /* 平面标记只做缓慢套色漂移，不模拟说话、呼吸或体积光。 */
+    .coach-orb[data-state="listening"],
+    .coach-orb[data-state="idle"] {
+      animation: hub-flat-drift 8.5s ease-in-out infinite;
     }
-    .coach-orb[data-state="confirmed"] .orb-core {
+    .coach-orb[data-state="confirmed"] {
       animation: hub-pulse-once 620ms var(--ease-soft) both;
     }
 
@@ -745,7 +850,7 @@
     .motion-stagger > *:nth-child(5) { animation-delay: 280ms; }
     .motion-stagger > *:nth-child(n+6) { animation-delay: 350ms; }
 
-    /* Hero 三拍编排:标题 → 光核 → 入口(总时长 ≤ 1.2s) */
+    /* Hero 三拍编排:标题 → 平面标记 → 入口(总时长 ≤ 1.2s) */
     .hero-beat-1 { animation: hub-rise 420ms var(--ease-soft) 0ms both; }
     .hero-beat-2 { animation: hub-approach 480ms var(--ease-soft) 340ms both; }
     .hero-beat-3 { animation: hub-rise 380ms var(--ease-soft) 660ms both; }
@@ -775,18 +880,70 @@
       transition: none !important;
     }
     .coach-act,
-    .coach-orb .orb-film, .coach-orb .orb-core, .coach-orb .orb-line,
+    .coach-orb, .coach-orb-layer,
     .journey-step, .role-card, .hub-drawer {
       transition-duration: 1ms !important;
     }
-    .coach-orb[data-state="listening"] .orb-core,
-    .coach-orb[data-state="idle"] .orb-core,
-    .coach-orb[data-state="confirmed"] .orb-core {
+    .coach-orb[data-state="listening"],
+    .coach-orb[data-state="idle"],
+    .coach-orb[data-state="confirmed"] {
       animation: none !important;
     }
   }
 
+  @media (max-width: 900px) {
+    .hub-hero {
+      min-height: 0;
+      padding-block: 56px 44px;
+    }
+    .hub-hero-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas: "text" "orb" "cta";
+      gap: 28px;
+    }
+    .hub-hero-grid > .hero-beat-1 { grid-area: text; }
+    .hub-hero-grid > .hero-beat-2 { grid-area: orb; }
+    .hub-hero-grid > .hero-beat-3 { grid-area: cta; }
+    .hub-hero-art {
+      justify-content: flex-start;
+    }
+    .atlas-final-sheet {
+      grid-template-columns: 1fr;
+    }
+    .atlas-seed-art {
+      justify-self: start;
+      width: min(72vw, 300px);
+    }
+  }
+
   @media (max-width: 767px) {
+    .atlas-home {
+      background-size: 900px 900px;
+    }
+    .atlas-section > .hub-container {
+      padding-left: 64px;
+      padding-right: 20px;
+    }
+    .atlas-section::before {
+      left: 20px;
+      font-size: 23px;
+    }
+    .atlas-section::after {
+      left: 30px;
+      top: calc(clamp(64px, 8vw, 96px) + 42px);
+    }
+    .atlas-coach-sheet,
+    .atlas-evidence-sheet,
+    .atlas-final-sheet {
+      padding: 22px;
+    }
+    .atlas-evidence-art {
+      width: min(100%, 250px);
+      margin-inline: auto;
+    }
+    .hub-card {
+      border-radius: var(--radius-md);
+    }
     .hub-quiet-link {
       display: inline-flex;
       align-items: center;

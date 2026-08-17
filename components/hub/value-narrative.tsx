@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Reveal } from "./reveal";
 
 /**
@@ -11,7 +12,12 @@ const NOTS = [
 
 export function ValueNarrative() {
   return (
-    <section id="intro" className="hub-section" aria-labelledby="intro-title">
+    <section
+      id="intro"
+      className="hub-section atlas-section"
+      aria-labelledby="intro-title"
+      data-atlas-chapter="01"
+    >
       <div className="hub-container">
         <Reveal>
           <p className="hub-eyebrow">活动价值观</p>
@@ -20,7 +26,7 @@ export function ValueNarrative() {
           </h2>
         </Reveal>
 
-        <div className="mt-12 grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+        <div className="mt-10 grid gap-10 lg:grid-cols-[0.88fr_1.12fr] lg:gap-16">
           <Reveal>
             <ul className="flex flex-col">
               {NOTS.map((item) => (
@@ -35,7 +41,18 @@ export function ValueNarrative() {
             </ul>
           </Reveal>
 
-          <Reveal className="flex flex-col justify-center">
+          <Reveal className="atlas-evidence-sheet flex flex-col justify-center">
+            <div className="atlas-evidence-art" aria-hidden="true">
+              <Image
+                src="/hub/art/evidence-target.png"
+                alt=""
+                width={360}
+                height={360}
+                sizes="(max-width: 767px) 230px, 360px"
+                className="h-auto w-full"
+                unoptimized
+              />
+            </div>
             <p className="text-[clamp(19px,1.8vw,23px)] font-semibold leading-[1.6] text-[var(--text-primary)]">
               核心,是<span className="text-[var(--accent-coach)]">发现真实问题</span>,
               证明 <span className="text-[var(--accent-coach)]">Agent 的必要性</span>,

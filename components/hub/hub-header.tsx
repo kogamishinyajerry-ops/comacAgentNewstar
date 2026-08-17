@@ -20,11 +20,7 @@ function BrandMark() {
           priority
         />
       ) : (
-        <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" focusable="false">
-          <circle cx="13" cy="13" r="11" fill="none" stroke="var(--accent-coach)" strokeWidth="1.6" />
-          <circle cx="13" cy="13" r="5.5" fill="var(--accent-coach)" opacity="0.85" />
-          <circle cx="13" cy="13" r="1.8" fill="#fff" />
-        </svg>
+        <span className="hub-brand-rule" aria-hidden="true" />
       )}
       <span className="flex flex-col leading-tight">
         <span>{site.brand.shortName}</span>

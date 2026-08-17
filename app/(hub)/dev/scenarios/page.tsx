@@ -85,7 +85,7 @@ export default function DevScenariosPage() {
         <p className="hub-eyebrow">内部验收</p>
         <h1 className="hub-title mt-3">/dev/scenarios — 组件、状态与动效验收</h1>
         <p className="hub-body mt-3 max-w-[680px]">
-          集中呈现阶段一设计系统的可验收面:色彩与字体 Token、语义组件、Coach 光核五种视觉状态、
+          集中呈现 Hub 设计系统的可验收面:色彩与字体 Token、语义组件、Coach 平面标记五种视觉状态、
           七个空间动词动效与问题种子。系统开启“减弱动态”时,所有位移动效取消,信息顺序不变。
         </p>
       </header>
@@ -175,14 +175,14 @@ export default function DevScenariosPage() {
 
       <Section
         id="orb"
-        title="4 · Coach 光核五状态"
-        note="SVG + CSS 实现;状态切换对应真实交互变化;不旋转、不漂浮、不持续闪烁。"
+        title="4 · Coach 平面标记五状态"
+        note="真实平面插画资产 + CSS 状态变换;不模拟球体、体积光或说话动作。"
       >
         <div className="grid items-start gap-10 lg:grid-cols-[300px_1fr]">
           <div className="flex justify-center" aria-hidden="true">
             <CoachOrb state={orbState} idPrefix="scenarios-orb" size={260} />
           </div>
-          <div role="radiogroup" aria-label="选择光核状态" className="flex flex-col gap-3">
+          <div role="radiogroup" aria-label="选择 Coach 平面标记状态" className="flex flex-col gap-3">
             {(Object.keys(COACH_STATE_LABELS) as (keyof typeof COACH_STATE_LABELS)[]).map((s) => (
               <label
                 key={s}

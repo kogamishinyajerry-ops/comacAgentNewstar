@@ -4,7 +4,7 @@
 
 ## 公共 Hub:阶段一基础与阶段二演进
 
-产品转向:**一个由 AI Coach 驱动的创新实践入口**——强编排、弱干预;一问一幕,一幕一决策;前台只有"主张—证据—缺口",没有健康分、排行榜与完成率。视觉母题为**安静的认知画布**(浅色画布、深海军蓝文字、克制钴蓝、抽象 Coach 光核),与旧"纸墨朱砂"风格通过路由分组完全隔离。
+产品转向:**一个由 AI Coach 驱动的创新实践入口**——强编排、弱干预;一问一幕,一幕一决策;前台只有"主张—证据—缺口",没有健康分、排行榜与完成率。视觉母题演进为**平面证据图谱长卷**:浅色纸张画布、深海军蓝文字、克制钴蓝、平面套色 Coach 标记与连续章节轨道；不再把 3D 球体或体积光作为视觉中心。它与旧"纸墨朱砂"风格仍通过路由分组完全隔离。
 
 ```text
 /                     公共 Landing(A 顶部导航 → B Hero 三拍 → C 价值观 → D 五段路径
@@ -14,13 +14,14 @@
 /role/participant     参赛者说明页(主视觉)
 /role/reviewer        评委说明页(无评分系统)
 /role/organizer       组织者说明页(无态势仪表盘)
-/dev/scenarios        组件、状态与动效集中验收页(Token/五状态光核/七个空间动词/种子)
+/dev/scenarios        组件、状态与动效集中验收页(Token/五状态平面标记/七个空间动词/种子)
 ```
 
 关键实现:
 
-- `styles/tokens.css` — 语义 Design Token + 组件类 + 动效语言(端上来/收拢/吸附/长出来/取到眼前/退到背景/凝结),仅 `(hub)` 布局加载,与旧 `globals.css` 互斥;
-- `components/hub/coach-orb.tsx` — SVG 光核五状态(idle/listening/challenging/condensing/confirmed),`data-state` 驱动;
+- `styles/tokens.css` — 语义 Design Token + 平面证据图谱长卷布局 + 动效语言(端上来/收拢/吸附/长出来/取到眼前/退到背景/凝结),仅 `(hub)` 布局加载,与旧 `globals.css` 互斥;
+- `public/hub/art/` — ImageGen 制作并入库的纸张肌理、Coach 等高线、证据定位靶与问题种子平面资产；页面不依赖 3D 素材;
+- `components/hub/coach-orb.tsx` — 兼容原调用接口的平面 Coach 状态标记，五状态(idle/listening/challenging/condensing/confirmed)由真实插画资产的套色错位/收拢驱动;
 - `lib/hub/coach-machine.ts` — 纯 reducer 状态机 + 问题种子合成（无 DB，仍是确定性兜底与最终收束）；
 - `fixtures/coach-demo.ts` — 两条入口 × 三幕的确定性文案(严格但建设性,已有想法入口第一问挑战方案先行);
 - `config/site.ts` / `config/activity.ts` — 品牌、导航、FAQ 与全部活动事实(未确认项 `null` + `待活动配置确认`);

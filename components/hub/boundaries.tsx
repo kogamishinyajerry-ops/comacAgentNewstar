@@ -6,7 +6,12 @@ import { Reveal } from "./reveal";
  */
 export function Boundaries() {
   return (
-    <section id="boundaries" className="hub-section" aria-labelledby="boundaries-title">
+    <section
+      id="boundaries"
+      className="hub-section atlas-section"
+      aria-labelledby="boundaries-title"
+      data-atlas-chapter="05"
+    >
       <div className="hub-container">
         <Reveal>
           <p className="hub-eyebrow">平台边界</p>

@@ -11,7 +11,12 @@ export function RoleSection() {
   const others = roles.filter((r) => r.key !== "participant");
 
   return (
-    <section id="roles" className="hub-section" aria-labelledby="roles-title">
+    <section
+      id="roles"
+      className="hub-section atlas-section"
+      aria-labelledby="roles-title"
+      data-atlas-chapter="04"
+    >
       <div className="hub-container">
         <Reveal>
           <p className="hub-eyebrow">不同角色</p>

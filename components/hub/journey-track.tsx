@@ -33,7 +33,12 @@ export function JourneyTrack() {
   }, []);
 
   return (
-    <section id="journey" className="hub-section" aria-labelledby="journey-title">
+    <section
+      id="journey"
+      className="hub-section atlas-section atlas-section--journey"
+      aria-labelledby="journey-title"
+      data-atlas-chapter="02"
+    >
       <div className="hub-container">
         <Reveal>
           <p className="hub-eyebrow">实践路径</p>
@@ -65,9 +70,7 @@ export function JourneyTrack() {
                   <div
                     className="absolute left-0 right-0 top-1/2 h-px"
                     style={{
-                      background: isCurrent
-                        ? "linear-gradient(to right, var(--border-subtle), var(--accent-coach))"
-                        : "var(--border-subtle)",
+                      background: isCurrent ? "var(--accent-coach)" : "var(--border-subtle)",
                     }}
                   />
                   <div className="journey-dot relative bg-[var(--surface-canvas)]" />

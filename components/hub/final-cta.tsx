@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "./reveal";
 
@@ -6,25 +7,38 @@ import { Reveal } from "./reveal";
  */
 export function FinalCta() {
   return (
-    <section className="hub-section" aria-labelledby="final-cta-title">
+    <section
+      className="hub-section atlas-section atlas-section--final"
+      aria-labelledby="final-cta-title"
+      data-atlas-chapter="06"
+    >
       <div className="hub-container">
         <Reveal>
-          <div className="hub-card relative overflow-hidden px-7 py-14 text-center sm:px-12 sm:py-20">
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 top-0 h-40"
-              style={{ background: "radial-gradient(60% 100% at 50% 0%, rgba(53,104,232,0.08), transparent)" }}
-            />
-            <p className="hub-eyebrow justify-center">开始</p>
-            <h2 id="final-cta-title" className="hub-title mx-auto mt-4 max-w-[640px]">
-              从一个具体问题开始,而不是从技术名词开始
-            </h2>
-            <p className="hub-body mx-auto mt-4 max-w-[460px]">
-              三幕追问,大约五分钟。你会带走一颗问题种子,而不是一张待办清单。
-            </p>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/start" className="hub-btn hub-btn--primary">开始一次问题探索</Link>
-              <Link href="/guide" className="hub-btn hub-btn--secondary">查看活动指南</Link>
+          <div className="atlas-final-sheet">
+            <div>
+              <p className="hub-eyebrow">开始</p>
+              <h2 id="final-cta-title" className="hub-title mt-4 max-w-[640px]">
+                从一个具体问题开始,而不是从技术名词开始
+              </h2>
+              <p className="hub-body mt-4 max-w-[480px]">
+                三幕追问,大约五分钟。你会带走一颗问题种子,而不是一张待办清单。
+              </p>
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Link href="/start" className="hub-btn hub-btn--primary">开始一次问题探索</Link>
+                <Link href="/guide" className="hub-btn hub-btn--secondary">查看活动指南</Link>
+              </div>
+            </div>
+            <div className="atlas-seed-art" aria-hidden="true">
+              <Image
+                src="/hub/art/problem-seed.png"
+                alt=""
+                width={360}
+                height={360}
+                sizes="(max-width: 767px) 220px, 360px"
+                className="h-auto w-full"
+                loading="eager"
+                unoptimized
+              />
             </div>
           </div>
         </Reveal>

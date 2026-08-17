@@ -15,33 +15,34 @@ import { coachPrivacyNotice } from "@/fixtures/coach-demo";
  */
 export default function HubHomePage() {
   return (
-    <>
+    <div className="atlas-home">
       <Hero />
       <ValueNarrative />
       <JourneyTrack />
 
-      {/* E:AI Coach 互动预览——初始只有光核、一个问题、一个回答器 */}
+      {/* 平面状态标记只说明场景变化；问题、判断与回答器承担交互语义。 */}
       <section
         id="coach-preview"
-        className="hub-section border-y border-[var(--border-subtle)] bg-[var(--surface-focus)]"
+        className="hub-section atlas-section atlas-section--coach"
         aria-labelledby="coach-preview-title"
+        data-atlas-chapter="03"
       >
         <div className="hub-container">
           <Reveal>
-            <p className="hub-eyebrow justify-center">先见一面</p>
-            <h2 id="coach-preview-title" className="hub-title mx-auto mt-4 max-w-[640px] text-center">
+            <p className="hub-eyebrow">一次只做一个决定</p>
+            <h2 id="coach-preview-title" className="hub-title mt-4 max-w-[640px]">
               AI Coach,一次只追问一个关键问题
             </h2>
-            <p className="hub-body mx-auto mt-4 max-w-[520px] text-center">
+            <p className="hub-body mt-4 max-w-[560px]">
               试着回答三问。它不会夸你,只会把模糊的想法一寸寸压实,
               最后凝结成一颗问题种子。
             </p>
           </Reveal>
-          <Reveal className="mx-auto mt-12 max-w-[860px]">
+          <Reveal className="atlas-coach-sheet mt-10">
             <CoachFlow entry="problem" orbIdPrefix="home-coach" compact />
           </Reveal>
           <Reveal>
-            <p className="hub-caption mx-auto mt-10 max-w-[520px] text-center">
+            <p className="hub-caption mt-7 max-w-[560px]">
               {coachPrivacyNotice}
             </p>
           </Reveal>
@@ -52,6 +53,6 @@ export default function HubHomePage() {
       <Boundaries />
       <FinalCta />
       <FaqList />
-    </>
+    </div>
   );
 }

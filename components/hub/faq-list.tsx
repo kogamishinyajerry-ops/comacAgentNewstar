@@ -6,7 +6,7 @@ import { Reveal } from "./reveal";
  */
 export function FaqList() {
   return (
-    <section id="faq" className="hub-section" aria-labelledby="faq-title">
+    <section id="faq" className="hub-section atlas-appendix" aria-labelledby="faq-title">
       <div className="hub-container">
         <Reveal>
           <p className="hub-eyebrow">常见问题</p>
