@@ -37,13 +37,16 @@ handoffs to protected old-side routes, and accessibility/responsive
 regression coverage. Later closed rounds: Coach steelman thinking discipline
 (§14), optimization layers 1–3 (§15–§17), red-team fix rounds ①–⑤ (§18–§22).
 
-The active authorization is a staged **polish sequence ①–⑤** (2026-08-19),
-executed one bounded round at a time with full gates and a stop-and-report
-between rounds: ① honesty copy and governance-doc closure; ② state-asset and
-first-screen performance under visual-lossless proof; ③ accessibility and
-viewport deepening (VoiceOver readiness); ④ resilience and observability
-(live probes, e2e stability); ⑤ evidence refresh and closure. Polish deepens
-delivered capabilities only; it adds no milestone features.
+The staged polish sequence ①–⑤ (2026-08-19) is closed: honesty copy and
+governance-doc closure; state-asset and first-screen performance;
+accessibility and viewport deepening; resilience and observability; evidence
+refresh and closure. Following that closure the user authorized **Act 4
+"Problem Definition Artifact"** (§22 stage-1 minimal slice, same day; see
+`IMPLEMENTATION_PLAN.md` §28): three fixed-dimension deepening rounds after
+the seed, session-only, one question per scene, deterministic composition,
+clipboard export, live Coach with unchanged three-field contract. The
+participant "completion state" decision remains open and gates later
+artifacts.
 
 Do not expand the milestone into:
 

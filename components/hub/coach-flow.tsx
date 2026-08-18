@@ -5,7 +5,9 @@ import Link from "next/link";
 import { COACH_STATE_LABELS } from "./coach-orb";
 import { CoachWorkspaceScene, type CoachTransitionStep } from "./coach-workspace-scene";
 import { SeedCard } from "./seed-card";
+import { ArtifactCard } from "./artifact-card";
 import {
+  artifactCopy,
   attachmentPrivacyNotice,
   coachPrivacyNotice,
   seedCopy,
@@ -17,15 +19,21 @@ import {
   type CoachAttachment,
 } from "@/lib/hub/coach-attachment";
 import {
+  ARTIFACT_ROUND_COUNT,
   ACT_COUNT,
   advance,
+  artifactActsFor,
   actsFor,
   clearError,
+  composeArtifact,
+  composeArtifactTrace,
   composeSeed,
   composeTrace,
   createCoachState,
   currentAct,
   isSubmittableAnswer,
+  returnToSeed,
+  startArtifact,
   submitAnswer,
   visualStateFor,
   type CoachState,
@@ -35,6 +43,8 @@ type Action =
   | { type: "submit"; answer: string }
   | { type: "advance" }
   | { type: "clearError" }
+  | { type: "startArtifact" }
+  | { type: "returnToSeed" }
   | { type: "reset" };
 
 type CoachApiMode = "live" | "fixture";
@@ -53,6 +63,10 @@ function reducer(state: CoachState, action: Action): CoachState {
       return advance(state);
     case "clearError":
       return clearError(state);
+    case "startArtifact":
+      return startArtifact(state);
+    case "returnToSeed":
+      return returnToSeed(state);
     case "reset":
       return createCoachState(state.entry);
   }
@@ -117,6 +131,7 @@ async function requestNextAct({
   completedAct,
   answers,
   attachment,
+  artifact,
   signal,
 }: {
   entry: CoachEntry;
@@ -124,12 +139,32 @@ async function requestNextAct({
   answers: readonly string[];
   /** 随当前回答一次性发送的不可信文本附件;不持久化、不写日志 */
   attachment?: CoachAttachment | null;
+  /** 第四幕深化请求(与 acts 请求体互斥;不携带附件) */
+  artifact?: {
+    round: 0 | 1;
+    seed: { moment: string; impact: string; necessity: string };
+    answers: readonly string[];
+  };
   signal: AbortSignal;
 }): Promise<CoachApiResponse> {
   const response = await fetch("/api/hub/coach", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ entry, completedAct, answers, ...(attachment ? { attachment } : {}) }),
+    body: JSON.stringify(
+      artifact
+        ? {
+            entry,
+            seed: artifact.seed,
+            artifactRound: artifact.round,
+            artifactAnswers: artifact.answers,
+          }
+        : {
+            entry,
+            completedAct,
+            answers,
+            ...(attachment ? { attachment } : {}),
+          }
+    ),
     signal,
   });
   if (!response.ok) throw new Error("Hub Coach request failed");
@@ -156,6 +191,7 @@ export function CoachFlow({
   const [answer, setAnswer] = useState("");
   const [listening, setListening] = useState(false);
   const [remoteActs, setRemoteActs] = useState<Record<number, CoachAct>>({});
+  const [artifactRemoteActs, setArtifactRemoteActs] = useState<Record<number, CoachAct>>({});
   const [providerPending, setProviderPending] = useState(false);
   const [providerMode, setProviderMode] = useState<CoachApiMode | null>(null);
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -165,6 +201,7 @@ export function CoachFlow({
   const [attachmentReading, setAttachmentReading] = useState(false);
   const seedHeadingRef = useRef<HTMLHeadingElement>(null);
   const seedScrollRef = useRef<HTMLDivElement>(null);
+  const artifactHeadingRef = useRef<HTMLHeadingElement>(null);
   const requestVersionRef = useRef(0);
   const submitLockRef = useRef(false);
   /* 附件异步读取的失效令牌:新选择/移除/提交/换幕/重置都会作废旧读取,
@@ -177,8 +214,13 @@ export function CoachFlow({
      用户取消即中止在途请求、立即改用本地确定性追问 */
   const waitAbortRef = useRef<AbortController | null>(null);
 
-  const transitioning = state.phase === "transition";
-  const condensing = transitioning && state.actIndex === ACT_COUNT - 1;
+  const artifactStage = state.phase === "artifact-question" || state.phase === "artifact-transition" || state.phase === "artifact-done";
+  const transitioning = state.phase === "transition" || state.phase === "artifact-transition";
+  const condensing =
+    transitioning &&
+    (artifactStage
+      ? state.artifactRound >= ARTIFACT_ROUND_COUNT - 1
+      : state.actIndex >= ACT_COUNT - 1);
 
   /* Ignore late HTTP work after unmount or a fresh attempt. */
   useEffect(() => {
@@ -187,16 +229,24 @@ export function CoachFlow({
     };
   }, []);
 
+  /* 深化轮请求携带的种子快照:纯函数派生,只随三幕回答变化;提升出过渡 effect 以收敛依赖 */
+  const artifactSeed = useMemo(() => composeSeed(state), [state]);
+
   /**
-   * 幕间时序:收拢(collect)→ 当前判断 → 最大风险 → 下一问。
-   * 判断/风险只在下一幕内容确定后(live 成功或静默回退 fixture)逐拍端上,
-   * 不与下一问长期并列;第三幕后不再请求模型,直接凝结为种子。
+   * 幕间/深化轮时序:收拢(collect)→ 当前判断 → 最大风险 → 下一问。
+   * 判断/风险只在下一幕(轮)内容确定后(live 成功或静默回退 fixture)逐拍端上,
+   * 不与下一问长期并列;末幕与末深化轮不再请求模型,直接凝结(种子/问题定义)。
    */
   useEffect(() => {
-    if (state.phase !== "transition") {
+    if (state.phase !== "transition" && state.phase !== "artifact-transition") {
       setTransitionStep(null);
       return;
     }
+
+    const isArtifact = state.phase === "artifact-transition";
+    const condensingFinal = isArtifact
+      ? state.artifactRound >= ARTIFACT_ROUND_COUNT - 1
+      : state.actIndex >= ACT_COUNT - 1;
 
     let active = true;
     const requestVersion = ++requestVersionRef.current;
@@ -204,24 +254,43 @@ export function CoachFlow({
     waitAbortRef.current = controller;
     const requestTimeout = window.setTimeout(() => controller.abort(), CLIENT_REQUEST_TIMEOUT_MS);
     const minimumTransition = delay(transitionMs());
-    const condensingToSeed = state.actIndex >= ACT_COUNT - 1;
 
     const continueFlow = async () => {
       let response: CoachApiResponse | null = null;
       let requestFailed = false;
 
       setTransitionStep("collect");
-      if (!condensingToSeed) {
+      if (!condensingFinal) {
         setProviderPending(true);
         setProviderError(null);
         try {
-          response = await requestNextAct({
-            entry: state.entry,
-            completedAct: state.actIndex as 0 | 1,
-            answers: state.answers,
-            attachment: attachmentRef.current,
-            signal: controller.signal,
-          });
+          if (isArtifact) {
+            /* 深化轮请求携带种子三槽摘录与已完成深化回答;不携带附件 */
+            const seedSnapshot = artifactSeed;
+            response = await requestNextAct({
+              entry: state.entry,
+              completedAct: 0,
+              answers: [],
+              artifact: {
+                round: state.artifactRound as 0 | 1,
+                seed: {
+                  moment: seedSnapshot.moment,
+                  impact: seedSnapshot.impact,
+                  necessity: seedSnapshot.necessity,
+                },
+                answers: state.artifactAnswers,
+              },
+              signal: controller.signal,
+            });
+          } else {
+            response = await requestNextAct({
+              entry: state.entry,
+              completedAct: state.actIndex as 0 | 1,
+              answers: state.answers,
+              attachment: attachmentRef.current,
+              signal: controller.signal,
+            });
+          }
         } catch {
           requestFailed = true;
         }
@@ -240,20 +309,30 @@ export function CoachFlow({
 
       if (response) {
         if (response.act) {
-          setRemoteActs((acts) => ({ ...acts, [state.actIndex + 1]: response.act! }));
+          if (isArtifact) {
+            setArtifactRemoteActs((acts) => ({
+              ...acts,
+              [state.artifactRound + 1]: response.act!,
+            }));
+          } else {
+            setRemoteActs((acts) => ({ ...acts, [state.actIndex + 1]: response.act! }));
+          }
         }
         setProviderMode(response.mode);
-      } else if (!condensingToSeed) {
+      } else if (!condensingFinal) {
         setProviderMode("fixture");
         if (requestFailed && !controller.signal.aborted) setProviderError(CLIENT_FALLBACK_NOTICE);
       }
 
       setProviderPending(false);
 
-      /* 判断 → 风险:同一幕内容的两拍,每拍单独出现、单独退出;
+      /* 判断 → 风险:同一幕(轮)内容的两拍,每拍单独出现、单独退出;
          停留时长按该拍真实文案的阅读时间自适应(live 长文案不再即焚) */
-      if (!condensingToSeed) {
-        const dwellAct = response?.act ?? actsFor(state.entry)[state.actIndex + 1];
+      if (!condensingFinal) {
+        const dwellAct = response?.act
+          ?? (isArtifact
+            ? artifactActsFor()[state.artifactRound + 1]
+            : actsFor(state.entry)[state.actIndex + 1]);
         setTransitionStep("judgment");
         await delay(stepMs(dwellAct.judgment));
         if (!active || requestVersion !== requestVersionRef.current) return;
@@ -273,13 +352,13 @@ export function CoachFlow({
       controller.abort();
       if (waitAbortRef.current === controller) waitAbortRef.current = null;
     };
-  }, [state.actIndex, state.answers, state.entry, state.phase]);
+  }, [state.actIndex, state.answers, state.entry, state.phase, state.artifactRound, state.artifactAnswers, artifactSeed]);
 
-  /** 种子出现后焦点落在具名标题;以标题自身 scrollIntoView 保持可见,
+  /** 种子/问题定义出现后焦点落在具名标题;以标题自身 scrollIntoView 保持可见,
       不再先聚焦标题再把容器滚到底(获焦元素不得被滚出可视区域) */
   useEffect(() => {
-    if (state.phase !== "seed") return;
-    const heading = seedHeadingRef.current;
+    if (state.phase !== "seed" && state.phase !== "artifact-done") return;
+    const heading = state.phase === "seed" ? seedHeadingRef.current : artifactHeadingRef.current;
     if (!heading) return;
     heading.focus({ preventScroll: true });
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -287,13 +366,29 @@ export function CoachFlow({
   }, [state.phase]);
 
   const visual = useMemo(() => {
-    if (state.phase === "question" && listening) return "listening" as const;
+    if ((state.phase === "question" || state.phase === "artifact-question") && listening) {
+      return "listening" as const;
+    }
     return visualStateFor(state);
   }, [state, listening]);
 
   const fallbackAct = currentAct(state);
   const act = remoteActs[state.actIndex] ?? fallbackAct;
   const resolvedActs = actsFor(state.entry).map((fixture, index) => remoteActs[index] ?? fixture);
+  const artifactFallbackActs = artifactActsFor();
+  const artifactAct =
+    state.artifactRound < ARTIFACT_ROUND_COUNT
+      ? (artifactRemoteActs[state.artifactRound] ?? artifactFallbackActs[state.artifactRound])
+      : artifactFallbackActs[ARTIFACT_ROUND_COUNT - 1];
+  const artifactNextAct =
+    state.artifactRound < ARTIFACT_ROUND_COUNT - 1
+      ? (artifactRemoteActs[state.artifactRound + 1] ?? artifactFallbackActs[state.artifactRound + 1])
+      : null;
+  /* 深化轮轨迹接在三幕轨迹之后,同一列表承载全部已完成结论 */
+  const traces = [
+    ...state.answers.map((text, index) => composeTrace(index, text)),
+    ...state.artifactAnswers.map((text, index) => composeArtifactTrace(index, text)),
+  ];
   const providerStatus = transitioning
     ? null
     : providerMode === "live"
@@ -303,14 +398,22 @@ export function CoachFlow({
         : null;
 
   function handleSubmit() {
-    if (submitLockRef.current || transitioning || state.phase === "seed" || attachmentReading) return;
+    if (
+      submitLockRef.current ||
+      transitioning ||
+      state.phase === "seed" ||
+      state.phase === "artifact-done" ||
+      attachmentReading
+    ) {
+      return;
+    }
     if (!isSubmittableAnswer(answer)) {
       dispatch({ type: "submit", answer });
       return;
     }
     submitLockRef.current = true;
     /* 快照当前附件:随本次回答在 transition effect 中一次性发送;
-       同时作废读取令牌,提交后不允许任何在途读取回写 */
+       同时作废读取令牌,提交后不允许任何在途读取回写(深化轮无附件入口,快照恒为空) */
     attachmentRef.current = attachment;
     attachmentReadTokenRef.current += 1;
     dispatch({ type: "submit", answer });
@@ -321,8 +424,9 @@ export function CoachFlow({
   /** 读取并校验文本附件;失败只留行内错误,不出现 Chip。
       读取期间持有令牌:新选择/移除/提交/换幕/重置后,迟到的读取结果直接丢弃 */
   async function handleAttachmentSelect(file: File) {
-    /* 第三幕只在客户端凝结种子,不开放附件入口(防御性兜底,UI 已不渲染) */
-    if (state.actIndex >= ACT_COUNT - 1) return;
+    /* 第三幕只在客户端凝结种子,不开放附件入口(防御性兜底,UI 已不渲染);
+       深化轮同样不开放附件 */
+    if (artifactStage || state.actIndex >= ACT_COUNT - 1) return;
     const readToken = ++attachmentReadTokenRef.current;
     setAttachmentReading(true);
     let content: string;
@@ -371,6 +475,7 @@ export function CoachFlow({
     setAnswer("");
     setListening(false);
     setRemoteActs({});
+    setArtifactRemoteActs({});
     setProviderPending(false);
     setProviderMode(null);
     setProviderError(null);
@@ -382,111 +487,200 @@ export function CoachFlow({
   }
 
   const seed = state.phase === "seed" ? composeSeed(state) : null;
-    const backHref = "/guide";
-    const switchEntryHref = state.entry === "problem" ? `${entryBasePath}?entry=idea` : entryBasePath;
-    const switchEntryLabel = state.entry === "problem" ? "换一条入口:从已有想法开始" : "换一条入口:从真实问题开始";
-    const traces = state.answers.map((text, index) => composeTrace(index, text));
-    const nextAct = state.actIndex < ACT_COUNT - 1 ? resolvedActs[state.actIndex + 1] : null;
+  const artifactDone = state.phase === "artifact-done" ? composeArtifact(state) : null;
+  const grown = Boolean(seed || artifactDone);
+  const backHref = "/guide";
+  const switchEntryHref = state.entry === "problem" ? `${entryBasePath}?entry=idea` : entryBasePath;
+  const switchEntryLabel = state.entry === "problem" ? "换一条入口:从已有想法开始" : "换一条入口:从真实问题开始";
+  const nextAct = state.actIndex < ACT_COUNT - 1 ? resolvedActs[state.actIndex + 1] : null;
+  /* 深化已全部完成时,第一格常亮;尚未完成时为可开始/可继续的入口 */
+  const artifactLit = state.artifactAnswers.length >= ARTIFACT_ROUND_COUNT;
 
-    return (
-      <div
-        className={`coach-workspace-grid coach-stage${seed ? " coach-workspace-grid--grown" : ""}`}
-        aria-busy={transitioning || providerPending}
-      >
-        {seed ? (
-          /* 状态 D:问题种子凝结后,工作空间才长出来 */
-          <div className="coach-grown">
-            <div className="coach-topbar">
-              <Link href={backHref} className="coach-topbar-back hub-quiet-link">
-                ← 返回活动指南
-              </Link>
-              <p className="coach-workspace-count">问题种子已形成</p>
-              <span className="coach-topbar-spacer" aria-hidden="true" />
-            </div>
-            <div className="coach-grown-body">
-              <aside
-                className="coach-artifact-rail"
-                aria-label="Artifacts 入口(下一阶段能力预告,当前默认仅图标)"
-              >
-                <p className="coach-artifact-title">Artifacts</p>
-                <ul className="coach-artifact-list">
-                  {ARTIFACT_SLOTS.map((slot) => (
+  return (
+    <div
+      className={`coach-workspace-grid coach-stage${grown ? " coach-workspace-grid--grown" : ""}`}
+      aria-busy={transitioning || providerPending}
+    >
+      {grown ? (
+        /* 状态 D:问题种子/问题定义凝结后,工作空间才长出来 */
+        <div className="coach-grown">
+          <div className="coach-topbar">
+            <Link href={backHref} className="coach-topbar-back hub-quiet-link">
+              ← 返回活动指南
+            </Link>
+            <p className="coach-workspace-count">
+              {artifactDone ? "问题定义已深化" : "问题种子已形成"}
+            </p>
+            <span className="coach-topbar-spacer" aria-hidden="true" />
+          </div>
+          <div className="coach-grown-body">
+            <aside
+              className="coach-artifact-rail"
+              aria-label="Artifacts 入口(问题定义已开放深化,其余为下一阶段能力预告)"
+            >
+              <p className="coach-artifact-title">Artifacts</p>
+              <ul className="coach-artifact-list">
+                {ARTIFACT_SLOTS.map((slot, index) =>
+                  index === 0 ? (
+                    <li key={slot.label} data-coach-artifact data-artifact-slot-active>
+                      {state.phase === "seed" ? (
+                        <button
+                          type="button"
+                          className="coach-artifact-entry"
+                          data-artifact-entry
+                          aria-label={`${artifactCopy.startLabel}(第一份 Artifact)`}
+                          onClick={() => dispatch({ type: "startArtifact" })}
+                        >
+                          <span className="coach-artifact-icon" aria-hidden="true">
+                            {slot.icon}
+                          </span>
+                          <span>{artifactCopy.startLabel}</span>
+                        </button>
+                      ) : (
+                        <span className="coach-artifact-entry coach-artifact-entry--lit" data-artifact-lit>
+                          <span className="coach-artifact-icon" aria-hidden="true">
+                            {slot.icon}
+                          </span>
+                          <span>{artifactCopy.litLabel}</span>
+                        </span>
+                      )}
+                    </li>
+                  ) : (
                     <li key={slot.label} data-coach-artifact>
                       <span className="coach-artifact-icon" aria-hidden="true">
                         {slot.icon}
                       </span>
                       <span className="sr-only">{slot.label}</span>
                     </li>
-                  ))}
-                </ul>
-                <p className="coach-artifact-note">在完整流程中逐份沉淀</p>
-              </aside>
-              <div className="coach-workspace-dialog coach-workspace-dialog--seed">
-                <div
-                  ref={seedScrollRef}
-                  className="coach-conversation-scroll"
-                  data-coach-conversation-scroll
-                  tabIndex={0}
-                >
+                  )
+                )}
+              </ul>
+              <p className="coach-artifact-note">{artifactCopy.railNote}</p>
+            </aside>
+            <div className="coach-workspace-dialog coach-workspace-dialog--seed">
+              <div
+                ref={seedScrollRef}
+                className="coach-conversation-scroll"
+                data-coach-conversation-scroll
+                tabIndex={0}
+              >
+                {seed ? (
                   <SeedCard seed={seed} headingRef={seedHeadingRef} headingId={`${orbIdPrefix}-seed-title`} />
-                </div>
+                ) : (
+                  <ArtifactCard
+                    artifact={artifactDone!}
+                    headingRef={artifactHeadingRef}
+                    headingId={`${orbIdPrefix}-artifact-title`}
+                    onReturnToSeed={() => dispatch({ type: "returnToSeed" })}
+                    onRestart={resetFlow}
+                  />
+                )}
+              </div>
+              {seed && (
                 <div className="coach-workspace-seed-actions">
                   <button type="button" className="coach-restart" onClick={resetFlow}>
                     重新开始
                   </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-        ) : (
-          <CoachWorkspaceScene
-            act={act}
-            nextAct={nextAct}
-            traces={traces}
-            actIndex={state.actIndex}
-            actCount={ACT_COUNT}
-            value={answer}
-            error={state.error}
-            transitioning={transitioning}
-            condensing={condensing}
-            transitionStep={transitionStep}
-            pending={providerPending}
-            attachment={attachment}
-            attachmentError={attachmentError}
-            attachmentNotice={attachmentPrivacyNotice}
-            privacyNotice={coachPrivacyNotice}
-            attachmentEnabled={state.actIndex < ACT_COUNT - 1}
-            attachmentReading={attachmentReading}
-            providerStatus={providerStatus}
-            providerError={providerError}
-            visual={visual}
-            visualLabel={COACH_STATE_LABELS[visual]}
-            orbIdPrefix={orbIdPrefix}
-            backHref={backHref}
-            switchEntryHref={switchEntryHref}
-            switchEntryLabel={switchEntryLabel}
-            onChange={(value) => {
-              setAnswer(value);
-              if (state.error) dispatch({ type: "clearError" });
-              if (providerError) setProviderError(null);
-            }}
-            onResponderFocus={setListening}
-            onAttachmentSelect={(file) => void handleAttachmentSelect(file)}
-            onAttachmentRemove={handleAttachmentRemove}
-            onCancelWait={handleCancelWait}
-            onSubmit={handleSubmit}
-          />
-        )}
+        </div>
+      ) : artifactStage ? (
+        <CoachWorkspaceScene
+          act={artifactAct}
+          nextAct={artifactNextAct}
+          traces={traces}
+          actIndex={state.artifactRound}
+          actCount={ARTIFACT_ROUND_COUNT}
+          counterPrefix={artifactCopy.counterPrefix}
+          value={answer}
+          error={state.error}
+          transitioning={transitioning}
+          condensing={condensing}
+          transitionStep={transitionStep}
+          pending={providerPending}
+          attachment={null}
+          attachmentError={null}
+          attachmentNotice={attachmentPrivacyNotice}
+          /* 深化轮隐私披露与三幕同构:round 0/1 的回答会外发,末轮客户端凝结不外发 */
+          privacyNotice={
+            state.artifactRound < ARTIFACT_ROUND_COUNT - 1 ? coachPrivacyNotice : null
+          }
+          attachmentEnabled={false}
+          attachmentReading={false}
+          providerStatus={providerStatus}
+          providerError={providerError}
+          visual={visual}
+          visualLabel={COACH_STATE_LABELS[visual]}
+          orbIdPrefix={orbIdPrefix}
+          backHref={backHref}
+          returnAction={{
+            label: `← ${artifactCopy.backToSeedLabel}`,
+            onClick: () => dispatch({ type: "returnToSeed" }),
+          }}
+          onChange={(value) => {
+            setAnswer(value);
+            if (state.error) dispatch({ type: "clearError" });
+            if (providerError) setProviderError(null);
+          }}
+          onResponderFocus={setListening}
+          onAttachmentSelect={() => undefined}
+          onAttachmentRemove={() => undefined}
+          onCancelWait={handleCancelWait}
+          onSubmit={handleSubmit}
+        />
+      ) : (
+        <CoachWorkspaceScene
+          act={act}
+          nextAct={nextAct}
+          traces={traces}
+          actIndex={state.actIndex}
+          actCount={ACT_COUNT}
+          value={answer}
+          error={state.error}
+          transitioning={transitioning}
+          condensing={condensing}
+          transitionStep={transitionStep}
+          pending={providerPending}
+          attachment={attachment}
+          attachmentError={attachmentError}
+          attachmentNotice={attachmentPrivacyNotice}
+          privacyNotice={state.actIndex < ACT_COUNT - 1 ? coachPrivacyNotice : null}
+          attachmentEnabled={state.actIndex < ACT_COUNT - 1}
+          attachmentReading={attachmentReading}
+          providerStatus={providerStatus}
+          providerError={providerError}
+          visual={visual}
+          visualLabel={COACH_STATE_LABELS[visual]}
+          orbIdPrefix={orbIdPrefix}
+          backHref={backHref}
+          switchEntryHref={switchEntryHref}
+          switchEntryLabel={switchEntryLabel}
+          onChange={(value) => {
+            setAnswer(value);
+            if (state.error) dispatch({ type: "clearError" });
+            if (providerError) setProviderError(null);
+          }}
+          onResponderFocus={setListening}
+          onAttachmentSelect={(file) => void handleAttachmentSelect(file)}
+          onAttachmentRemove={handleAttachmentRemove}
+          onCancelWait={handleCancelWait}
+          onSubmit={handleSubmit}
+        />
+      )}
 
-        {/* 场景更迭播报:过渡期各拍由焦点元素自播报,这里不再复述;
-            问题由回答器的 aria-labelledby 朗读,避免同一内容重复朗读 */}
-        <p aria-live="polite" className="sr-only">
-          {seed
-            ? `三幕完成，已凝结为问题种子。${seedCopy.subtitle}`
+      {/* 场景更迭播报:过渡期各拍由焦点元素自播报,这里不再复述;
+          问题由回答器的 aria-labelledby 朗读,避免同一内容重复朗读 */}
+      <p aria-live="polite" className="sr-only">
+        {seed
+          ? `三幕完成，已凝结为问题种子。${seedCopy.subtitle}`
+          : artifactDone
+            ? `三轮深化完成，已凝结为${artifactCopy.title}。${artifactCopy.doneSubtitle}`
             : transitioning
               ? ""
               : providerStatus ?? ""}
-        </p>
-      </div>
-    );
+      </p>
+    </div>
+  );
 }

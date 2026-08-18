@@ -16,7 +16,8 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 95;
 
-const Body = z
+/** 三幕请求体:已完成 0|1 幕,请求下一幕(act 3 由客户端凝结) */
+const ActBody = z
   .object({
     entry: z.enum(["problem", "idea"]),
     completedAct: z.union([z.literal(0), z.literal(1)]),
@@ -33,6 +34,33 @@ const Body = z
       });
     }
   });
+
+/** 第四幕请求体:种子三槽摘录 + 已完成深化轮,请求下一深化轮(末轮同样客户端凝结) */
+const ArtifactBody = z
+  .object({
+    entry: z.enum(["problem", "idea"]),
+    seed: z
+      .object({
+        moment: z.string().trim().min(1).max(72),
+        impact: z.string().trim().min(1).max(72),
+        necessity: z.string().trim().min(1).max(72),
+      })
+      .strict(),
+    artifactRound: z.union([z.literal(0), z.literal(1)]),
+    artifactAnswers: z.array(z.string().trim().min(1).max(600)).min(1).max(2),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.artifactAnswers.length !== value.artifactRound + 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["artifactAnswers"],
+        message: "artifactAnswers must match completed deepening rounds",
+      });
+    }
+  });
+
+const Body = z.union([ActBody, ArtifactBody]);
 
 /**
  * 有上限的请求体读取。Content-Length 只是提示:缺失、伪造或 chunked 时
@@ -103,21 +131,35 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "请求格式不正确" }, { status: 400 });
   }
 
-  const { entry, completedAct, answers, attachment } = parsed.data;
+  const { entry } = parsed.data;
+  if (!("completedAct" in parsed.data)) {
+    const artifactBody = parsed.data;
+    const result = await getHubCoachAct({
+      entry,
+      artifact: {
+        round: artifactBody.artifactRound,
+        seed: artifactBody.seed,
+        answers: artifactBody.artifactAnswers,
+      },
+    });
+    return Response.json({ ok: true, mode: result.mode, act: result.act });
+  }
+
+  const actBody = parsed.data;
   // zod bounds characters, not bytes; recount the real UTF-8 payload so a
   // multi-byte attachment cannot slip past the 1MB boundary.
   if (
-    attachment &&
-    Buffer.byteLength(attachment.content, "utf8") > COACH_ATTACHMENT_MAX_BYTES
+    actBody.attachment &&
+    Buffer.byteLength(actBody.attachment.content, "utf8") > COACH_ATTACHMENT_MAX_BYTES
   ) {
     return Response.json({ ok: false, error: "请求格式不正确" }, { status: 400 });
   }
 
   const result = await getHubCoachAct({
     entry,
-    completedAct,
-    answers,
-    ...(attachment ? { attachment } : {}),
+    completedAct: actBody.completedAct,
+    answers: actBody.answers,
+    ...(actBody.attachment ? { attachment: actBody.attachment } : {}),
   });
   return Response.json({ ok: true, mode: result.mode, act: result.act });
 }

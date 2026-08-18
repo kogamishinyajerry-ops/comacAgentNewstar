@@ -3,11 +3,11 @@
  *
  * Run with: npm run probe:coach
  *
- * Makes four real outbound GLM Coding Plan calls (normal + attachment +
- * injection-resistance + near-1MB attachment) plus one immediate-timeout
- * fallback check (§20 M2: the abandoned upstream call may still complete and
- * bill), then prints the zero-filled outcome counters. It costs a small number
- * of subscription tokens and prints no keys or prompts.
+ * Makes five real outbound GLM Coding Plan calls (normal + attachment +
+ * injection-resistance + near-1MB attachment + fourth-stage deepening) plus
+ * one immediate-timeout fallback check (§20 M2: the abandoned upstream call
+ * may still complete and bill), then prints the zero-filled outcome counters.
+ * It costs a small number of subscription tokens and prints no keys or prompts.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -138,6 +138,32 @@ async function main(): Promise<number> {
       `[probe] 1mb:        mode=${result.mode} attachment=${attachment.size}B elapsed=${Date.now() - started}ms ${graceful ? "PASS" : "FAIL"}`
     );
     if (!graceful) failed += 1;
+  }
+
+  {
+    /* 第四幕深化轮 live 探针(§28):验证 artifact 请求分支在真实链路下
+       仍产出通过三字段合同的输出;回退路径由单测/e2e 承载 */
+    const started = Date.now();
+    const result = await getHubCoachAct(
+      {
+        entry: "problem",
+        artifact: {
+          round: 0,
+          seed: {
+            moment: "试验异常记录分散在三处",
+            impact: "每次对账约多花两小时",
+            necessity: "需按流程调用检索工具留痕",
+          },
+          answers: ["大约四十名试验工程师,每周对账三次"],
+        },
+      },
+      { config, timeoutMs: 90_000 }
+    );
+    const pass = result.mode === "live";
+    console.log(
+      `[probe] artifact:   mode=${result.mode} elapsed=${Date.now() - started}ms ${pass ? "PASS" : "FAIL"}`
+    );
+    if (!pass) failed += 1;
   }
 
   {

@@ -730,3 +730,44 @@ Artifact"最小切片 → 阶段 2 账号接入后复用旧侧数据模型 → �
 - `npm run lint`/`typecheck`：通过；`npm run test`：**20 files / 204 tests** 通过；`npm run build`：通过（51/51 路由）；`npx playwright test`：**87/87（2.1m）**。
 - 工作树干净（除会话目录 `.zcode/` 不入库）；本轮未部署、未推送、未重启 3600 生产服务。
 - 打磨序列全五轮收口：基线 §22 时 204 单测/80 e2e → 终点 204 单测/87 e2e/probe 五用例；共 5 个主题 commit。
+
+---
+
+## 28. 第四幕：问题定义 Artifact（§22 阶段 1 授权实现，2026-08-19）
+
+用户于打磨序列收口后当日授权开工（`docs/product/05` 阶段 1 最小切片）。
+**「完成态」决策仍开放**——问题定义在任何完成态下都是第一份 Artifact，本切片不预支。
+
+### 28.1 实现决定（F 系）
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| F1 | 状态机新增三个正交 phase（`artifact-question/transition/done`）与 `artifactRound/artifactAnswers`；action `startArtifact`（仅 seed 可入，已完成则直达卡）与 `returnToSeed`（保留进度；过渡期入口禁用） | 与 `ACT_COUNT=3` 语义完全隔离,顶栏计数/aria/既有 e2e 零污染 |
+| F2 | 三轮深化维度固定（影响量化/可观察改善/Agent 必要一环，与种子三条缺口一一对应）；live 提示词被要求按维度序提问 | 结构归状态机:客户端确定性合成深化记录,模型只填三字段 |
+| F3 | API 判别式请求体：`{entry, seed(三槽≤72字), artifactRound:0\|1, artifactAnswers}` 与 acts 体互斥（zod union + strict，混入/附件一律 400）；仅 round 0/1 发请求,末轮客户端凝结——与三幕同构 | 复用同一路由的限流/日预算/超时/回退全链路 |
+| F4 | Provider 判别联合类型 + prompt 分支（stage/seed/targetDimension/completedDeepening）；**输出合同不变**（三字段 50-150 原样）；fixture 回退为该轮确定性文案；隐私披露与三幕镜像（round 0/1 渲染注记,末轮不渲染）;深化轮不开放附件 | 校验/钢人纪律/注入抵抗/outcome 计数全部继承,零新豁免 |
+| F5 | UI：种子屏 Artifacts 栏第一格点亮为真实入口（44px 按钮,完成后常亮"问题定义·已深化"）;深化轮复用 CoachWorkspaceScene（counterPrefix"深化 01/03"、返回种子安静动作、五状态复用 challenging/condensing/confirmed）;新 `ArtifactCard`（种子三槽+深化记录三轮+缺口原样保留+复制导出+诚实尾注"深化记录来自本次会话回答的摘录,不构成已验证的证据"） | 一问一幕/单焦点/会话即所得宪法零妥协;深化≠解决,措辞诚实 |
+| F6 | probe 增第六用例「artifact round 0 live」 | 深化分支的真实链路证据 |
+
+### 28.2 验收记录（2026-08-19）
+
+- `npm run lint`/`typecheck`：通过；`npm run test`：**21 files / 217 tests**（＋13：状态机/合成导出/fixture 合同/provider 适配/route 校验）通过；`npm run build`：通过（51/51 路由）。
+- `npx playwright test`：**92/92**（＋5：全流程深化+导出、返回种子续深、500 回退、键盘 Enter 入口、深化问题态与问题定义卡态 Axe 零违规）。
+- 过程三处如实记录：①返回入口在深化过渡期禁用（reducer 在 transition 相位不接受 returnToSeed,按钮同步禁用防点击落空）;②500 用例的断网告警断言移至中间轮问题态（终态卡无表单区,告警随之折叠——行为正确,初版断言位置错误）;③ArtifactCard 深化条目初版误用 `<dl>` 外 `<dd>`（Axe dlitem 140 节点违规）,改 `<p>` 后零违规——零豁免纪律抓出的真实结构错误。
+- probe 六用例见 §28.3；本轮未部署、未推送、未重启 3600 生产服务。
+
+### 28.3 探针实跑记录（2026-08-19，`npm run probe:coach`）
+
+五次真实出站 + 一次超时放弃（日预算 500 内），六用例 **ALL PASS**：
+
+```
+[probe] normal:     mode=live elapsed=18264ms PASS
+[probe] attachment: mode=live elapsed=21085ms PASS
+[probe] injection:  mode=live leaked=false elapsed=16078ms PASS
+[probe] 1mb:        mode=live attachment=1048128B elapsed=11468ms PASS
+[probe] artifact:   mode=live elapsed=17033ms PASS
+[probe] timeout:    mode=fixture elapsed=2ms PASS
+[probe] outcomes: live=5 timeout=1 其余 0, total=6
+```
+
+artifact 用例（round 0 → 请求"可观察改善"维度轮）在真实 GLM 下 17.0s 返回通过三字段合同的输出；normal 用例的判断/风险/问题可见钢人纪律与维度一致性（"尚未出现任何受损者与损失证据"→ 下一问直指可量化代价）。

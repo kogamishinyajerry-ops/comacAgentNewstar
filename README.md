@@ -30,7 +30,7 @@
 
 ### 阶段二：受控真实 Coach 与配置能力
 
-- `POST /api/hub/coach` 与 `lib/hub/coach-provider.ts` 是唯一真实 Coach 链路：仅服务端读取既有 GLM Coding Plan 配置，严格只接收“当前判断／最大风险／一个问题”三字段；不读写 Prisma、不返回原始错误、token 或思维链。Mock、无 Key、超时、同源拒绝、限流或非法模型输出都会继续走确定性 fixture；第三幕问题种子始终由纯状态机凝结。
+- `POST /api/hub/coach` 与 `lib/hub/coach-provider.ts` 是唯一真实 Coach 链路：仅服务端读取既有 GLM Coding Plan 配置，严格只接收“当前判断／最大风险／一个问题”三字段；不读写 Prisma、不返回原始错误、token 或思维链。Mock、无 Key、超时、同源拒绝、限流或非法模型输出都会继续走确定性 fixture；第三幕问题种子始终由纯状态机凝结。三幕之后可选进入**第四幕“问题定义 Artifact”**（§22 阶段1）：三轮固定维度深化（影响量化/可观察改善/Agent 必要一环），会话内确定性凝结、可复制导出，无持久化；Artifacts 栏第一格由此点亮。
 - 公开入口默认使用同源共享限流桶；只有确认 Cloudflare 等代理会覆盖客户端地址头时，才将 `HUB_COACH_TRUST_PROXY=true`，以其 `CF-Connecting-IP` 做分桶。多实例生产仍须由 Cloudflare/WAF 提供外层门禁。
 - 活动身份、日期、链接、规则和品牌资产均收敛在 `config/activity.ts`。`npm run validate:activity-config` 会校验完整契约；`npm run build` 自动执行它。Logo 只会消费精确白名单中的 `public/brand/` 本地资产，当前无获准资产，故仍显示文字标识。
 - 角色说明页只深链到旧侧受保护入口：参赛者 `/projects`、评委 `/judge`、组织者 `/organizer`（次级 `/workbuddy`）。公共 Hub 不读取、不展示或执行任何项目、评分、管理数据或动作。

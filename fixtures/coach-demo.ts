@@ -71,6 +71,59 @@ export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
 };
 
 /**
+ * 第四幕(问题定义 Artifact)的三轮确定性深化文案。
+ * 维度固定且与种子的三条缺口一一对应(docs/product/05 §4 阶段1);
+ * live 模型同样被要求按此维度序提问,客户端据此确定性合成深化记录。
+ */
+export const coachDemoArtifactActs: readonly CoachAct[] = [
+  {
+    judgment: "影响已有人物与代价,但评委还会问规模:多少人、多频繁,决定问题的分量。",
+    risk: "规模说不清,小改进会被当成大问题,大问题反而被低估。",
+    question: "受影响的人大约有多少、多长时间发生一次?",
+    placeholder: "给一个粗估:大约多少人、多久一次、每次代价多少。",
+    emptyHint: "粗估也可以——人数、频率、单次代价,说一样就有分量。",
+  },
+  {
+    judgment: "要证明被改善,先得说清改善前后能观察到什么不同。",
+    risk: "没有可观察的信号,任何技术方案的效果都无法自证。",
+    question: "改善之后,你能观察到什么具体变化来说明它成立了?",
+    placeholder: "写一个能看出来的信号:少了哪步、快了多久、少了什么错。",
+    emptyHint: "找一个能观察到的信号:更少、更快、更准、更省。",
+  },
+  {
+    judgment: "必要性此刻仍是一句主张,评委会要求指出非聊天不可的一环。",
+    risk: "若每一步普通对话都能完成,Agent 就只是更贵的聊天。",
+    question: "整个流程里,哪一步是普通大模型聊天做不到、必须靠 Agent 的?",
+    placeholder: "点名一环:长期记忆、工具调用、固定流程或反馈回路。",
+    emptyHint: "选最硬的一环:记忆、工具、流程、反馈,说清为什么非它不可。",
+  },
+];
+
+/**
+ * 第四幕(问题定义 Artifact)的固定文案。
+ * 深化不等于解决:缺口原样保留,深化记录只是把追问显性化。
+ */
+export const artifactCopy = {
+  title: "问题定义",
+  /** Artifacts 栏注记:第一格已可深化,其余保持预告 */
+  railNote: "问题定义可在本页深化;其余 Artifact 在完整流程中逐份沉淀。",
+  /** 种子态下第一格入口的名称 */
+  startLabel: "深化问题定义",
+  /** 深化完成后第一格的常亮名称 */
+  litLabel: "问题定义·已深化",
+  /** 深化轮维度标签(顺序固定,与种子缺口一一对应) */
+  dimensionLabels: ["影响量化", "可观察改善", "Agent 必要一环"],
+  counterPrefix: "深化",
+  doneTitle: "问题定义",
+  doneSubtitle:
+    "三幕种子经三轮追问深化而成——缺口仍在,但每一条都有了可继续验证的方向。",
+  deepeningLabel: "深化记录",
+  deepeningNote: "深化记录来自本次会话回答的摘录,不构成已验证的证据。",
+  copyLabel: "复制问题定义",
+  backToSeedLabel: "回到问题种子",
+} as const;
+
+/**
  * Public Hub privacy boundary. The API never writes a project, but the first
  * two completed scenes may be sent to the server-side AI adapter.
  */

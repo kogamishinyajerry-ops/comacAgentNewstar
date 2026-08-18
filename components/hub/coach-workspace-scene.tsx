@@ -42,6 +42,7 @@ export function CoachWorkspaceScene({
   attachmentNotice,
   privacyNotice,
   attachmentEnabled,
+  counterPrefix,
   attachmentReading,
   providerStatus,
   providerError,
@@ -51,6 +52,7 @@ export function CoachWorkspaceScene({
   backHref,
   switchEntryHref,
   switchEntryLabel,
+  returnAction,
   onChange,
   onResponderFocus,
   onAttachmentSelect,
@@ -75,10 +77,12 @@ export function CoachWorkspaceScene({
   attachmentError: string | null;
   /** 按需隐私确认文案(仅选中附件时出现) */
   attachmentNotice: string;
-  /** 前置隐私披露:第1、2幕问题态常驻,告知回答将发送至 AI 服务 */
-  privacyNotice: string;
-  /** 仅第一、二幕开放附件;第三幕只在客户端凝结种子,不渲染附件入口 */
+  /** 前置隐私披露:回答会发送至 AI 服务的问题态渲染;客户端凝结的幕/轮传 null */
+  privacyNotice: string | null;
+  /** 仅第一、二幕开放附件;第三幕与深化轮不渲染附件入口 */
   attachmentEnabled: boolean;
+  /** 深化轮顶栏计数前缀(如"深化"),三幕不传 */
+  counterPrefix?: string;
   /** 附件读取中:禁用附件/提交按钮,读取落定前不允许提交 */
   attachmentReading: boolean;
   providerStatus: string | null;
@@ -87,8 +91,11 @@ export function CoachWorkspaceScene({
   visualLabel: string;
   orbIdPrefix: string;
   backHref: string;
-  switchEntryHref: string;
-  switchEntryLabel: string;
+  /** 换一条入口链接(三幕态);深化轮不传 */
+  switchEntryHref?: string;
+  switchEntryLabel?: string;
+  /** 顶栏第三位的安静动作(如深化轮的"回到问题种子");提供时优先于换入口 */
+  returnAction?: { label: string; onClick: () => void };
   onChange: (value: string) => void;
   onResponderFocus: (focused: boolean) => void;
   onAttachmentSelect: (file: File) => void;
@@ -149,12 +156,34 @@ export function CoachWorkspaceScene({
         <Link href={backHref} className="coach-topbar-back hub-quiet-link">
           ← 返回活动指南
         </Link>
-        <p className="coach-workspace-count" aria-label={`第 ${displayActIndex + 1} 幕，共 ${actCount} 幕`}>
+        <p
+          className="coach-workspace-count"
+          aria-label={
+            counterPrefix
+              ? `${counterPrefix}第 ${displayActIndex + 1} 轮，共 ${actCount} 轮`
+              : `第 ${displayActIndex + 1} 幕，共 ${actCount} 幕`
+          }
+        >
+          {counterPrefix && <span className="coach-count-prefix">{counterPrefix} </span>}
           {String(displayActIndex + 1).padStart(2, "0")} / {String(actCount).padStart(2, "0")}
         </p>
-        <Link href={switchEntryHref} className="coach-entry-quiet hub-quiet-link">
-          {switchEntryLabel}
-        </Link>
+        {returnAction ? (
+          <button
+            type="button"
+            className="coach-entry-quiet hub-quiet-link"
+            onClick={returnAction.onClick}
+            disabled={transitioning}
+          >
+            {returnAction.label}
+          </button>
+        ) : (
+          switchEntryHref &&
+          switchEntryLabel && (
+            <Link href={switchEntryHref} className="coach-entry-quiet hub-quiet-link">
+              {switchEntryLabel}
+            </Link>
+          )
+        )}
       </div>
 
       <div
@@ -225,9 +254,9 @@ export function CoachWorkspaceScene({
             {providerStatus && !providerError && (
               <p className="coach-provider-status">{providerStatus}</p>
             )}
-            {/* 隐私前置披露:第1、2幕的提交会发送至 AI 服务,告知必须先于输入,
-                不能等到三幕全部完成后的种子卡(修正 F-d 的时序倒置) */}
-            {attachmentEnabled && (
+            {/* 隐私前置披露:回答会发送至 AI 服务的问题态常驻,告知必须先于输入;
+                客户端本地凝结的末幕/末轮传 null(§18 时序原则,§28 深化轮同构) */}
+            {privacyNotice && (
               <p className="coach-privacy-note" data-coach-privacy-note>
                 {privacyNotice}
               </p>
