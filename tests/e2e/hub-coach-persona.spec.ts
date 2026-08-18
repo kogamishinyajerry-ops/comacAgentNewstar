@@ -236,7 +236,7 @@ test.describe("状态 D:问题种子与工作空间长出", () => {
     await expect(page.locator("[data-seed-claim]")).toBeVisible();
     await expect(page.locator("[data-seed-evidence]")).toBeVisible();
     await expect(page.locator("[data-seed-gaps]")).toBeVisible();
-    await expect(page.getByRole("link", { name: "进入完整实践流程" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "了解完整实践路径" })).toBeVisible();
     await expect(page.getByRole("button", { name: /重新开始|换一条入口重新体验/ })).toBeVisible();
 
     // 缺口诚实标注,不暗示已完成验证

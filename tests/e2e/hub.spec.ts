@@ -65,7 +65,7 @@ test.describe("桌面 1440×900", () => {
     await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
     // 种子包含三幕摘录与缺口
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
-    await expect(page.getByRole("link", { name: "进入完整实践流程" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "了解完整实践路径" })).toBeVisible();
     await expect(
       page
         .getByText("回答不会保存为项目，但可能发送至 AI 服务；请勿输入保密、个人或未公开信息。")

@@ -28,16 +28,22 @@ Never copy generated-image text or fictional metrics as product truth.
 
 ## Current milestone
 
-Phase one is delivered. The user explicitly authorized a bounded **phase-two
-continuation** on 2026-08-17; see `IMPLEMENTATION_PLAN.md` §9. The public Hub
-and deterministic state machine remain the base. Phase two may add only:
+Phase one and the bounded phase-two continuation (authorized 2026-08-17) are
+delivered; see `IMPLEMENTATION_PLAN.md` §9.7. Phase two delivered:
+activity-configuration validation with single-source consumption (unknown
+business facts stay pending), the no-DB server-only real Coach adapter with
+strict output validation and deterministic fallback, static role-page
+handoffs to protected old-side routes, and accessibility/responsive
+regression coverage. Later closed rounds: Coach steelman thinking discipline
+(§14), optimization layers 1–3 (§15–§17), red-team fix rounds ①–⑤ (§18–§22).
 
-- activity-configuration validation, single-source consumption, and an exact
-  authorized local-logo handoff (unknown business facts stay pending);
-- a no-DB, server-only real Coach adapter with strict output validation,
-  same-origin protection, bounded limiting, and deterministic fallback;
-- static handoffs from public role pages to existing protected old-side routes;
-- accessibility and responsive regression coverage.
+The active authorization is a staged **polish sequence ①–⑤** (2026-08-19),
+executed one bounded round at a time with full gates and a stop-and-report
+between rounds: ① honesty copy and governance-doc closure; ② state-asset and
+first-screen performance under visual-lossless proof; ③ accessibility and
+viewport deepening (VoiceOver readiness); ④ resilience and observability
+(live probes, e2e stability); ⑤ evidence refresh and closure. Polish deepens
+delivered capabilities only; it adds no milestone features.
 
 Do not expand the milestone into:
 

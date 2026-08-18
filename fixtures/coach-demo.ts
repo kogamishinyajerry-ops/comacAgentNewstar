@@ -89,7 +89,8 @@ export const seedCopy = {
   title: "问题种子",
   subtitle: "三幕回答凝结而成的一份草稿——不是项目创建成功,只是值得继续追问的起点。",
   previewNote: `${coachPrivacyNotice} 问题种子只在当前页面会话中凝结，不代表项目已创建或提交。`,
-  cta: { label: "进入完整实践流程", href: "/guide" },
+  /* §23 A1:指南页是路径说明而非实践流入口,CTA 只承诺它能兑现的事 */
+  cta: { label: "了解完整实践路径", href: "/guide" },
   slots: {
     moment: "想改变的瞬间",
     impact: "影响与损失",

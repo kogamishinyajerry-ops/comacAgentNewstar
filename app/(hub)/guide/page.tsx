@@ -162,7 +162,7 @@ export default function GuidePage() {
             <Link href="/role/organizer" className="hub-btn hub-btn--secondary">我是组织者</Link>
           </div>
           <p className="hub-caption mt-4">
-            登录与正式报名入口将在活动配置确认后开放,当前不提供占位链接。
+            三幕探索的终点是一枚可复制带走的问题种子;登录、报名与完整实践流程将在活动配置确认后开放,当前不提供占位链接。
           </p>
         </section>
       </Reveal>

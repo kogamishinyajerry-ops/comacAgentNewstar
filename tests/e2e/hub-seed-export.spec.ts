@@ -44,6 +44,16 @@ test.describe("问题种子导出", () => {
 
     await page.getByRole("button", { name: "复制问题种子" }).click();
     await expect(page.locator("[data-seed-copy-status]")).toHaveText(/复制失败/);
-    await expect(page.getByRole("link", { name: "进入完整实践流程" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "了解完整实践路径" })).toBeVisible();
+  });
+
+  test("指南页显式引导种子导出并如实说明开放条件(§23 A1)", async ({ page }) => {
+    await page.goto("/guide");
+
+    /* guide-next 是 h2 的 id;caption 在由它标注的 section 内 */
+    const next = page.locator("section[aria-labelledby='guide-next']");
+    await expect(next).toBeVisible();
+    await expect(next).toContainText("可复制带走的问题种子");
+    await expect(next).toContainText("将在活动配置确认后开放");
   });
 });
