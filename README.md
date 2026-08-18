@@ -25,7 +25,7 @@
 - `lib/hub/coach-machine.ts` — 纯 reducer 状态机 + 问题种子合成（无 DB，仍是确定性兜底与最终收束）；
 - `fixtures/coach-demo.ts` — 两条入口 × 三幕的确定性文案(严格但建设性,已有想法入口第一问挑战方案先行);
 - `config/site.ts` / `config/activity.ts` — 品牌、导航、FAQ 与全部活动事实(未确认项 `null` + `待活动配置确认`);
-- 无障碍:键盘全流程可完成、`aria-live` 播报场景更迭、`prefers-reduced-motion` 降级、无 JS 时内容可见，并有 Axe、1024×768 与移动抽屉焦点回归；
+- 无障碍:键盘全流程可完成(含 FAQ 展开、种子复制、等待取消的 Enter 激活)、`aria-live` 播报场景更迭、`prefers-reduced-motion` 降级、无 JS 时内容可见,并有 Axe 零豁免(静态页与空答/附件/等待/抽屉开等交互态)、1024×768 与移动抽屉焦点回归;
 - 验收:`tests/e2e/hub.spec.ts` 覆盖开工提示词 §14 十条流程,截图在 `docs/screenshots/phase1/`。
 
 ### 阶段二：受控真实 Coach 与配置能力
@@ -106,6 +106,7 @@ npm run build && npm run start
 | `GLM_TIMEOUT_MS` | GLM 调用超时,默认 90000(思维链较慢) |
 | `LLM_MOCK_MODE` | `true` 强制 Mock Provider |
 | `HUB_COACH_TRUST_PROXY` | 默认 `false`；只有入口代理会覆盖 `CF-Connecting-IP` 时才设为 `true`，否则公共 Coach 使用同源共享限流桶 |
+| `HUB_COACH_DAILY_LIMIT` | 公共 Coach 真实出站日预算(本地日),默认 500;`0` 显式解除上限,超限自动回落确定性 fixture |
 | `UPLOAD_MAX_MB` | 附件上限,默认 10MB |
 
 ## 常用命令
@@ -118,7 +119,8 @@ npm run test         # Vitest 单元测试
 npm run validate:activity-config  # 活动配置与获准 Logo 资产校验
 npm run build        # 先校验活动配置，再生产构建
 npm run db:reset     # 重置数据库并重新种子
-npm run e2e          # Playwright E2E(首次:npx playwright install chromium)
+npm run e2e          # Playwright E2E(首次:npx playwright install chromium;配置层强制 mock,永不真实出站)
+npm run probe:coach  # 公共 Coach live 探针(真实出站:正常/附件/注入抵抗/1MB/超时五用例)
 ```
 
 ## 架构
@@ -302,5 +304,5 @@ docker compose up --build   # http://localhost:3000,数据卷持久化
 16. ✅ 普通参与者不能查看他人草稿(404)
 17. ✅ GLM Key 不出现在浏览器与日志
 18. ✅ Mock模式完整演示(无Key自动降级)
-19. ✅ lint / typecheck / test(102例) / build / Playwright E2E 全部通过
+19. ✅ lint / typecheck / test(204例) / build / Playwright E2E 全部通过
 20. ✅ 本README支持10分钟启动

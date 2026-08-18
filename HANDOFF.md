@@ -1,5 +1,7 @@
 # 新会话开工提示词:青年AI轻创导航站(继续开发)
 
+> 范围说明(2026-08-19):仓库主线现为 COMAC Agent Hub 公共侧(`app/(hub)`,见 `AGENTS.md`);本提示词仅适用于旧侧 `(app)` 分组的继续开发,其中计数为旧侧交付时点数字,现行总量见 README 与 `IMPLEMENTATION_PLAN.md`。
+
 你现在是本项目的**首席产品架构师、资深全栈工程师、AI Agent工程师、测试负责人和安全审查人**。
 
 仓库:`/Users/Zhuanz/comacAgentNewstar`(git 仓库,main 分支)。这是已上线内部 MVP,你的职责是**继续演进**,不要重做已完成的部分。先检查仓库与 README/HANDOFF,输出简短计划后自主执行;稳健默认记录进 README,不频繁停下询问;破坏性操作前确认。
@@ -45,7 +47,7 @@ lib/minimax.ts          生图(真实+离线SVG回退)
 components/             ui.tsx(组件库) seal.tsx charts.tsx wizard*.tsx chat-runner.tsx coach-panel.tsx fx.tsx demo-player.tsx gallery.tsx workbuddy-console.tsx token-manager.tsx
 app/api/                auth/teams/projects(含chat/precheck/submit)/agent/art/organizer/judge/notices + control/ mcp/ confirmations/ events/ workbuddy/
 app/workbuddy app/integrations   总控台页、MCP令牌管理页
-tests/                  131个Vitest单测;tests/e2e Playwright(2用例)
+tests/                  204个Vitest单测(全仓);tests/e2e Playwright(87用例,含公共Hub)
 ```
 
 ## 三、环境铁律(全部踩过坑,勿再踩)
@@ -73,7 +75,7 @@ tests/                  131个Vitest单测;tests/e2e Playwright(2用例)
 ## 六、质量闸门(每轮改动必须全绿)
 
 ```bash
-npm run lint && npm run typecheck && npm run test    # 131个单测
+npm run lint && npm run typecheck && npm run test    # 全仓204个单测
 npm run build
 # E2E(mock模式):
 npm run db:reset && LLM_MOCK_MODE=true PORT=3000 npm run start &
