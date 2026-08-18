@@ -10,7 +10,10 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        // mock 强制写在命令里:e2e 永不真实出站 GLM(§19);即使忘了带环境前缀
+        // 也由配置兜底。注意 reuseExistingServer 复用已在跑的进程时无法
+        // 追加强制——先确认 3000 是本次 mock 进程再复用。
+        command: "LLM_MOCK_MODE=true npm run dev",
         port: 3000,
         timeout: 60_000,
         reuseExistingServer: true,

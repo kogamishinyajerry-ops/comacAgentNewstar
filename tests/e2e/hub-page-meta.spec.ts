@@ -43,4 +43,14 @@ test.describe("公共页 metadata", () => {
     expect(body).toContain("Allow: /");
     expect(body).toContain("Disallow: /dev/");
   });
+
+  test("基础安全响应头在场：防嗅探、防嵌套、收敛引用来源", async ({ request }) => {
+    const res = await request.get("/");
+    expect(res.ok()).toBeTruthy();
+    const headers = res.headers();
+    expect(headers["x-content-type-options"]).toBe("nosniff");
+    expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["content-security-policy"]).toBe("frame-ancestors 'none'");
+  });
 });

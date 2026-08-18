@@ -502,3 +502,25 @@ npx playwright test                      # 含旧 full-flow 回归 + 新 hub.spe
 - `npm run lint`/`typecheck`：通过；`npm run test`：**20 files / 203 tests** 通过；`npm run build`：通过。
 - `LLM_MOCK_MODE=true npx playwright test`：**76/76（58.2s）**（＋1：隐私披露时序——第 1/2 幕问题态在场、过渡期退场、第 3 幕不出现）；persona 与 visual-direction 定向 15/15 通过（固定视口无溢出）。
 - 本轮未部署、未推送、未重启 3600 生产服务。
+
+---
+
+## 19. 红队修复轮 ②：限流前置、安全头与 e2e mock 配置强制（2026-08-18）
+
+修复红队 B 的 P1-1（请求体在限流前完整读入解析的 DoS 放大面）、P2-2（无安全响应头）与红队 C 的 P1-2（e2e mock 纪律只靠人工前缀）。
+
+### 19.1 实现决定（L 系）
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| L1 | `POST /api/hub/coach` 的限流计数移到 Origin 校验之后、**任何请求体读取之前**；超限响应改为 `{ok:true, mode:"fixture"}` **不带 act**，不读正文、不解析、不调用 Coach | 直连攻击者无法再用 6.25MB body 在计数之前消耗读取/解析 CPU；垃圾请求烧的是攻击者自己的配额 |
+| L2 | 客户端合同同步：`mode:"live"` 必须携带合法 act（缺失即整体无效走本地回退）；`mode:"fixture"` 的 act 可选，缺失时客户端回落本地确定性 fixture | 超限短路时服务端不知道 entry/completedAct，无法内嵌正确 fixture——客户端本就有全部 fixture（`resolvedActs` 既有回退缝），这是唯一不读正文又能保持三幕正确的路径 |
+| L3 | `next.config.mjs` 增基础安全头：`X-Content-Type-Options: nosniff`、`Referrer-Policy: strict-origin-when-cross-origin`、`X-Frame-Options: DENY` + `CSP: frame-ancestors 'none'`；HSTS 与全量 CSP 留给代理层 | 防嗅探/防点击劫持的最小集合；应用层强推 HSTS 会伤本地 http 调试 |
+| L4 | `playwright.config.ts` 的 webServer 命令改为 `LLM_MOCK_MODE=true npm run dev` | mock 强制从"人工前缀纪律"升级为配置层兜底；`reuseExistingServer` 复用已在跑进程时无法追加强制（已注释声明） |
+| L5 | 路由测试按新语义改写并钉住两个行为：超限请求即使声明超大 Content-Length 也拿 200 短路信号（证明未读正文）；非法附件第 7 个请求因配额耗尽短路为 fixture 信号 | 语义变更是有意的安全属性，用测试显式锁定而非回避 |
+
+### 19.2 验收记录（2026-08-18）
+
+- `npm run lint`/`typecheck`：通过；`npm run test`：**20 files / 204 tests** 通过；`npm run build`：通过。
+- **`npx playwright test`（不带任何 env 前缀）**：**77/77（57.7s）**——L4 的配置强制得到直接证明（零真实出站）；含新增 e2e：无 act fixture 信号客户端回落本地追问且不出现错误告警、基础安全响应头在场。
+- 本轮未部署、未推送、未重启 3600 生产服务。

@@ -41,7 +41,8 @@ type CoachApiMode = "live" | "fixture";
 
 interface CoachApiResponse {
   mode: CoachApiMode;
-  act: CoachAct;
+  /** 路由层限流超限的 fixture 信号不带 act,客户端回落本地确定性 fixture */
+  act: CoachAct | null;
 }
 
 function reducer(state: CoachState, action: Action): CoachState {
@@ -99,10 +100,12 @@ function isCoachAct(value: unknown): value is CoachAct {
 function parseCoachApiResponse(value: unknown): CoachApiResponse | null {
   if (typeof value !== "object" || value === null) return null;
   const payload = value as Record<string, unknown>;
-  if (payload.ok !== true || (payload.mode !== "live" && payload.mode !== "fixture") || !isCoachAct(payload.act)) {
-    return null;
+  if (payload.ok !== true || (payload.mode !== "live" && payload.mode !== "fixture")) return null;
+  if (payload.mode === "live") {
+    /* live 必须携带完整且合法的 act;缺失即整体无效,走本地回退 */
+    return isCoachAct(payload.act) ? { mode: "live", act: payload.act } : null;
   }
-  return { mode: payload.mode, act: payload.act };
+  return { mode: "fixture", act: isCoachAct(payload.act) ? payload.act : null };
 }
 
 async function requestNextAct({
@@ -228,7 +231,9 @@ export function CoachFlow({
       setAttachmentReading(false);
 
       if (response) {
-        setRemoteActs((acts) => ({ ...acts, [state.actIndex + 1]: response!.act }));
+        if (response.act) {
+          setRemoteActs((acts) => ({ ...acts, [state.actIndex + 1]: response.act! }));
+        }
         setProviderMode(response.mode);
       } else if (!condensingToSeed) {
         setProviderMode("fixture");

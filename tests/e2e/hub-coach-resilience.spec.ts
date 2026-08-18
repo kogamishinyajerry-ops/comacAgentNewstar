@@ -100,6 +100,25 @@ test.describe("Hub Coach 浏览器级韧性", () => {
     });
   }
 
+  test("限流超限的无 act fixture 信号：客户端回落本地确定性追问且不出现错误告警", async ({ page }) => {
+    await page.route("**/api/hub/coach", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, mode: "fixture" }),
+      })
+    );
+
+    await page.goto("/start?entry=problem");
+    await submitAnswer(page, "试验异常记录分散在多处，复核时常常找不到对应依据。");
+
+    // 下一问来自本地 fixture,三幕照常推进
+    await expectFixtureScene(page, fixtureQuestions[1]);
+    await expect(page.getByText("这一幕沿用确定性追问。")).toBeVisible();
+    // 这不是失败路径:不出现断网式回退告警
+    await expect(page.locator('[role="alert"]', { hasText: fallbackNotice })).toHaveCount(0);
+  });
+
   test("HTTP API 拒绝跨源 Origin，且不回显请求内容", async ({ request }) => {
     const secretInput = "cross-origin-private-input-must-not-be-returned";
     const response = await request.post("/api/hub/coach", {

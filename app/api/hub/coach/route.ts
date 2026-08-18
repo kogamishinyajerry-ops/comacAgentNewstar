@@ -6,7 +6,6 @@ import {
 } from "@/lib/hub/coach-attachment";
 import {
   checkHubCoachRateLimit,
-  fixtureActForNextScene,
   getHubCoachAct,
 } from "@/lib/hub/coach-provider";
 import {
@@ -91,6 +90,14 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "请求来源不正确" }, { status: 403 });
   }
 
+  /* 限流计数先于任何请求体读取:超限响应不读正文、不解析、不调用 Coach。
+     此时服务端不知道 entry/completedAct,返回不带 act 的 fixture 信号,
+     客户端以其本地确定性 fixture 继续(合同见 coach-flow 的解析);
+     恶意大 body 因此无法在计数之前消耗读取与解析成本。 */
+  if (!checkHubCoachRateLimit(hubCoachRequestClientKey(request))) {
+    return Response.json({ ok: true, mode: "fixture" });
+  }
+
   const parsed = Body.safeParse(await requestBody(request));
   if (!parsed.success) {
     return Response.json({ ok: false, error: "请求格式不正确" }, { status: 400 });
@@ -104,13 +111,6 @@ export async function POST(request: Request) {
     Buffer.byteLength(attachment.content, "utf8") > COACH_ATTACHMENT_MAX_BYTES
   ) {
     return Response.json({ ok: false, error: "请求格式不正确" }, { status: 400 });
-  }
-  if (!checkHubCoachRateLimit(hubCoachRequestClientKey(request))) {
-    return Response.json({
-      ok: true,
-      mode: "fixture",
-      act: fixtureActForNextScene(entry, completedAct),
-    });
   }
 
   const result = await getHubCoachAct({

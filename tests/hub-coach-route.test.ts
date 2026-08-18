@@ -133,7 +133,7 @@ describe("POST /api/hub/coach", () => {
     await expect(response.json()).resolves.toEqual({ ok: false, error: "请求来源不正确" });
   });
 
-  it("同一客户端到达第七次请求时在路由层安全回退 fixture，不再调用 Coach", async () => {
+  it("同一客户端到达第七次请求时在路由层回退无 act 的 fixture 信号，不再读体或调用 Coach", async () => {
     const body = {
       entry: "problem",
       completedAct: 0,
@@ -148,7 +148,31 @@ describe("POST /api/hub/coach", () => {
     expect(payloads.slice(0, 6)).toEqual(
       Array.from({ length: 6 }, () => ({ ok: true, mode: "live", act: coachDemoActs.problem[1] }))
     );
-    expect(payloads[6]).toEqual({ ok: true, mode: "fixture", act: coachDemoActs.problem[1] });
+    // 超限响应不读正文,因此无法内嵌 fixture act;客户端回落本地确定性 fixture
+    expect(payloads[6]).toEqual({ ok: true, mode: "fixture" });
+    expect(getHubCoachActMock).toHaveBeenCalledTimes(6);
+  });
+
+  it("限流超限的短路发生在读取正文之前：超大声明长度的请求也拿到 200 fixture 信号", async () => {
+    const body = {
+      entry: "problem",
+      completedAct: 0,
+      answers: ["试验异常记录分散在多处，复核时常常找不到对应依据。"],
+    };
+    const marker = "OVERSIZED-DECLARED-LENGTH-不应出现";
+
+    for (let index = 0; index < 6; index += 1) {
+      await POST(request(body));
+    }
+    const oversized = await POST(
+      request({ ...body, note: marker }, { "content-length": String(COACH_REQUEST_MAX_BODY_BYTES + 1) })
+    );
+
+    // 未超限时该请求会在读取阶段 400;超限短路后不读正文,直接 200 无 act 信号
+    const shortCircuitPayload = await oversized.json();
+    expect(oversized.status).toBe(200);
+    expect(shortCircuitPayload).toEqual({ ok: true, mode: "fixture" });
+    expect(JSON.stringify(shortCircuitPayload)).not.toContain(marker);
     expect(getHubCoachActMock).toHaveBeenCalledTimes(6);
   });
 
@@ -170,7 +194,7 @@ describe("POST /api/hub/coach", () => {
     expect(payloads.slice(0, 24)).toEqual(
       Array.from({ length: 24 }, () => ({ ok: true, mode: "live", act: coachDemoActs.idea[1] }))
     );
-    expect(payloads[24]).toEqual({ ok: true, mode: "fixture", act: coachDemoActs.idea[1] });
+    expect(payloads[24]).toEqual({ ok: true, mode: "fixture" });
     expect(getHubCoachActMock).toHaveBeenCalledTimes(24);
   });
 
@@ -210,13 +234,19 @@ describe("POST /api/hub/coach", () => {
       marker,
     ];
 
-    for (const attachment of invalidAttachments) {
+    // 前 6 个非法附件逐一在读取/校验阶段 400,不回显内容
+    for (const attachment of invalidAttachments.slice(0, 6)) {
       const response = await POST(request({ ...baseBody, attachment }));
       expect(response.status).toBe(400);
       const payload = await response.json();
       expect(payload).toEqual({ ok: false, error: "请求格式不正确" });
       expect(JSON.stringify(payload)).not.toContain(marker);
     }
+    // 第 7 个:非法请求也消耗限流额度,额度耗尽后短路为无 act 的 fixture
+    // 信号(§19 语义:垃圾请求烧的是攻击者自己的配额,且不再读取其正文)
+    const seventh = await POST(request({ ...baseBody, attachment: invalidAttachments[6] }));
+    expect(seventh.status).toBe(200);
+    await expect(seventh.json()).resolves.toEqual({ ok: true, mode: "fixture" });
     expect(getHubCoachActMock).not.toHaveBeenCalled();
   });
 
