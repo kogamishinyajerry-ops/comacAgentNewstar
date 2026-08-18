@@ -33,7 +33,7 @@
   --accent-purple-soft: rgba(124, 98, 232, 0.12);
   --accent-evidence: #0f7564;
   --accent-evidence-soft: rgba(15, 117, 100, 0.12);
-  --accent-gap: #9d5c00;
+  --accent-gap: #7a4700;
   --accent-gap-soft: rgba(157, 92, 0, 0.12);
   --state-danger: #b54747;
 
@@ -641,6 +641,11 @@
     font-size: 13.5px;
     color: var(--accent-gap);
   }
+  /* 种子主 CTA 不允许被说明文字挤压换行成竖条 */
+  .seed-card .hub-btn {
+    flex: none;
+    white-space: nowrap;
+  }
 
   /* ---------- 实践路径 ---------- */
   .journey-step {
@@ -757,304 +762,447 @@
     background-position: center, center, center;
     background-size: 28px 28px, 28px 28px, 980px 980px;
   }
+  /* 种子形成前:单焦点减法布局,不存在完整左右栏(任务书§四状态 A) */
   .coach-workspace-grid {
-    width: min(100%, 1500px);
+    width: min(100%, 920px);
     height: 100%;
     min-height: 0;
     margin-inline: auto;
-    display: grid;
-    grid-template-columns: minmax(210px, 250px) minmax(420px, 1fr) minmax(250px, 300px);
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
   }
-  .coach-workspace-rail,
-  .coach-workspace-dialog,
-  .coach-workspace-insight {
+  /* 种子形成后:工作空间长出,占满可用宽度(任务书§四状态 D) */
+  .coach-workspace-grid--grown {
+    width: min(100%, 1180px);
+  }
+  /* 顶栏:极弱返回 + 幕号 + 弱化换入口,不承担导航与解释 */
+  .coach-topbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .coach-topbar-back,
+  .coach-entry-quiet {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .coach-topbar-back:hover,
+  .coach-entry-quiet:hover {
+    color: var(--accent-coach-strong);
+  }
+  .coach-topbar-spacer {
+    width: 1px;
+  }
+  .coach-workspace-count {
+    color: var(--accent-coach-strong);
+    font-family: var(--font-hub-display);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+  /* Coach 状态提示:小型平面标记 + 状态词,不抢主问题焦点 */
+  .coach-state-hint {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .coach-state-hint .coach-orb {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .coach-state-hint-label {
+    color: var(--accent-coach-strong);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  /* 已完成幕退为一行结论轨迹,完整原回答默认不可见(状态 C) */
+  .coach-trace-list {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .coach-trace {
+    padding: 6px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  /* 当前主问题:任一时刻唯一语义主标题 */
+  .coach-current {
+    margin-block: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding-block: 18px;
+    text-align: center;
+  }
+  /* 幕间时序:收拢 → 当前判断 → 最大风险,逐拍单独出现(状态 B) */
+  .coach-transition {
+    margin-block: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block: 18px;
+  }
+  .coach-step {
+    max-width: 640px;
+    text-align: center;
+  }
+  .coach-step-label {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+  }
+  .coach-step--judgment .coach-step-label {
+    color: var(--accent-coach-strong);
+  }
+  .coach-step--risk .coach-step-label {
+    color: var(--accent-gap);
+  }
+  .coach-step-text {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--text-primary);
+    font-family: var(--font-hub-display);
+    font-size: clamp(19px, 1.9vw, 26px);
+    font-weight: 700;
+    line-height: 1.5;
+    text-wrap: balance;
+    outline: none;
+  }
+  .coach-step[data-transition-step="collect"] .coach-step-text {
+    color: var(--text-secondary);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .coach-workspace-dialog {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     min-width: 0;
     min-height: 0;
     border: 1px solid rgba(53, 104, 232, 0.18);
     border-radius: 5px;
     background: rgba(255, 255, 255, 0.9);
     box-shadow: 0 16px 50px rgba(23, 34, 56, 0.06);
-  }
-  .coach-workspace-rail {
-    display: flex;
-    flex-direction: column;
-    padding: clamp(18px, 2.2vw, 28px);
     overflow: hidden;
-  }
-  .coach-workspace-kicker {
-    color: var(--accent-coach-strong);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-  }
-  .coach-workspace-title {
-    margin-top: 12px;
-    font-family: var(--font-hub-display);
-    color: var(--text-primary);
-    font-size: clamp(25px, 2.15vw, 34px);
-    font-weight: 700;
-    line-height: 1.28;
-    letter-spacing: -0.02em;
-  }
-  .coach-workspace-intro,
-  .coach-workspace-privacy {
-    margin-top: 12px;
-    color: var(--text-secondary);
-    font-size: 12.5px;
-    line-height: 1.7;
-  }
-  .coach-entry-switch {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 6px;
-    margin-top: clamp(20px, 3vh, 34px);
-  }
-  .coach-entry-option {
-    display: flex;
-    min-height: 42px;
-    align-items: center;
-    padding: 8px 12px;
-    border-left: 2px solid transparent;
-    background: rgba(53, 104, 232, 0.04);
-    color: var(--text-secondary);
-    font-size: 13.5px;
-    font-weight: 600;
-    transition: background-color var(--dur-micro) var(--ease-soft), color var(--dur-micro) var(--ease-soft);
-  }
-  .coach-entry-option[aria-current="true"] {
-    border-left-color: var(--accent-coach);
-    background: var(--accent-coach-soft);
-    color: var(--accent-coach-strong);
-  }
-  .coach-stage-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: clamp(20px, 4vh, 44px);
-  }
-  .coach-stage-item {
-    position: relative;
-    display: grid;
-    grid-template-columns: 34px 1fr;
-    align-items: center;
-    min-height: 46px;
-    color: var(--text-tertiary);
-    font-size: 13px;
-  }
-  .coach-stage-item:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    left: 12px;
-    top: 34px;
-    bottom: -12px;
-    width: 1px;
-    background: var(--border-subtle);
-  }
-  .coach-stage-number {
-    display: inline-flex;
-    width: 25px;
-    height: 25px;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border-subtle);
-    border-radius: 50%;
-    background: var(--surface-primary);
-    font-size: 10px;
-    font-weight: 700;
-  }
-  .coach-stage-item[data-status="current"] {
-    color: var(--text-primary);
-    font-weight: 700;
-  }
-  .coach-stage-item[data-status="current"] .coach-stage-number {
-    border-color: var(--accent-coach);
-    background: var(--accent-coach);
-    color: #fff;
-  }
-  .coach-stage-item[data-status="complete"] {
-    color: var(--accent-coach-strong);
-  }
-  .coach-workspace-privacy {
-    margin-top: auto;
-    padding-top: 16px;
-    border-top: 1px solid var(--border-subtle);
-  }
-  .coach-workspace-dialog {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .coach-workspace-dialog-head {
-    display: flex;
-    flex: none;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 18px 22px 14px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-  .coach-workspace-dialog-title {
-    margin-top: 3px;
-    color: var(--text-primary);
-    font-family: var(--font-hub-display);
-    font-size: 19px;
-    font-weight: 700;
-  }
-  .coach-workspace-count {
-    color: var(--accent-coach-strong);
-    font-family: var(--font-hub-display);
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
   }
   .coach-conversation-scroll {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
-    padding: 22px;
+    padding: 22px 26px;
     background-image: linear-gradient(rgba(53, 104, 232, 0.025) 1px, transparent 1px),
       linear-gradient(90deg, rgba(53, 104, 232, 0.025) 1px, transparent 1px);
     background-size: 24px 24px;
   }
-  .coach-exchange {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 18px;
-  }
-  .coach-message {
-    max-width: min(88%, 640px);
-    padding: 13px 15px;
-    border: 1px solid var(--border-subtle);
-    background: rgba(255, 255, 255, 0.94);
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.65;
-  }
-  .coach-message--user {
-    align-self: flex-end;
-    border-color: rgba(53, 104, 232, 0.24);
-    background: rgba(232, 238, 253, 0.74);
-  }
-  .coach-message--current {
-    max-width: 100%;
-    border-left: 3px solid var(--accent-coach);
-    background: #fff;
-    box-shadow: 0 12px 35px rgba(53, 104, 232, 0.08);
-  }
-  .coach-message-author,
-  .coach-provider-status {
-    color: var(--text-tertiary);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-  }
   .coach-question {
-    margin-top: 8px;
+    margin: 0;
+    max-width: 720px;
     color: var(--text-primary);
     font-family: var(--font-hub-display);
-    font-size: clamp(20px, 2vw, 28px);
+    font-size: clamp(24px, 2.6vw, 36px);
     font-weight: 700;
-    line-height: 1.42;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
   }
   .coach-provider-status {
-    margin-top: 10px;
-    letter-spacing: normal;
-  }
-  .coach-composer {
-    flex: none;
-    padding: 14px 18px 16px;
-    border-top: 1px solid var(--border-subtle);
-    background: rgba(255, 255, 255, 0.98);
-  }
-  .coach-composer-input {
-    min-height: 82px;
-    max-height: 124px;
-    resize: none;
-    border-radius: 3px;
-  }
-  .coach-composer-actions {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin-top: 10px;
-  }
-  .coach-composer-note {
-    max-width: 520px;
     color: var(--text-tertiary);
     font-size: 11px;
+    font-weight: 700;
+  }
+  /* Composer B2:单一横向紧凑浮屿(附件 / 输入 / 发送),
+     暖白浮于会话面板底部;过渡期整个 form 不渲染,无禁用大输入框 */
+  .coach-composer {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 18px 16px;
+  }
+  .coach-composer-island {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    width: min(760px, 100%);
+    min-height: 72px;
+    padding: 10px 14px;
+    border: 1px solid rgba(23, 34, 56, 0.09);
+    border-radius: 22px;
+    background: var(--surface-primary);
+    box-shadow: 0 10px 30px rgba(23, 34, 56, 0.07);
+    transition: border-color var(--dur-micro) var(--ease-soft),
+      box-shadow var(--dur-micro) var(--ease-soft);
+  }
+  .coach-composer-island:focus-within {
+    border-color: var(--accent-coach);
+    box-shadow: 0 10px 30px rgba(23, 34, 56, 0.07), var(--focus-ring);
+  }
+  .coach-composer-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  /* 输入框无内部边框:边线由浮屿整体承担 */
+  .coach-composer-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    max-height: 144px;
+    padding: 8px 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow-y: auto;
+    resize: none;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .coach-composer-input:focus {
+    border: 0;
+    box-shadow: none;
+  }
+  .coach-composer-attach {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 1px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: background-color var(--dur-micro) var(--ease-soft),
+      color var(--dur-micro) var(--ease-soft);
+  }
+  .coach-composer-attach:hover {
+    background: var(--accent-coach-soft);
+    color: var(--accent-coach-strong);
+  }
+  .coach-composer-send {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 1px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--accent-coach);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color var(--dur-micro) var(--ease-soft);
+  }
+  .coach-composer-send:hover {
+    background: var(--accent-coach-strong);
+  }
+  .coach-composer-send:disabled,
+  .coach-composer-attach:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+  /* 真实 file input 视觉隐藏;由附件按钮触发,键盘焦点落在按钮上 */
+  .coach-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  /* 附件区:仅在选中附件时出现(紧凑 Chip + 按需隐私确认) */
+  .coach-composer-attachment {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 0 4px;
+  }
+  .coach-attachment-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    padding: 5px 6px 5px 12px;
+    border-radius: 999px;
+    background: var(--accent-coach-soft);
+    color: var(--accent-coach-strong);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .coach-attachment-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .coach-attachment-size {
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+  .coach-attachment-remove {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color var(--dur-micro) var(--ease-soft);
+  }
+  .coach-attachment-remove:hover {
+    background: rgba(255, 255, 255, 0.75);
+  }
+  .coach-attachment-note {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: 11.5px;
     line-height: 1.5;
+  }
+  .coach-composer-error {
+    width: min(760px, 100%);
+    margin: 0;
   }
   .coach-workspace-seed-actions {
     display: flex;
     flex: none;
-    justify-content: flex-end;
-    padding: 10px 18px;
+    justify-content: center;
+    padding: 8px 18px 12px;
     border-top: 1px solid var(--border-subtle);
   }
-  .coach-workspace-insight {
+  /* 弱化重开:次决定不得与种子主 CTA 同权重 */
+  .coach-restart {
+    min-height: 44px;
+    padding: 6px 14px;
+    border: 0;
+    background: none;
+    color: var(--text-tertiary);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .coach-restart:hover {
+    color: var(--accent-coach-strong);
+  }
+
+  /* 状态 D:问题种子凝结后,工作空间才长出来 */
+  .coach-grown {
     display: flex;
     flex-direction: column;
-    padding: 18px;
+    height: 100%;
+    min-height: 0;
+    gap: 10px;
+  }
+  .coach-grown .coach-topbar {
+    border: 1px solid rgba(53, 104, 232, 0.18);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.9);
+  }
+  .coach-grown-body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 168px minmax(0, 1fr);
+    gap: 10px;
+  }
+  /* Artifacts 入口:默认仅图标,下一阶段能力预告,不做假交互 */
+  .coach-artifact-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    padding: 14px;
+    border: 1px solid rgba(53, 104, 232, 0.18);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.72);
     overflow: hidden;
   }
-  .coach-workspace-art {
-    display: flex;
-    flex: none;
-    min-height: 0;
-    justify-content: center;
-    padding: 2px 0 12px;
-    border-bottom: 1px solid rgba(53, 104, 232, 0.16);
-  }
-  .coach-workspace-state-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 13px 0;
-    color: var(--accent-coach-strong);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-  }
-  .coach-workspace-state-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent-coach);
-    box-shadow: 0 0 0 4px var(--accent-coach-soft);
-  }
-  .coach-insight-list,
-  .coach-insight-block {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    min-height: 0;
-    overflow-y: auto;
-    padding-top: 6px;
-  }
-  .coach-insight-list div {
-    padding-top: 14px;
-    border-top: 1px solid var(--border-subtle);
-  }
-  .coach-insight-list dt,
-  .coach-insight-label {
+  .coach-artifact-title {
     color: var(--text-tertiary);
     font-size: 10.5px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
-  .coach-insight-list dd,
-  .coach-insight-value {
-    margin-top: 7px;
+  .coach-artifact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .coach-artifact-list [data-coach-artifact] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface-primary);
     color: var(--text-secondary);
-    font-size: 13px;
-    line-height: 1.65;
+    font-size: 17px;
+  }
+  .coach-artifact-note {
+    margin-top: auto;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* 种子卡:主张—证据—缺口 */
+  .seed-claim-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .seed-claim-block {
+    padding: 16px;
+    background: var(--surface-focus);
+    border-top: 2px solid var(--accent-coach);
+  }
+  .seed-claim-block[data-seed-evidence] {
+    border-top-color: var(--accent-evidence);
+  }
+  .seed-claim-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent-coach-strong);
   }
 
   /* ---------- FAQ ---------- */
@@ -1138,6 +1286,9 @@
     .motion-condense { animation: hub-condense var(--dur-scene) var(--ease-soft) both; }
     /* 取到眼前:关键物靠近 */
     .motion-approach { animation: hub-approach var(--dur-rise) var(--ease-soft) both; }
+    /* 幕间时序逐拍端上:判断/风险单独出现;已完成回答收拢为一行轨迹 */
+    .coach-step { animation: hub-rise 320ms var(--ease-soft) both; }
+    .coach-trace { animation: hub-rise 260ms var(--ease-soft) both; }
     /* confirmed:一次脉冲后静止 */
     .motion-pulse-once { animation: hub-pulse-once 620ms var(--ease-soft) both; }
     /* 平面标记只做缓慢套色漂移，不模拟说话、呼吸或体积光。 */
@@ -1221,29 +1372,23 @@
       padding: 10px;
     }
     .coach-workspace-grid {
-      grid-template-columns: minmax(176px, 190px) minmax(360px, 1fr) minmax(205px, 225px);
+      width: min(100%, 820px);
+    }
+    .coach-workspace-grid--grown {
+      width: min(100%, 980px);
+    }
+    .coach-grown-body {
+      grid-template-columns: 132px minmax(0, 1fr);
       gap: 8px;
-    }
-    .coach-workspace-rail,
-    .coach-workspace-insight {
-      padding: 16px;
-    }
-    .coach-workspace-title {
-      font-size: 25px;
-    }
-    .coach-workspace-intro,
-    .coach-workspace-privacy {
-      font-size: 11.5px;
-    }
-    .coach-workspace-art .coach-orb {
-      width: 190px !important;
-      height: 190px !important;
     }
     .coach-conversation-scroll {
       padding: 18px;
     }
+    .coach-question {
+      font-size: clamp(22px, 2.5vw, 30px);
+    }
     .coach-composer {
-      padding: 12px 14px 14px;
+      padding: 0 14px 14px;
     }
   }
 
@@ -1282,107 +1427,13 @@
     .hub-workspace-screen {
       padding: 7px;
     }
-    .coach-workspace-grid {
-      grid-template-columns: minmax(0, 1fr) 96px;
-      grid-template-rows: 110px minmax(0, 1fr);
-      grid-template-areas:
-        "rail insight"
-        "dialog dialog";
-      gap: 7px;
+    .coach-topbar {
+      padding: 4px 10px;
+      gap: 8px;
     }
-    .coach-workspace-rail {
-      grid-area: rail;
-      padding: 11px 12px;
-      justify-content: space-between;
-    }
-    .coach-workspace-rail > div:first-child {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-    .coach-entry-switch {
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      margin: 0;
-    }
-    .coach-entry-option {
-      min-height: 44px;
-      justify-content: center;
-      padding: 5px 7px;
-      border-left: 0;
-      border-bottom: 2px solid transparent;
-      font-size: 12px;
-    }
-    .coach-entry-option[aria-current="true"] {
-      border-bottom-color: var(--accent-coach);
-    }
-    .coach-stage-list {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      margin-top: 8px;
-    }
-    .coach-stage-item {
-      display: flex;
-      min-height: 28px;
-      flex: 1;
-      gap: 5px;
-      font-size: 10.5px;
-      white-space: nowrap;
-    }
-    .coach-stage-item:not(:last-child)::after {
-      left: auto;
-      right: -2px;
-      top: 50%;
-      bottom: auto;
-      width: 8px;
-      height: 1px;
-    }
-    .coach-stage-number {
-      width: 21px;
-      height: 21px;
-      font-size: 9px;
-    }
-    .coach-workspace-privacy {
-      display: none;
-    }
-    .coach-workspace-insight {
-      grid-area: insight;
-      padding: 3px;
-      align-items: center;
-      justify-content: center;
-    }
-    .coach-workspace-art {
-      padding: 0;
-      border: 0;
-    }
-    .coach-workspace-art .coach-orb {
-      width: 88px !important;
-      height: 88px !important;
-    }
-    .coach-workspace-state-row,
-    .coach-insight-list,
-    .coach-insight-block {
-      display: none;
-    }
-    .coach-workspace-dialog {
-      grid-area: dialog;
-    }
-    .coach-workspace-dialog-head {
-      padding: 10px 12px 8px;
-    }
-    .coach-workspace-kicker {
-      font-size: 9.5px;
-    }
-    .coach-workspace-dialog-title {
-      font-size: 16px;
+    .coach-topbar-back,
+    .coach-entry-quiet {
+      font-size: 11px;
     }
     .coach-workspace-count {
       font-size: 12px;
@@ -1391,47 +1442,73 @@
       padding: 12px;
       scrollbar-gutter: auto;
     }
-    .coach-message {
-      max-width: 94%;
-      padding: 10px 11px;
-      font-size: 12.5px;
+    .coach-state-hint .coach-orb {
+      width: 46px !important;
+      height: 46px !important;
     }
-    .coach-message--current {
-      max-width: 100%;
+    .coach-state-hint-label {
+      font-size: 10px;
+    }
+    .coach-trace-list {
+      margin-top: 10px;
+      gap: 6px;
+    }
+    .coach-trace {
+      padding: 4px 10px;
+      font-size: 11px;
     }
     .coach-question {
-      font-size: 18px;
+      font-size: 20px;
       line-height: 1.42;
     }
+    .coach-step-text {
+      font-size: 17px;
+    }
+    /* 移动端:浮屿占满可用宽度并保留约 10px 安全边距,不产生横向溢出 */
     .coach-composer {
-      padding: 9px 10px 10px;
+      padding: 0 10px 10px;
+    }
+    .coach-composer-island {
+      width: 100%;
+      min-height: 64px;
+      padding: 8px 10px;
+      border-radius: 18px;
     }
     .coach-composer-input {
-      min-height: 68px;
-      max-height: 68px;
-      padding: 9px 11px;
-      font-size: 13px;
-      line-height: 1.45;
+      font-size: 14px;
+      line-height: 1.5;
     }
-    .coach-composer-actions {
-      justify-content: flex-end;
-      margin-top: 7px;
+    /* 附件/发送钮在移动端保持 44px 触控热区 */
+    .coach-composer-attach,
+    .coach-composer-send {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 0;
     }
-    .coach-composer-note {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
+    .coach-attachment-name {
+      max-width: 140px;
     }
-    .coach-composer .hub-btn {
-      min-height: 38px;
-      padding: 7px 16px;
-      font-size: 13px;
+    /* 种子长出:移动端 Artifacts 收成顶部图标行,不再占整列 */
+    .coach-grown-body {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 7px;
+    }
+    .coach-artifact-rail {
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+    }
+    .coach-artifact-list {
+      flex-direction: row;
+      gap: 6px;
+    }
+    .coach-artifact-note {
+      display: none;
+    }
+    .seed-claim-grid {
+      grid-template-columns: 1fr;
     }
     .coach-workspace-dialog--seed .coach-conversation-scroll {
       padding: 10px;

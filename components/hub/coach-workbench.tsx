@@ -20,7 +20,6 @@ export function CoachWorkbench({
         entry={entry}
         entryBasePath={entryBasePath}
         orbIdPrefix="workbench-coach"
-        variant="workspace"
       />
     </section>
   );

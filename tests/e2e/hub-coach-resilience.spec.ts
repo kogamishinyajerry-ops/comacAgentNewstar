@@ -72,8 +72,11 @@ test.describe("Hub Coach 浏览器级韧性", () => {
       await expectFixtureScene(page, fixtureQuestions[0]);
       await submitAnswer(page, "试验异常记录分散在多处，复核时常常找不到对应依据。");
       await expect(stage).toHaveAttribute("aria-busy", "true");
-      await expect(answer).toBeDisabled();
+      // 过渡期 Composer 整体折叠,不留禁用的大输入框占据视觉中心
+      await expect(page.locator(".coach-composer")).toHaveCount(0);
+      await expect(answer).toHaveCount(0);
 
+      // 下一幕端上后回答器恢复,可继续输入与提交
       await expectFixtureScene(page, fixtureQuestions[1]);
       await expect(stage).toHaveAttribute("aria-busy", "false");
       await expect(answer).toBeEnabled();
@@ -83,6 +86,7 @@ test.describe("Hub Coach 浏览器级韧性", () => {
 
       await submitAnswer(page, "影响试验工程师和复核人；每次对账多花两小时，版本对不上还会返工。");
       await expect(stage).toHaveAttribute("aria-busy", "true");
+      await expect(page.locator(".coach-composer")).toHaveCount(0);
       await expectFixtureScene(page, fixtureQuestions[2]);
       await expect(stage).toHaveAttribute("aria-busy", "false");
       await expect(answer).toBeEnabled();

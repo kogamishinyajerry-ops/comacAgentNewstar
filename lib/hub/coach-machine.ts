@@ -113,6 +113,15 @@ export function excerpt(raw: string, max = EXCERPT_MAX): string {
   return text.slice(0, Math.max(0, max - 2)) + "……";
 }
 
+/** 已完成幕在一行结论轨迹中的标签(历史退为轨迹,不再保留完整问答气泡) */
+export const TRACE_LABELS = ["问题", "影响", "Agent 必要性"] as const;
+
+/** 一行结论轨迹:幕标签 + 短摘录;完整原回答默认不再展示 */
+export function composeTrace(actIndex: number, answer: string): string {
+  const label = TRACE_LABELS[actIndex] ?? `第 ${actIndex + 1} 幕`;
+  return `${label}:${excerpt(answer, 20)}`;
+}
+
 export function composeSeed(state: CoachState): QuestionSeed {
   const [moment = "", impact = "", necessity = ""] = state.answers;
   return {

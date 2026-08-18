@@ -81,8 +81,11 @@ export function HubHeader() {
   }, [open, close]);
 
   return (
-    <header className="hub-header">
-      <div className="hub-container hub-header-inner">
+    /* 抽屉必须留在 header 之外:header 的 backdrop-filter 会成为
+       fixed 后代的包含块,使抽屉的 inset 相对 header 解析而塌陷。 */
+    <>
+      <header className="hub-header">
+        <div className="hub-container hub-header-inner">
         <BrandMark />
 
         <nav className="ml-4 hidden items-center gap-7 md:flex" aria-label="主导航">
@@ -116,6 +119,7 @@ export function HubHeader() {
           </button>
         </div>
       </div>
+      </header>
 
       <div
         id="hub-drawer"
@@ -156,6 +160,6 @@ export function HubHeader() {
           {site.primaryCta.label}
         </Link>
       </div>
-    </header>
+    </>
   );
 }

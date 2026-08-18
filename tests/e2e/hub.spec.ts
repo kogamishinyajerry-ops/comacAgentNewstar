@@ -32,13 +32,15 @@ async function answerActs(page: Page, questions: readonly string[], label: strin
 test.describe("桌面 1440×900", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("1. 首屏:固定视口 Coach、双入口与无背景信息堆叠", async ({ page }) => {
+  test("1. 首屏:固定视口 Coach、单问题减法场景与无背景信息堆叠", async ({ page }) => {
     await page.goto("/");
-    await expect(
-      page.getByRole("heading", { name: "把问题压实到可验证" })
-    ).toBeVisible();
-    await expect(page.getByRole("link", { name: "真实问题", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "已有想法", exact: true })).toBeVisible();
+    // K3 减法:首屏唯一主标题就是当前主问题,完整工作台栏尚未长出
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
+    await expect(page.locator("h1")).toHaveCount(1);
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
+    await expect(page.locator(".coach-workspace-rail")).toHaveCount(0);
+    await expect(page.locator(".coach-workspace-insight")).toHaveCount(0);
     await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
     await expect(page.locator(".hub-footer")).toBeHidden();
     // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分
@@ -75,7 +77,7 @@ test.describe("桌面 1440×900", () => {
 
   test("3. 已有想法入口第一问挑战方案先行,不直接认可", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "已有想法", exact: true }).click();
+    await page.getByRole("link", { name: /换一条入口/ }).click();
     await expect(page).toHaveURL(/\?entry=idea/);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
     await answerActs(page, ACT_QUESTIONS.idea, "已有想法");
@@ -131,10 +133,8 @@ test.describe("桌面 1440×900", () => {
   test("7. prefers-reduced-motion 下信息顺序不变,三幕流程完整", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await expect(
-      page.getByRole("heading", { name: "把问题压实到可验证" })
-    ).toBeVisible();
-    await expect(page.getByRole("link", { name: "真实问题", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toBeVisible();
     await page.goto("/start");
     await answerActs(page, ACT_QUESTIONS.problem, "减弱动态");
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
@@ -179,17 +179,17 @@ test.describe("桌面 1440×900", () => {
 test.describe("移动端 390×844", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("10. 无页面级滚动,已有想法入口可切换", async ({ page }) => {
+  test("10. 无页面级滚动,弱化换入口可切换", async ({ page }) => {
     await page.goto("/");
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );
     expect(overflow).toBeLessThanOrEqual(0);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(845);
-    const cta = page.getByRole("link", { name: "已有想法", exact: true });
-    await expect(cta).toBeVisible();
+    const switchEntry = page.getByRole("link", { name: /换一条入口/ });
+    await expect(switchEntry).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/home-first-390.png` });
-    await cta.tap();
+    await switchEntry.tap();
     await expect(page).toHaveURL(/\?entry=idea/);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
   });

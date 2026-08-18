@@ -5,6 +5,7 @@ import {
   advance,
   clearError,
   composeSeed,
+  composeTrace,
   createCoachState,
   currentAct,
   excerpt,
@@ -98,6 +99,15 @@ describe("coach-machine:问题种子合成", () => {
     const long = "很".repeat(100);
     expect(excerpt(long, 20)).toHaveLength(20);
     expect(excerpt(long, 20).endsWith("……")).toBe(true);
+  });
+
+  it("结论轨迹是幕标签加短摘录,不含完整原回答", () => {
+    const answer = "试验异常记录、依据和处理结果分散在三处,对账要来回翻找";
+    const trace = composeTrace(0, answer);
+    expect(trace.startsWith("问题:")).toBe(true);
+    expect(trace.length).toBeLessThan(answer.length);
+    expect(composeTrace(1, "短回答")).toBe("影响:短回答");
+    expect(composeTrace(2, "需要工具")).toBe("Agent 必要性:需要工具");
   });
 });
 
