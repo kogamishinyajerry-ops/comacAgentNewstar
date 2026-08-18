@@ -13,3 +13,6 @@ prisma/dev.db-journal
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# 本地 GUI 测试过程截图(临时产物,不入库;验收证据一律归档 docs/)
+gui-test-screenshots/
