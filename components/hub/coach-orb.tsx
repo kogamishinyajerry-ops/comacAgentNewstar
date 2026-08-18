@@ -9,12 +9,12 @@ export const COACH_STATE_LABELS: Record<CoachVisualState, string> = {
   confirmed: "已确认",
 };
 
-const COACH_STATE_ART: Record<CoachVisualState, string> = {
-  idle: "/hub/art/coach-state-idle.png",
-  listening: "/hub/art/coach-state-listening.png",
-  challenging: "/hub/art/coach-state-challenging.png",
-  condensing: "/hub/art/coach-state-condensing.png",
-  confirmed: "/hub/art/coach-state-confirmed.png",
+export const COACH_STATE_ART: Record<CoachVisualState, string> = {
+  idle: "/hub/art/coach-state-idle.webp",
+  listening: "/hub/art/coach-state-listening.webp",
+  challenging: "/hub/art/coach-state-challenging.webp",
+  condensing: "/hub/art/coach-state-condensing.webp",
+  confirmed: "/hub/art/coach-state-confirmed.webp",
 };
 
 interface CoachOrbProps {

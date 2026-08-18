@@ -4,15 +4,31 @@
 
 | 文件 | 用途 | 来源 |
 | --- | --- | --- |
-| `paper-atlas-texture.png` | 连续长卷的低对比纸张肌理 | 2026-08-17 由 OpenAI ImageGen 按 Evidence Atlas 方向生成 |
-| `flat-coach-field.png` | Hero 与 Coach 五状态复用的平面等高线标记 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
+| `paper-atlas-texture.png` | 连续长卷的低对比纸张肌理 | 2026-08-17 由 OpenAI ImageGen 按 Evidence Atlas 方向生成；2026-08-17 优化为 627×627、256 色量化同名 PNG |
+| `flat-coach-field.png` | 未接线备用（原登记“Hero 与五状态复用”，实际代码零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
 | `evidence-target.png` | “发现真实问题”章节的证据定位靶 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
 | `problem-seed.png` | 终局 CTA 的平面纸艺问题种子 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
-| `coach-state-idle.png` | Coach 静候：开放但安静的蓝色等高线场 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254 |
-| `coach-state-listening.png` | Coach 倾听：向中心汇聚的证据轨迹 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254 |
-| `coach-state-challenging.png` | Coach 质询：明确暴露白色缺口的断裂结构 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254 |
-| `coach-state-condensing.png` | Coach 凝结：散片收束为单一问题种子 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254 |
-| `coach-state-confirmed.png` | Coach 已确认：纸艺种子与稳定轨道 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254 |
+| `coach-state-idle.webp` | Coach 静候：开放但安静的蓝色等高线场 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-listening.webp` | Coach 倾听：向中心汇聚的证据轨迹 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-challenging.webp` | Coach 质询：明确暴露白色缺口的断裂结构 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-condensing.webp` | Coach 凝结：散片收束为单一问题种子 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-confirmed.webp` | Coach 已确认：纸艺种子与稳定轨道 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+
+## 2026-08-17 体积优化记录(K3 第二阶段）
+
+工具：python3 + Pillow 12.2.0。质量校验：PSNR 在页面底色 `#f7f8fb` 上合成后逐像素计算，并排对比图存 `docs/audit/shots-k3/asset-compare-*.png`。
+
+| 文件 | 转换 | 原体积 | 现体积 | 幅度 | PSNR |
+| --- | --- | --- | --- | --- | --- |
+| `coach-state-idle.png → .webp` | WebP q85 method=6，原尺寸 1254² | 1,597,029 B | 423,172 B | -73.5% | 36.22 dB |
+| `coach-state-listening.png → .webp` | 同上 | 1,484,194 B | 507,448 B | -65.8% | 39.73 dB |
+| `coach-state-challenging.png → .webp` | 同上 | 1,836,252 B | 496,726 B | -72.9% | 36.47 dB |
+| `coach-state-condensing.png → .webp` | 同上 | 2,087,206 B | 649,588 B | -68.9% | 37.93 dB |
+| `coach-state-confirmed.png → .webp` | 同上 | 995,524 B | 299,388 B | -69.9% | 37.93 dB |
+| 五图合计 | | 8,000,205 B | 2,376,322 B | -70.3% | |
+| `paper-atlas-texture.png`（同名原地优化） | 1254²→627² + 256 色 MEDIANCUT 量化 + Floyd–Steinberg 抖动，仍为 PNG，CSS 引用零改动 | 2,478,412 B | 368,055 B | -85.2% | 37.67 dB（升回 1254² 后对比） |
+
+说明：纹理若改 WebP(q85 约 157 KB）需同步 `styles/tokens.css` 两处背景 url，本次选择同名 PNG 原地优化以避免跨分工改动；后续可再评估。五张状态图引用已同步至 `components/hub/coach-orb.tsx` 的 `COACH_STATE_ART`，原 PNG 已删除（生成原件见下述 .codex 路径）。
 
 ## 生成方向
 
