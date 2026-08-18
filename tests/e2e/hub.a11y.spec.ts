@@ -5,9 +5,23 @@ const desktop = { width: 1440, height: 900 };
 const tablet = { width: 1024, height: 768 };
 const mobile = { width: 390, height: 844 };
 
+const ATTACH_LABEL = "添加文本附件（.txt/.md/.csv/.json，≤1MB）";
+
 async function expectNoAxeViolations(page: Page) {
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+}
+
+/** 通过附件按钮唤起原生文件选择器并注入内存文件(与 composer spec 同法) */
+async function chooseAttachmentFile(
+  page: Page,
+  file: { name: string; mimeType: string; buffer: Buffer }
+) {
+  const [chooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    page.getByRole("button", { name: ATTACH_LABEL, exact: true }).click(),
+  ]);
+  await chooser.setFiles(file);
 }
 
 test.describe("Hub 无障碍与响应式深化", () => {
@@ -210,4 +224,118 @@ test("Axe: 问题种子态(移动端 390×844)无自动化可检测违规", asyn
   }
   await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
   await expectNoAxeViolations(page);
+});
+
+/* 打磨轮③ C1/C2(§25):交互态 Axe 零豁免扩展(空答错误/附件选中/附件错误/
+   等待取消/抽屉开态),关键键盘激活路径并入同批用例 */
+
+test("Axe+键盘: 空答案行内错误态(390×844)无违规", async ({ page }) => {
+  await page.setViewportSize(mobile);
+  await page.goto("/start");
+  await expect(
+    page.getByRole("heading", { name: ACT_AXE_QUESTIONS[0] })
+  ).toBeVisible();
+
+  /* 键盘路径:聚焦提交按钮后 Enter 提交空答案 */
+  const submit = page.getByRole("button", { name: "提交这一问的回答" });
+  await submit.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#coach-answer-error")).toBeVisible();
+  await expectNoAxeViolations(page);
+});
+
+test("Axe: 附件选中态(1024×768)无违规", async ({ page }) => {
+  await page.setViewportSize(tablet);
+  await page.goto("/start");
+  await expect(
+    page.getByRole("heading", { name: ACT_AXE_QUESTIONS[0] })
+  ).toBeVisible();
+
+  await chooseAttachmentFile(page, {
+    name: "pilot-notes.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# 对账记录\n- 异常记录分散在三处\n", "utf8"),
+  });
+  await expect(page.locator(".coach-attachment-chip")).toBeVisible();
+  await expect(page.locator("#coach-attachment-note")).toBeVisible();
+  await expectNoAxeViolations(page);
+});
+
+test("Axe: 附件非法类型错误态(1024×768)无违规", async ({ page }) => {
+  await page.setViewportSize(tablet);
+  await page.goto("/start");
+  await expect(
+    page.getByRole("heading", { name: ACT_AXE_QUESTIONS[0] })
+  ).toBeVisible();
+
+  await chooseAttachmentFile(page, {
+    name: "floor-plan.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-not-allowed", "utf8"),
+  });
+  await expect(page.locator("#coach-attachment-error")).toBeVisible();
+  await expect(page.locator(".coach-attachment-chip")).toHaveCount(0);
+  await expectNoAxeViolations(page);
+});
+
+test("Axe+键盘: 等待/取消态(1440×900)无违规,Enter 可改用确定性追问", async ({ page }) => {
+  await page.setViewportSize(desktop);
+  /* 与韧性 spec 同法:故意迟到 20s,让 collect 拍的取消入口稳定在场 */
+  await page.route("**/api/hub/coach", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20_000));
+    await route
+      .fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          mode: "live",
+          act: { judgment: "迟到", risk: "迟到", question: "迟到？", placeholder: "迟", emptyHint: "迟" },
+        }),
+      })
+      .catch(() => undefined);
+  });
+
+  await page.goto("/start");
+  await page.locator("#coach-answer").fill("试验异常记录分散在三处,对账来回翻找。");
+  await page.getByRole("button", { name: "提交这一问的回答" }).click();
+
+  const cancel = page.getByRole("button", { name: "不再等待，改用确定性追问" });
+  await expect(cancel).toBeVisible();
+  /* 唯一窄域豁免(§25 记录):幕间过渡期问题 h1 短暂离场,page-has-heading-one
+     为 best-practice 级规则而非 WCAG A/AA;过渡期朗读由聚焦的步骤文本承担(§20 M 系)。
+     是否为过渡期引入常驻 h1 属产品决策,另行授权后收回本豁免。 */
+  const results = await new AxeBuilder({ page })
+    .disableRules(["page-has-heading-one"])
+    .analyze();
+  expect(results.violations).toEqual([]);
+
+  /* 键盘路径:聚焦取消按钮后 Enter,本地 fixture 接管并推进到第二幕 */
+  await cancel.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("heading", { name: ACT_AXE_QUESTIONS[1] })
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".coach-provider-status")).toContainText("确定性追问");
+});
+
+test("Axe: 移动抽屉打开态(390×844)无违规", async ({ page }) => {
+  await page.setViewportSize(mobile);
+  await page.goto("/guide");
+
+  await page.getByRole("button", { name: "打开导航菜单" }).click();
+  await expect(page.locator("#hub-drawer")).toHaveAttribute("aria-hidden", "false");
+  /* 抽屉开态有 opacity 过渡(var(--dur-rise)=300ms):半透明中途会让 Axe 的
+     color-contrast 误报,等落定为 1 再扫描 */
+  await expect
+    .poll(() => page.locator("#hub-drawer").evaluate((el) => getComputedStyle(el).opacity))
+    .toBe("1");
+  await expectNoAxeViolations(page);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#hub-drawer")).toHaveAttribute("aria-hidden", "true");
 });

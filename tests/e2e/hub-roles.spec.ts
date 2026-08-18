@@ -96,5 +96,12 @@ test.describe("指南页 FAQ 可达性(§21)", () => {
     await expect(first.locator(".faq-answer")).toBeHidden();
     await first.locator("summary").click();
     await expect(first.locator(".faq-answer")).toBeVisible();
+
+    // 键盘路径(§25 C2):聚焦摘要后 Enter 同样可收起/再展开
+    await first.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(first.locator(".faq-answer")).toBeHidden();
+    await page.keyboard.press("Enter");
+    await expect(first.locator(".faq-answer")).toBeVisible();
   });
 });

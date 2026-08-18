@@ -41,9 +41,10 @@ test.describe("桌面 1440×900", () => {
     await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
     await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
     await expect(page.locator(".hub-footer")).toBeHidden();
-    // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分
+    // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分;
+    // 也不把技术名词当首屏卖点(01号基线§10 第16条,§25 C3)
     const body = await page.textContent("body");
-    for (const banned of ["排行榜", "健康分", "完成率"]) {
+    for (const banned of ["排行榜", "健康分", "完成率", "RAG", "Workflow", "MCP", "模型参数"]) {
       expect(body).not.toContain(banned);
     }
     await page.screenshot({ path: `${SHOTS}/home-first-1440.png` });

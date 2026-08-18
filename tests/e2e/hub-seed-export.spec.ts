@@ -56,4 +56,14 @@ test.describe("问题种子导出", () => {
     await expect(next).toContainText("可复制带走的问题种子");
     await expect(next).toContainText("将在活动配置确认后开放");
   });
+
+  test("复制按钮可仅用键盘触发(§25 C2)", async ({ page }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    await completeThreeActs(page);
+
+    const copy = page.getByRole("button", { name: "复制问题种子" });
+    await copy.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("[data-seed-copy-status]")).toHaveText(/已复制/);
+  });
 });
