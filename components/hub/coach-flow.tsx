@@ -7,6 +7,7 @@ import { CoachWorkspaceScene, type CoachTransitionStep } from "./coach-workspace
 import { SeedCard } from "./seed-card";
 import {
   attachmentPrivacyNotice,
+  coachPrivacyNotice,
   seedCopy,
   type CoachAct,
   type CoachEntry,
@@ -431,6 +432,7 @@ export function CoachFlow({
             attachment={attachment}
             attachmentError={attachmentError}
             attachmentNotice={attachmentPrivacyNotice}
+            privacyNotice={coachPrivacyNotice}
             attachmentEnabled={state.actIndex < ACT_COUNT - 1}
             attachmentReading={attachmentReading}
             providerStatus={providerStatus}

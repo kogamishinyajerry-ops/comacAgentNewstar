@@ -935,6 +935,12 @@
     font-size: 11px;
     font-weight: 700;
   }
+  /* 隐私前置披露:与状态行同级的安静单行,先于输入告知外发事实 */
+  .coach-privacy-note {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    margin-top: 8px;
+  }
   /* Composer B2:单一横向紧凑浮屿(附件 / 输入 / 发送),
      暖白浮于会话面板底部;过渡期整个 form 不渲染,无禁用大输入框 */
   .coach-composer {

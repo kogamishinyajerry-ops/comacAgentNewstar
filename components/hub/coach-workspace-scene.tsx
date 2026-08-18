@@ -40,6 +40,7 @@ export function CoachWorkspaceScene({
   attachment,
   attachmentError,
   attachmentNotice,
+  privacyNotice,
   attachmentEnabled,
   attachmentReading,
   providerStatus,
@@ -73,6 +74,8 @@ export function CoachWorkspaceScene({
   attachmentError: string | null;
   /** 按需隐私确认文案(仅选中附件时出现) */
   attachmentNotice: string;
+  /** 前置隐私披露:第1、2幕问题态常驻,告知回答将发送至 AI 服务 */
+  privacyNotice: string;
   /** 仅第一、二幕开放附件;第三幕只在客户端凝结种子,不渲染附件入口 */
   attachmentEnabled: boolean;
   /** 附件读取中:禁用附件/提交按钮,读取落定前不允许提交 */
@@ -211,6 +214,13 @@ export function CoachWorkspaceScene({
             {/* 断网 alert 已表达回退事实时,状态行不再重复同义文案 */}
             {providerStatus && !providerError && (
               <p className="coach-provider-status">{providerStatus}</p>
+            )}
+            {/* 隐私前置披露:第1、2幕的提交会发送至 AI 服务,告知必须先于输入,
+                不能等到三幕全部完成后的种子卡(修正 F-d 的时序倒置) */}
+            {attachmentEnabled && (
+              <p className="coach-privacy-note" data-coach-privacy-note>
+                {privacyNotice}
+              </p>
             )}
           </div>
         )}

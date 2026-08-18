@@ -66,9 +66,13 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
     await expect(page.getByRole("button", { name: /添加文本附件/ })).toHaveCount(1);
     await expect(page.getByRole("button", { name: "提交这一问的回答" })).toHaveCount(1);
 
-    // B2 浮屿:常驻隐私/快捷键小字已删除;按需附件确认与 Chip 默认不出现
+    // B2 浮屿:旧常驻 composer 小字与附件 Chip/按需确认默认不出现;
+    // 隐私披露改为前置(§18):第1、2幕问题态常驻,先于输入告知外发事实
     await expect(page.locator(".coach-composer-note")).toHaveCount(0);
-    await expect(page.getByText(/请勿输入保密、个人或未公开信息/)).toHaveCount(0);
+    await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(1);
+    await expect(page.locator("[data-coach-privacy-note]")).toHaveText(
+      "回答不会保存为项目，但可能发送至 AI 服务；请勿输入保密、个人或未公开信息。"
+    );
     await expect(page.locator(".coach-attachment-chip")).toHaveCount(0);
     await expect(page.locator("#coach-attachment-note")).toHaveCount(0);
 
@@ -82,6 +86,28 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
     await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
 
     await page.screenshot({ path: `${SHOTS}/state-a-question-1440.png` });
+  });
+
+  test("隐私披露时序:第1、2幕问题态常驻,过渡期与第3幕不出现", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
+
+    // 第1幕问题态:披露在场(该幕提交将发送至 AI 服务)
+    await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(1);
+
+    await submit(page, ANSWERS[0]);
+    // 过渡期:回答器折叠即过渡态标志,披露随之退场
+    await expect(page.locator("#coach-answer")).toHaveCount(0);
+    await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(0);
+
+    // 第2幕问题态:该幕提交仍会外发,披露再次出现
+    await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(1);
+
+    // 第3幕:回答只在本页凝结种子,不再外发,披露不出现
+    await submit(page, ANSWERS[1]);
+    await expect(page.getByRole("heading", { name: QUESTIONS[2] })).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(0);
   });
 });
 
