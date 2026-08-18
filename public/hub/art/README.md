@@ -4,10 +4,11 @@
 
 | 文件 | 用途 | 来源 |
 | --- | --- | --- |
-| `paper-atlas-texture.png` | 连续长卷的低对比纸张肌理 | 2026-08-17 由 OpenAI ImageGen 按 Evidence Atlas 方向生成；2026-08-17 优化为 627×627、256 色量化同名 PNG |
+| `paper-atlas-texture.webp` | 工作台首屏（`/`、`/start`）的低对比纸张肌理，`styles/tokens.css` `.hub-workspace-screen` 引用 | 2026-08-17 由 OpenAI ImageGen 生成并量化为 627×627 PNG；2026-08-19 转 WebP q85（打磨轮②，见下） |
+| `paper-atlas-texture.png` | 量化母版，代码零引用（保留以便未来重编码，不删除） | 同上 |
 | `flat-coach-field.png` | 未接线备用（原登记“Hero 与五状态复用”，实际代码零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
-| `evidence-target.png` | “发现真实问题”章节的证据定位靶 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
-| `problem-seed.png` | 终局 CTA 的平面纸艺问题种子 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
+| `evidence-target.png` | 未接线备用（原“发现真实问题”章节的引用组件已于 §21 死代码清理中删除，现零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
+| `problem-seed.png` | 未接线备用（原“终局 CTA”的引用组件已于 §21 死代码清理中删除，现零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
 | `coach-state-idle.webp` | Coach 静候：开放但安静的蓝色等高线场 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
 | `coach-state-listening.webp` | Coach 倾听：向中心汇聚的证据轨迹 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
 | `coach-state-challenging.webp` | Coach 质询：明确暴露白色缺口的断裂结构 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
@@ -28,7 +29,17 @@
 | 五图合计 | | 8,000,205 B | 2,376,322 B | -70.3% | |
 | `paper-atlas-texture.png`（同名原地优化） | 1254²→627² + 256 色 MEDIANCUT 量化 + Floyd–Steinberg 抖动，仍为 PNG，CSS 引用零改动 | 2,478,412 B | 368,055 B | -85.2% | 37.67 dB（升回 1254² 后对比） |
 
-说明：纹理若改 WebP(q85 约 157 KB）需同步 `styles/tokens.css` 两处背景 url，本次选择同名 PNG 原地优化以避免跨分工改动；后续可再评估。五张状态图引用已同步至 `components/hub/coach-orb.tsx` 的 `COACH_STATE_ART`，原 PNG 已删除（生成原件见下述 .codex 路径）。
+说明：五张状态图引用已同步至 `components/hub/coach-orb.tsx` 的 `COACH_STATE_ART`，原 PNG 已删除（生成原件见下述 .codex 路径）。
+
+## 2026-08-19 纹理 WebP 转换（打磨轮② B3）
+
+延续同一管线（python3 + Pillow 12.2.0，WebP q85 method=6）。CSS 引用自 `tokens.css` `.hub-workspace-screen` 唯一一处 url 同步为 `.webp`（原“两处 url”在 §21 死 CSS 清理后只剩一处）。
+
+| 文件 | 原体积 | 现体积 | 幅度 | PSNR（#f7f8fb 合成） |
+| --- | --- | --- | --- | --- |
+| `paper-atlas-texture.png → .webp` | 368,055 B | 25,242 B | -93.1% | 38.50 dB |
+
+同视口 A/B 证据：`/` 于 1440×900 与 390×844（生产构建、同服务器重启后抓取）像素差最大 14/255 与 11/255，并排图存 `docs/audit/shots-k3/asset-compare-texture-{1440,390}.png`；生产首屏实测总载荷 2,746,881 B → 2,404,068 B。量化 PNG 母版保留未删。
 
 ## 生成方向
 

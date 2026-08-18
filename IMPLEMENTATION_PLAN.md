@@ -604,3 +604,24 @@ Artifact"最小切片 → 阶段 2 账号接入后复用旧侧数据模型 → �
 - `npx playwright test`：**81/81（2.1m）**（＋1：指南页显式引导种子导出并如实说明开放条件）。首轮 1 失败为新用例自身定位器错误（`#guide-next` 是 h2 的 id 而非其所在 section），修正为 `section[aria-labelledby='guide-next']` 后全量重跑全绿。
 - 勘误（供轮②调整范围）：design-qa.md 的 P3"五张状态资产各 1–2MB"已过时——2026-08-17 K3 第二阶段已完成 WebP q85 转换（五图合计 8.0MB→2.4MB、-70.3%、PSNR≥36dB、A/B 证据在 `docs/audit/shots-k3/`，记录见 `public/hub/art/README.md`）；轮②开工前按此重定范围（残余项为 design-qa 文档同步与可选的加载顺序核查）。
 - 本轮未部署、未推送、未重启 3600 生产服务。
+
+---
+
+## 24. 打磨轮 ②：资产与首屏性能（2026-08-19）
+
+按 §23 勘误收缩范围：状态资产压缩已于 2026-08-17 完成，本轮重定为「首屏实测 → 纹理收口 → 文档同步」。
+
+### 24.1 实现决定（B 系）
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| B1 | design-qa.md P3 勘误同步（Findings/Open Questions/Follow-up 三处改为"已解决"并附数据）；`public/hub/art/README.md` 重写：`evidence-target.png`/`problem-seed.png` 用途栏诚实化为"未接线备用"（引用组件已于 §21 删除，沿用 flat-coach-field 保留先例），"两处背景 url"过时说法修正为一处 | 清偿 §23 勘误；死资产状态可追溯 |
+| B2 | 首屏网络实测（生产构建 + `next start` 独立端口，Playwright 抓取）：改动前 `/` 首屏 29 请求 / 2,746,881B，其中五张状态图全量加载——追溯为 `components/hub/coach-art-prefetch.tsx` 的**既有有意决策**（首屏空闲预取四图、换幕零网络延迟）。预取策略属行为级权衡，超出本轮"trivially safe 属性级"边界，**不改**，如实记入 design-qa 遗留观察项 | 用实测数据替代推测；审计结论零代码改动 |
+| B3 | 工作台纸张纹理转 WebP（README 既有"后续可再评估"项）：Pillow 12.2.0 WebP q85 method=6，368,055B→25,242B（**-93.1%**），PSNR 38.50dB（#f7f8fb 合成，≥36dB 验收线）；`tokens.css` `.hub-workspace-screen` 唯一 url 同步；量化 PNG 母版保留未删；同视口 A/B（1440×900 / 390×844，生产构建、服务器重启后抓取）像素差最大 14/255 与 11/255，并排证据 `docs/audit/shots-k3/asset-compare-texture-{1440,390}.png`；首屏复测 2,746,881B→2,404,068B（-12.5%） | design-qa"肉眼无损才替换"红线全程遵守；首访移动端收益最大 |
+
+### 24.2 验收记录（2026-08-19）
+
+- `npm run lint`/`typecheck`：通过；`npm run test`：**20 files / 204 tests** 通过；`npm run build`：通过（51/51 路由）。
+- `npx playwright test`：**81/81（2.1m）** 通过（视觉方向用例多视口截图证据随之刷新，纹理 WebP 生效）。
+- 测量方法备注：首轮 A/B 截图差分异常（48% 像素、最大差 254），定位为重建时 3211 端口服务器未重启、新旧构建 chunk 哈希错位致 CSS 404（无样式页）；重启服务器后重抓，差分降至纹理量化噪声级。临时测量脚本（tmp-shot/tmp-capture）已删除，未入库。
+- 本轮未部署、未推送、未重启 3600 生产服务（测量用生产服务器起于独立 3211 端口，用毕即关）。

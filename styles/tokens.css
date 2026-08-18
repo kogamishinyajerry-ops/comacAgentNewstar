@@ -620,7 +620,7 @@
     background-color: #f7f8fb;
     background-image: linear-gradient(rgba(53, 104, 232, 0.035) 1px, transparent 1px),
       linear-gradient(90deg, rgba(53, 104, 232, 0.035) 1px, transparent 1px),
-      url("/hub/art/paper-atlas-texture.png");
+      url("/hub/art/paper-atlas-texture.webp");
     background-position: center, center, center;
     background-size: 28px 28px, 28px 28px, 980px 980px;
   }
