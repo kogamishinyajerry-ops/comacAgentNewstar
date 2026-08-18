@@ -76,3 +76,25 @@ test.describe("公共 Hub 的角色工作区交接", () => {
     }
   });
 });
+
+test.describe("指南页 FAQ 可达性(§21)", () => {
+  test("FAQ 五问在 /guide 可达且可展开,无 JS 语义的 details 结构完整", async ({ page }) => {
+    await page.goto("/guide");
+
+    const faq = page.locator("#faq");
+    await expect(faq).toBeVisible();
+    await expect(faq.getByRole("heading", { name: "先问过我们的问题" })).toBeVisible();
+
+    // 五问都在,含边界沟通的关键问答
+    const items = faq.locator("details.faq-item");
+    await expect(items).toHaveCount(5);
+    await expect(faq.getByText("不会编程也可以参加吗?")).toBeVisible();
+    await expect(faq.getByText("平台会替我完成 Coding 吗?")).toBeVisible();
+
+    // details/summary 原生展开语义可用
+    const first = items.first();
+    await expect(first.locator(".faq-answer")).toBeHidden();
+    await first.locator("summary").click();
+    await expect(first.locator(".faq-answer")).toBeVisible();
+  });
+});

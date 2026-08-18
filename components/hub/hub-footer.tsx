@@ -11,7 +11,7 @@ export function HubFooter() {
             <p className="text-[15px] font-bold">{site.brand.name}</p>
             <p className="hub-body mt-2 max-w-[380px] !text-[14px]">{site.positioning}</p>
             <p className="hub-caption mt-4">
-              本站为活动公共入口的阶段一实现;登录后完整流程将在活动配置确认后开放。
+              本站为活动公共入口;登录与完整实践流程将在活动配置确认后开放。
             </p>
           </div>
 
@@ -22,7 +22,6 @@ export function HubFooter() {
                 {item.label}
               </Link>
             ))}
-            <Link href="/guide" className="hub-quiet-link !text-[14px]">活动指南</Link>
           </nav>
 
           <div className="flex flex-col gap-2.5">
@@ -33,7 +32,7 @@ export function HubFooter() {
                 ? activity.organizers.join(" · ")
                 : ` ${PENDING_LABEL}`}
             </p>
-            <p className="hub-caption">活动时间:{activityFact(activity.dates.startDate)} 起</p>
+            <p className="hub-caption">活动时间:{activityFact(activity.dates.startDate)}</p>
             <p className="hub-caption">报名方式:{activityFact(activity.links.registration)}</p>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Reveal } from "@/components/hub/reveal";
+import { FaqList } from "@/components/hub/faq-list";
 import {
   activity,
   activityFact,
@@ -165,6 +166,9 @@ export default function GuidePage() {
           </p>
         </section>
       </Reveal>
+
+      {/* FAQ 五问:含"不会编程能参加吗"等边界沟通,此前无任何页面承载(§21) */}
+      <FaqList />
     </div>
   );
 }

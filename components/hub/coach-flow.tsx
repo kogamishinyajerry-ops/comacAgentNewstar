@@ -74,7 +74,8 @@ function transitionMs(): number {
   if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return 160;
   }
-  return 560;
+  /* 与 tokens.css 的 --dur-scene(540ms)保持一致,消除双维护漂移(§21) */
+  return 540;
 }
 
 /** 判断/风险每一拍的停留时长:动画下限之上按可见字符数给足阅读时间;

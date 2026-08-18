@@ -52,9 +52,8 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
     await page.goto("/");
 
     // 失败模式:完整左侧工作台栏与右侧 insight 栏仍存在
-    await expect(page.locator(".coach-workspace-rail")).toHaveCount(0);
-    await expect(page.locator(".coach-workspace-insight")).toHaveCount(0);
-    await expect(page.locator(".coach-stage-list")).toHaveCount(0);
+    // 幽灵断言清理(§21):rail/insight/stage-list 类已随源码删除,不再保留永绿断言;
+    // 种子前 Artifact 栏不出现仍是有效防线
     await expect(page.locator(".coach-artifact-rail")).toHaveCount(0);
 
     // 保留的七个元素:极弱返回、幕号、Coach 状态提示、主问题、回答器、附件按钮、主提交
@@ -321,8 +320,6 @@ test.describe("移动端 375×812 与桌面 1280×800 视口", () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
-    await expect(page.locator(".coach-workspace-rail")).toHaveCount(0);
-    await expect(page.locator(".coach-workspace-insight")).toHaveCount(0);
     const metrics = await page.evaluate(() => {
       const composer = document.querySelector(".coach-composer");
       return {

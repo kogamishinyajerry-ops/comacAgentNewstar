@@ -26,16 +26,6 @@ export const site = {
   ],
   primaryCta: { label: "开始探索", href: "/" },
 
-  hero: {
-    eyebrow: activity.identity.eyebrow,
-    title: "把一个真实问题,变成可验证的 AI Agent 作品",
-    subtitle:
-      "AI Coach 不替你写答案。它一次只追问一个关键问题,帮助你把模糊想法逐步变成可构建、可验证、可展示的项目。",
-    primaryAction: { label: "从一个真实问题开始", href: "/start" },
-    secondaryAction: { label: "我已经有一个想法", href: "/start?entry=idea" },
-    quietLink: { label: "先了解活动如何进行", href: "/guide" },
-  },
-
   faq: [
     {
       q: "不会编程也可以参加吗?",

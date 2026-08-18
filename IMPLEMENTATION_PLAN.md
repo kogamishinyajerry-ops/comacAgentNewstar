@@ -546,3 +546,27 @@ npx playwright test                      # 含旧 full-flow 回归 + 新 hub.spe
 - `npm run lint`/`typecheck`：通过；`npm run test`：**20 files / 204 tests** 通过；`npm run build`：通过。
 - `npx playwright test`：**79/79（2.4m）**（＋2：等待可取消——故意迟到 20s 的响应被取消后本地 fixture 接管；无 act fixture 信号回落）。首轮全量因显式超时 7 处失败（M5），修正后全绿；期间还修复了两个新用例的 strict-mode 定位歧义（状态行与 aria-live 同文案）。
 - 本轮未部署、未推送、未重启 3600 生产服务。
+
+---
+
+## 21. 红队修复轮 ④：死代码清理、FAQ 可达性与文案修复（2026-08-18）
+
+修复红队 C 的 P2 质量债集群与 A 的 P2-7（FAQ 不可达，与 §11 D4"能力不回退"声明矛盾）。
+
+### 21.1 实现决定（N 系）
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| N1 | FAQ 五问挂载 `/guide` 末尾（复用既有 `FaqList` 组件，含"不会编程能参加吗""平台会替我完成 Coding 吗"两条边界沟通）；e2e 断言五问在场且 details/summary 原生展开 | FAQ 此前在公共站完全不可达；guide 是 §11 D4 指定的信息承载页 |
+| N2 | 删除 6 个零引用组件（hero/value-narrative/journey-track/role-section/boundaries/final-cta）与 `site.hero` 配置；`reveal` 保留（guide 在用） | §11 视觉转向后整层长卷/营销组件死寂；hub-config 测试同步改写并断言 `hero` 不再存在 |
+| N3 | 死 CSS 清扫：tokens.css 1549→1365 行（−184），删除 atlas 长卷家族、hub-hero 家族、role-card、coach-act/meta、motion-stagger、hero-beat 等零引用规则；保留 `atlas-appendix`（FAQ 在用）、`atlas-texture`（背景引用）、`journey-step/dot`（/dev/scenarios 在用） | 每个类族均先 grep 代码引用再删；分组选择器只摘死成员不删活规则 |
+| N4 | 幽灵断言清理（persona 两处、hub 一处的 `.coach-workspace-rail/.coach-workspace-insight/.coach-stage-list` 计数 0——类已不存在，断言永绿）；保留仍有效的 `.coach-artifact-rail` 防线 | 永绿断言稀释"证据可核查"纪律 |
+| N5 | 文案与语义修复：footer"阶段一实现"措辞、重复的第二个"活动指南"链接、"活动时间:…起"语病、`seedCopy.restart` 死字段；**首页隐藏头部 CTA**（`usePathname`，工作台页 CTA 自指且点击会整树重挂载丢进度） | 红队 A P2 与 C P2 的逐项清偿；CTA 在 /guide 等页保留，a11y 两个依赖 CTA 的用例移至 /guide 验证 |
+| N6 | `transitionMs` 560→540ms 对齐 `--dur-scene`，注释互指 | 消除 JS/CSS 双维护漂移 |
+
+### 21.2 验收记录（2026-08-18）
+
+- `npm run lint`/`typecheck`：通过；`npm run test`：**20 files / 204 tests** 通过；`npm run build`：通过。
+- `npx playwright test`：**80/80（2.1m）**（＋1：/guide FAQ 五问可达可展开）。首轮 2 处失败为首页隐藏 CTA 的预期行为变化（a11y 抽屉闭环与减弱动态用例），按 N5 移至 /guide 后全绿。
+- 未做：AGENTS.md 里程碑节与现状的漂移（宪法文件属用户，待其确认后更新）；guide 内联边界与已删 boundaries 组件的取舍已按"guide 内联为准"收口。
+- 本轮未部署、未推送、未重启 3600 生产服务。

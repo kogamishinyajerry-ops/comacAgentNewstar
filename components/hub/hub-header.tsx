@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { approvedActivityLogoPath } from "@/config/activity";
 import { site } from "@/config/site";
 
@@ -33,6 +34,8 @@ function BrandMark() {
 }
 
 export function HubHeader() {
+  /* 主 CTA 不在 Coach 工作台页自指:工作台即开始,再点会整树重挂载丢进度 */
+  const onWorkbench = usePathname() === "/";
   const [open, setOpen] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -97,12 +100,14 @@ export function HubHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <Link
-            href={site.primaryCta.href}
-            className="hub-btn hub-btn--primary hidden !min-h-[40px] px-5 text-[14px] md:inline-flex"
-          >
-            {site.primaryCta.label}
-          </Link>
+          {!onWorkbench && (
+            <Link
+              href={site.primaryCta.href}
+              className="hub-btn hub-btn--primary hidden !min-h-[40px] px-5 text-[14px] md:inline-flex"
+            >
+              {site.primaryCta.label}
+            </Link>
+          )}
           <button
             ref={burgerRef}
             type="button"
@@ -152,13 +157,15 @@ export function HubHeader() {
             </Link>
           ))}
         </nav>
-        <Link
-          href={site.primaryCta.href}
-          className="hub-btn hub-btn--primary mt-6 w-full"
-          onClick={() => close(false)}
-        >
-          {site.primaryCta.label}
-        </Link>
+        {!onWorkbench && (
+          <Link
+            href={site.primaryCta.href}
+            className="hub-btn hub-btn--primary mt-6 w-full"
+            onClick={() => close(false)}
+          >
+            {site.primaryCta.label}
+          </Link>
+        )}
       </div>
     </>
   );

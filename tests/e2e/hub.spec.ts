@@ -39,8 +39,6 @@ test.describe("桌面 1440×900", () => {
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
-    await expect(page.locator(".coach-workspace-rail")).toHaveCount(0);
-    await expect(page.locator(".coach-workspace-insight")).toHaveCount(0);
     await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
     await expect(page.locator(".hub-footer")).toBeHidden();
     // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分

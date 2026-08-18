@@ -48,14 +48,12 @@ describe("config/site:导航与首屏", () => {
     expect(site.title).toBe(activity.identity.name);
     expect(site.brand.name).toBe(activity.identity.name);
     expect(site.brand.shortName).toBe(activity.identity.shortName);
-    expect(site.hero.eyebrow).toBe(activity.identity.eyebrow);
   });
 
-  it("首屏双入口不等权且指向 Coach 预览", () => {
-    expect(site.hero.primaryAction.href).toBe("/start");
-    expect(site.hero.secondaryAction.href).toBe("/start?entry=idea");
-    expect(site.hero.primaryAction.label).toBe("从一个真实问题开始");
-    expect(site.hero.secondaryAction.label).toBe("我已经有一个想法");
+  it("主 CTA 与导航均指向真实去处;hero 长卷文案已随死代码移除", () => {
+    expect(site.primaryCta.href).toBe("/");
+    expect(site.nav.length).toBeGreaterThan(0);
+    expect("hero" in site).toBe(false);
   });
 
   it("固定视口主入口不再挂接已移除的长卷锚点", () => {

@@ -103,108 +103,6 @@
   .hub-section {
     padding-block: clamp(64px, 8vw, 96px);
   }
-  .atlas-home {
-    background-color: var(--surface-canvas);
-    background-image: url("/hub/art/paper-atlas-texture.png");
-    background-size: 1254px 1254px;
-    background-position: top center;
-  }
-  .hub-hero {
-    min-height: 560px;
-    padding-block: clamp(40px, 5vw, 50px) 20px;
-    border-bottom: 1px solid rgba(53, 104, 232, 0.24);
-  }
-  .hub-hero-grid {
-    display: grid;
-    align-items: center;
-    gap: 28px 44px;
-    grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.94fr);
-    grid-template-areas: "text orb" "cta orb";
-  }
-  .hub-hero-grid > .hero-beat-1 { grid-area: text; }
-  .hub-hero-grid > .hero-beat-2 { grid-area: orb; }
-  .hub-hero-grid > .hero-beat-3 { grid-area: cta; }
-  .hub-hero-art {
-    display: flex;
-    justify-content: center;
-    pointer-events: none;
-  }
-  .atlas-hero-note {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 16px;
-    color: var(--text-tertiary);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-  }
-  .atlas-hero-note::before {
-    content: "";
-    width: 22px;
-    height: 1px;
-    background: var(--accent-coach);
-  }
-  .atlas-section {
-    position: relative;
-    border-top: 1px solid rgba(53, 104, 232, 0.14);
-  }
-  .atlas-section::before {
-    content: attr(data-atlas-chapter);
-    position: absolute;
-    top: clamp(64px, 8vw, 96px);
-    left: max(22px, calc((100vw - 1200px) / 2 + 44px));
-    z-index: 1;
-    font-family: var(--font-hub-display);
-    font-size: 28px;
-    line-height: 1;
-    color: var(--accent-coach);
-  }
-  .atlas-section::after {
-    content: "";
-    position: absolute;
-    top: calc(clamp(64px, 8vw, 96px) + 48px);
-    bottom: 0;
-    left: max(34px, calc((100vw - 1200px) / 2 + 56px));
-    width: 1px;
-    background: rgba(53, 104, 232, 0.28);
-  }
-  .atlas-section#intro::before {
-    top: 48px;
-  }
-  .atlas-section > .hub-container {
-    padding-left: clamp(88px, 10vw, 136px);
-  }
-  .atlas-coach-sheet,
-  .atlas-evidence-sheet,
-  .atlas-final-sheet {
-    background: rgba(255, 254, 251, 0.94);
-    border: 1px solid rgba(53, 104, 232, 0.2);
-    box-shadow: var(--shadow-card);
-  }
-  .atlas-coach-sheet {
-    max-width: 920px;
-    padding: clamp(26px, 4vw, 46px);
-  }
-  .atlas-evidence-sheet {
-    min-width: 0;
-    padding: clamp(24px, 3vw, 38px);
-  }
-  .atlas-evidence-art {
-    width: min(72%, 340px);
-    margin: -14px 0 12px auto;
-  }
-  .atlas-final-sheet {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
-    align-items: center;
-    gap: clamp(28px, 5vw, 72px);
-    padding: clamp(30px, 5vw, 64px);
-  }
-  .atlas-seed-art {
-    width: min(100%, 360px);
-    justify-self: center;
-  }
   .atlas-appendix {
     border-top: 1px solid rgba(53, 104, 232, 0.14);
     background: rgba(255, 254, 251, 0.6);
@@ -578,33 +476,8 @@
   .coach-stage {
     position: relative;
   }
-  .coach-act {
-    transition: transform var(--dur-scene) var(--ease-soft);
-  }
   /* 退到背景:已回答的一幕让出焦点 */
-  .coach-act[data-phase="transition"] {
-    transform: translateY(-10px) scale(0.985);
-    pointer-events: none;
-  }
   /* 收拢:第三幕结束后向平面标记凝结 */
-  .coach-act[data-condensing="true"] {
-    transform: translateY(-26px) scale(0.9);
-  }
-  .coach-meta {
-    border-left: 2px solid var(--border-subtle);
-    padding-left: 16px;
-  }
-  .coach-meta dt {
-    font-size: 12.5px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    color: var(--text-tertiary);
-  }
-  .coach-meta dd {
-    font-size: 14.5px;
-    line-height: 1.65;
-    color: var(--text-secondary);
-  }
   .coach-question {
     font-size: clamp(22px, 2.4vw, 30px);
     font-weight: 700;
@@ -686,17 +559,6 @@
   }
 
   /* ---------- 角色入口 ---------- */
-  .role-card {
-    display: block;
-    text-decoration: none;
-    transition: transform var(--dur-micro) var(--ease-soft),
-      box-shadow var(--dur-micro) var(--ease-soft), border-color var(--dur-micro) var(--ease-soft);
-  }
-  .role-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lift);
-    border-color: var(--border-strong);
-  }
   .role-tag {
     display: inline-flex;
     align-items: center;
@@ -1339,20 +1201,7 @@
     }
 
     /* 逐项错峰端上来 */
-    .motion-stagger > * {
-      animation: hub-rise var(--dur-rise) var(--ease-soft) both;
-    }
-    .motion-stagger > *:nth-child(1) { animation-delay: 0ms; }
-    .motion-stagger > *:nth-child(2) { animation-delay: 70ms; }
-    .motion-stagger > *:nth-child(3) { animation-delay: 140ms; }
-    .motion-stagger > *:nth-child(4) { animation-delay: 210ms; }
-    .motion-stagger > *:nth-child(5) { animation-delay: 280ms; }
-    .motion-stagger > *:nth-child(n+6) { animation-delay: 350ms; }
-
     /* Hero 三拍编排:标题 → 平面标记 → 入口(总时长 ≤ 1.2s) */
-    .hero-beat-1 { animation: hub-rise 420ms var(--ease-soft) 0ms both; }
-    .hero-beat-2 { animation: hub-approach 480ms var(--ease-soft) 340ms both; }
-    .hero-beat-3 { animation: hub-rise 380ms var(--ease-soft) 660ms both; }
   }
 
   /* 减弱动态:位移/缩放/滤镜动画取消,信息顺序不变 */
@@ -1369,20 +1218,13 @@
       scroll-behavior: auto !important;
     }
     .motion-rise, .motion-grow, .motion-condense, .motion-approach,
-    .motion-pulse-once, .motion-stagger > *,
-    .hero-beat-1, .hero-beat-2, .hero-beat-3 {
-      animation: none !important;
-    }
+    .motion-pulse-once,
     .reveal[data-js="true"] {
       opacity: 1 !important;
       transform: none !important;
       transition: none !important;
     }
-    .coach-act,
     .coach-orb, .coach-orb-layer,
-    .journey-step, .role-card, .hub-drawer {
-      transition-duration: 1ms !important;
-    }
     .coach-orb[data-state="listening"],
     .coach-orb[data-state="idle"],
     .coach-orb[data-state="confirmed"] {
@@ -1412,31 +1254,6 @@
     }
     .coach-composer {
       padding: 0 14px 14px;
-    }
-  }
-
-  @media (max-width: 900px) {
-    .hub-hero {
-      min-height: 0;
-      padding-block: 56px 44px;
-    }
-    .hub-hero-grid {
-      grid-template-columns: 1fr;
-      grid-template-areas: "text" "orb" "cta";
-      gap: 28px;
-    }
-    .hub-hero-grid > .hero-beat-1 { grid-area: text; }
-    .hub-hero-grid > .hero-beat-2 { grid-area: orb; }
-    .hub-hero-grid > .hero-beat-3 { grid-area: cta; }
-    .hub-hero-art {
-      justify-content: flex-start;
-    }
-    .atlas-final-sheet {
-      grid-template-columns: 1fr;
-    }
-    .atlas-seed-art {
-      justify-self: start;
-      width: min(72vw, 300px);
     }
   }
 
@@ -1535,30 +1352,6 @@
     }
     .coach-workspace-dialog--seed .coach-conversation-scroll {
       padding: 10px;
-    }
-    .atlas-home {
-      background-size: 900px 900px;
-    }
-    .atlas-section > .hub-container {
-      padding-left: 64px;
-      padding-right: 20px;
-    }
-    .atlas-section::before {
-      left: 20px;
-      font-size: 23px;
-    }
-    .atlas-section::after {
-      left: 30px;
-      top: calc(clamp(64px, 8vw, 96px) + 42px);
-    }
-    .atlas-coach-sheet,
-    .atlas-evidence-sheet,
-    .atlas-final-sheet {
-      padding: 22px;
-    }
-    .atlas-evidence-art {
-      width: min(100%, 250px);
-      margin-inline: auto;
     }
     .hub-card {
       border-radius: var(--radius-md);

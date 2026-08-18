@@ -56,7 +56,8 @@ test.describe("Hub 无障碍与响应式深化", () => {
 
   test("移动端抽屉从具名关闭按钮开始锁焦，并在 Esc 后归还焦点", async ({ page }) => {
     await page.setViewportSize(mobile);
-    await page.goto("/");
+    // 首页不再渲染头部 CTA(§21:工作台页 CTA 自指且会丢进度),抽屉闭环在 /guide 验证
+    await page.goto("/guide");
 
     const burger = page.getByRole("button", { name: "打开导航菜单" });
     await burger.focus();
@@ -107,12 +108,10 @@ test.describe("Hub 无障碍与响应式深化", () => {
   test("减弱动态时关闭 Hub 动效与平滑滚动，信息仍可见", async ({ page }) => {
     await page.setViewportSize(desktop);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
+    // 首页无 .hub-btn(§21 首页隐藏 CTA);guide 次级按钮承载同一动效断言
+    await page.goto("/guide");
 
-    await expect(
-      page.getByRole("heading", { name: "你最想改变的具体工作瞬间是什么?" })
-    ).toBeVisible();
-    await expect(page.getByRole("link", { name: /换一条入口/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "你的下一步" })).toBeVisible();
 
     const motion = await page.locator(".hub-btn").first().evaluate((button) => ({
       scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
