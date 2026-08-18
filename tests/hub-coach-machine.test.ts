@@ -5,6 +5,7 @@ import {
   advance,
   clearError,
   composeSeed,
+  composeSeedText,
   composeTrace,
   createCoachState,
   currentAct,
@@ -108,6 +109,26 @@ describe("coach-machine:问题种子合成", () => {
     expect(trace.length).toBeLessThan(answer.length);
     expect(composeTrace(1, "短回答")).toBe("影响:短回答");
     expect(composeTrace(2, "需要工具")).toBe("Agent 必要性:需要工具");
+  });
+
+  it("种子纯文本导出重组既有槽位,不新增结论", () => {
+    const seed = {
+      moment: "试验异常记录分散在三处",
+      impact: "工程师每次对账多花两小时",
+      necessity: "需要按流程调用检索工具留痕",
+      gaps: ["影响面尚未量化", "证据尚未接回"],
+    };
+    const text = composeSeedText(seed);
+    expect(text).toContain("问题种子");
+    expect(text).toContain("【主张】");
+    expect(text).toContain("想改变的瞬间:试验异常记录分散在三处");
+    expect(text).toContain("影响与损失:工程师每次对账多花两小时");
+    expect(text).toContain("◇ 影响面尚未量化");
+    // 只重组、不判断:导出不得出现肯定式完成表述;
+    // 副标题的"不是项目创建成功"是诚实声明,属于期望内容
+    expect(text).toContain("不是项目创建成功");
+    expect(text).not.toContain("项目已创建");
+    expect(text).not.toContain("已提交");
   });
 });
 

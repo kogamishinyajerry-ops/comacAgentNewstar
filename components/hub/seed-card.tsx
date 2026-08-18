@@ -1,7 +1,9 @@
+"use client";
+
 import Link from "next/link";
-import type { RefObject } from "react";
+import { useState, type RefObject } from "react";
 import { seedCopy } from "@/fixtures/coach-demo";
-import type { QuestionSeed } from "@/lib/hub/coach-machine";
+import { composeSeedText, type QuestionSeed } from "@/lib/hub/coach-machine";
 
 /**
  * 问题种子:三幕回答凝结出的草稿,按“主张—证据—缺口”组织。
@@ -17,6 +19,18 @@ export function SeedCard({
   headingRef?: RefObject<HTMLHeadingElement>;
   headingId?: string;
 }) {
+  const [copyState, setCopyState] = useState<"idle" | "done" | "failed">("idle");
+
+  /* 剪贴板只在浏览器本地写入;无持久化,失败不阻塞任何流程 */
+  async function handleCopy() {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
+      await navigator.clipboard.writeText(composeSeedText(seed));
+      setCopyState("done");
+    } catch {
+      setCopyState("failed");
+    }
+  }
   return (
     <section className="seed-card hub-card motion-condense p-7 sm:p-9" aria-labelledby={headingId}>
       <p className="seed-slot-label">{seedCopy.title}</p>
@@ -80,8 +94,19 @@ export function SeedCard({
         <Link href={seedCopy.cta.href} className="hub-btn hub-btn--primary">
           {seedCopy.cta.label}
         </Link>
+        <button type="button" className="hub-btn hub-btn--secondary" onClick={handleCopy}>
+          复制问题种子
+        </button>
         <p className="hub-caption max-w-[300px]">{seedCopy.previewNote}</p>
       </div>
+
+      {copyState !== "idle" && (
+        <p role="status" className="hub-caption mt-3" data-seed-copy-status>
+          {copyState === "done"
+            ? "问题种子已复制为纯文本，可粘贴到你的笔记继续追问。"
+            : "复制失败：当前环境未授权剪贴板，请手动摘录上方关键内容。"}
+        </p>
+      )}
     </section>
   );
 }

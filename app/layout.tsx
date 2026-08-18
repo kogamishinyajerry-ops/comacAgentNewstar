@@ -4,6 +4,12 @@ import { site } from "@/config/site";
 export const metadata: Metadata = {
   title: site.title,
   description: site.description,
+  openGraph: {
+    title: site.title,
+    description: site.description,
+    type: "website",
+    locale: "zh_CN",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

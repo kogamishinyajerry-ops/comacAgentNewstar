@@ -457,3 +457,27 @@ npx playwright test                      # 含旧 full-flow 回归 + 新 hub.spe
 - 死代码删除后的最终状态全量重跑：`npm run lint` 通过无警告；`npm run typecheck` 通过；`npm run test` 通过（**20 files / 202 tests**）；`npm run build` 通过（含活动配置校验）；运行前确认 3000 端口空闲后 `LLM_MOCK_MODE=true npx playwright test` 通过（**69/69，59.8s**）。
 - 提交序列见 `git log`（本节所在提交为第 4 个主题提交）。
 - 本轮未部署、未推送、未重启 3600 生产服务，未填入任何无正式来源的活动事实或 Logo。
+
+---
+
+## 17. 第三层产品增益：种子导出与公共页 metadata（2026-08-18）
+
+用户授权的优化第三层。边界不变：无持久化、无新依赖、PENDING 事实不进 meta、不做 Artifact 管理。
+
+### 17.1 实现决定（J 系）
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| J1 | 种子导出为**纯文本剪贴板复制**：`composeSeedText` 纯函数落在 `coach-machine.ts`（只重组既有槽位与固定文案，不新增判断）；`SeedCard` 增"复制问题种子"次级按钮 | 三幕成果此前刷新即失；剪贴板只在浏览器本地，不越无持久化红线；导出保留"不是项目创建成功"的诚实声明与缺口标注 |
+| J2 | 复制反馈用 `role="status"`（非 alert），成功/失败双路径都有文案；剪贴板不可用时提示手动摘录，不阻塞主 CTA | 复制结果不是错误警报；失败是环境问题而非流程故障，主 CTA"进入完整实践流程"始终可用 |
+| J3 | metadata 补齐：`/start` 独立标题与描述；根布局补 openGraph 基础字段（title/description/type/locale）；不加 og:image | 勘察修正：guide 与三个角色页**本就有**独立 metadata，缺口只在 `/start` 与 openGraph；无授权品牌资产，og:image 留空不伪造 |
+| J4 | `/dev` 用 `public/robots.txt` 增 `Disallow: /dev/` 排除索引，而非 `app/robots.txt` 元数据路由 | 首选 app/robots.txt 与既有 public/robots.txt 冲突（Next 报 conflicting public file，e2e 真实捕获 500）；合并进既有文件是唯一不破坏现状的路径 |
+| J5 | e2e 授予 clipboard 权限直读剪贴板断言导出内容；失败路径用 initScript 注入拒绝的 writeText | 成功路径验证真实浏览器 API；失败路径确定性注入，不赌 headless 默认权限 |
+
+### 17.2 验收记录（2026-08-18）
+
+- `npm run lint`：通过，无警告无错误；`npm run typecheck`：通过。
+- `npm run test`（Vitest）：通过，**20 files / 203 tests**（＋1：composeSeedText 契约，含"不出现肯定式完成表述"负断言）。
+- `npm run build`：通过（含活动配置校验）。
+- 运行前确认 3000 端口空闲后 `LLM_MOCK_MODE=true npx playwright test`：通过，**75/75（56.2s）**（＋6：种子导出成功/失败 2 条、页面 meta 与 robots 4 条）。首轮 robots 用例真实捕获 app/robots.txt 与 public/robots.txt 冲突导致的 500，按 J4 修复后转绿。
+- 本轮未部署、未推送、未重启 3600 生产服务，未填入任何无正式来源的活动事实或 Logo。

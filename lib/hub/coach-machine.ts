@@ -131,3 +131,25 @@ export function composeSeed(state: CoachState): QuestionSeed {
     gaps: seedCopy.gaps,
   };
 }
+
+/**
+ * 种子导出为纯文本(复制到剪贴板用)。只重组既有槽位与固定文案,
+ * 不新增判断、不引入未出现的结论;无持久化,复制仅发生在浏览器本地。
+ */
+export function composeSeedText(seed: QuestionSeed): string {
+  return [
+    seedCopy.title,
+    seedCopy.subtitle,
+    "",
+    `【${seedCopy.structure.claim}】`,
+    `${seedCopy.slots.moment}:${seed.moment}`,
+    `${seedCopy.slots.necessity}:${seed.necessity}`,
+    "",
+    `【${seedCopy.structure.evidence}】`,
+    `${seedCopy.slots.impact}:${seed.impact}`,
+    seedCopy.evidenceNote,
+    "",
+    `【${seedCopy.structure.gaps}】${seedCopy.gapsTitle}`,
+    ...seed.gaps.map((gap) => `◇ ${gap}`),
+  ].join("\n");
+}
