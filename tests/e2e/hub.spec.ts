@@ -22,11 +22,11 @@ const ACT_QUESTIONS = {
 
 async function answerActs(page: Page, questions: readonly string[], label: string) {
   for (let i = 0; i < questions.length; i++) {
-    await expect(page.getByRole("heading", { name: questions[i] })).toBeVisible();
+    await expect(page.getByRole("heading", { name: questions[i] })).toBeVisible({ timeout: 15_000 });
     await page.locator("#coach-answer").fill(`${label}回答 ${i + 1}`);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
   }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 8000 });
+  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("桌面 1440×900", () => {
@@ -57,14 +57,14 @@ test.describe("桌面 1440×900", () => {
     // 第一问交互中:截取 Coach 互动预览(第二幕已端上来)
     await page.locator("#coach-answer").fill("试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
-    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[1] })).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[1] })).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: `${SHOTS}/coach-preview-1440.png` });
     await page.locator("#coach-answer").fill("影响试验工程师与复核人,每次对账约多花两小时");
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
-    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[2] })).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[2] })).toBeVisible({ timeout: 15_000 });
     await page.locator("#coach-answer").fill("需要记住项目口径,按固定流程调用检索工具逐步核对并留痕");
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
     // 种子包含三幕摘录与缺口
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
     await expect(page.getByRole("link", { name: "进入完整实践流程" })).toBeVisible();
@@ -152,12 +152,12 @@ test.describe("桌面 1440×900", () => {
       // 等当前幕问题端上来,且焦点已接续到新一幕的回答器
       await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[i] })).toBeVisible();
       await expect
-        .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 8000 })
+        .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 15_000 })
         .toBe("coach-answer");
       await page.keyboard.type(`键盘回答 第${i + 1}幕`);
       await page.keyboard.press("Control+Enter");
     }
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 
   test("9. 键盘完成角色选择与移动端抽屉(键盘 Esc 复位)", async ({ page }) => {
@@ -202,7 +202,7 @@ test.describe("移动端 390×844", () => {
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
     await expect(
       page.getByRole("heading", { name: ACT_QUESTIONS.problem[1] })
-    ).toBeVisible({ timeout: 8000 });
+    ).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: `${SHOTS}/coach-390.png` });
 
     // 抽屉:打开 → 链接可达 → Esc 关闭并归还焦点

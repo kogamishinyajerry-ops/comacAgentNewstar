@@ -181,7 +181,7 @@ test("Axe: 过渡后问题态(第二幕)无自动化可检测违规", async ({ p
   await page.getByRole("button", { name: "提交这一问的回答" }).click();
   await expect(
     page.getByRole("heading", { name: "这个问题对谁造成了什么具体损失?" })
-  ).toBeVisible({ timeout: 10_000 });
+  ).toBeVisible({ timeout: 15_000 });
   await expectNoAxeViolations(page);
 });
 
@@ -195,7 +195,7 @@ test("Axe: 问题种子态无自动化可检测违规", async ({ page }) => {
     await page.locator("#coach-answer").fill(answer);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
   }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
   await expectNoAxeViolations(page);
 });
 
@@ -209,6 +209,6 @@ test("Axe: 问题种子态(移动端 390×844)无自动化可检测违规", asyn
     await page.locator("#coach-answer").fill(answer);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
   }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
   await expectNoAxeViolations(page);
 });

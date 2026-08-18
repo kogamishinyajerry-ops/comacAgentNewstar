@@ -941,6 +941,23 @@
     font-size: 11px;
     margin-top: 8px;
   }
+  /* 等待期取消:安静的次级文字按钮,只在真实请求在途时出现 */
+  .coach-cancel-wait {
+    appearance: none;
+    border: none;
+    background: none;
+    padding: 2px 0 0;
+    margin-left: 12px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .coach-cancel-wait:focus-visible {
+    outline: 2px solid var(--accent-coach);
+    outline-offset: 2px;
+  }
   /* Composer B2:单一横向紧凑浮屿(附件 / 输入 / 发送),
      暖白浮于会话面板底部;过渡期整个 form 不渲染,无禁用大输入框 */
   .coach-composer {

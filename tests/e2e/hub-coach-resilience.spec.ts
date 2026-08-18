@@ -48,7 +48,7 @@ async function submitAnswer(page: Page, answer: string) {
 }
 
 async function expectFixtureScene(page: Page, question: string) {
-  await expect(page.getByRole("heading", { name: question })).toBeVisible({ timeout: 8_000 });
+  await expect(page.getByRole("heading", { name: question })).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("Hub Coach 浏览器级韧性", () => {
@@ -95,7 +95,7 @@ test.describe("Hub Coach 浏览器级韧性", () => {
       await expect(page.locator("body")).not.toContainText(failure.hiddenDiagnostic);
 
       await submitAnswer(page, "需要长期记住项目上下文、调用多个信息源，并按固定流程多步检查和保留痕迹。");
-      await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
       expect(interceptedRequests).toBe(2);
     });
   }
@@ -114,8 +114,38 @@ test.describe("Hub Coach 浏览器级韧性", () => {
 
     // 下一问来自本地 fixture,三幕照常推进
     await expectFixtureScene(page, fixtureQuestions[1]);
-    await expect(page.getByText("这一幕沿用确定性追问。")).toBeVisible();
+    await expect(page.locator(".coach-provider-status", { hasText: "这一幕沿用确定性追问。" })).toBeVisible();
     // 这不是失败路径:不出现断网式回退告警
+    await expect(page.locator('[role="alert"]', { hasText: fallbackNotice })).toHaveCount(0);
+  });
+
+  test("等待可取消：AI 迟迟不返回时可改用确定性追问继续", async ({ page }) => {
+    await page.route("**/api/hub/coach", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+      // 故意迟到 20s:取消必须让用户在此之前拿回流程
+      await new Promise((resolve) => setTimeout(resolve, 20_000));
+      await route
+        .fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: true, mode: "live", act: { judgment: "迟到", risk: "迟到", question: "迟到？", placeholder: "迟", emptyHint: "迟" } }),
+        })
+        .catch(() => undefined);
+    });
+
+    await page.goto("/start?entry=problem");
+    await submitAnswer(page, "试验异常记录分散在多处，复核时常常找不到对应依据。");
+
+    // collect 拍出现取消入口;点击后本地 fixture 接管,不再等待 20s
+    const cancel = page.getByRole("button", { name: "不再等待，改用确定性追问" });
+    await expect(cancel).toBeVisible();
+    await cancel.click();
+    await expectFixtureScene(page, fixtureQuestions[1]);
+    await expect(page.locator(".coach-provider-status", { hasText: "这一幕沿用确定性追问。" })).toBeVisible();
+    // 主动取消不是错误:不出现断网式回退告警
     await expect(page.locator('[role="alert"]', { hasText: fallbackNotice })).toHaveCount(0);
   });
 

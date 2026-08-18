@@ -40,7 +40,7 @@ async function answerUntilQuestion(page: Page, actIndex: number, fromIndex = 0) 
     await expect(page.getByRole("heading", { name: QUESTIONS[i] })).toBeVisible();
     await submit(page, ANSWERS[i]);
     await expect(page.getByRole("heading", { name: QUESTIONS[i + 1] })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
   }
 }
@@ -101,12 +101,12 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
     await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(0);
 
     // 第2幕问题态:该幕提交仍会外发,披露再次出现
-    await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(1);
 
     // 第3幕:回答只在本页凝结种子,不再外发,披露不出现
     await submit(page, ANSWERS[1]);
-    await expect(page.getByRole("heading", { name: QUESTIONS[2] })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: QUESTIONS[2] })).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("[data-coach-privacy-note]")).toHaveCount(0);
   });
 });
@@ -122,21 +122,21 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
 
     // 第一拍:当前判断单独出现,最大风险尚未出现
     const judgmentStep = page.locator('[data-transition-step="judgment"]');
-    await expect(judgmentStep).toBeVisible({ timeout: 10_000 });
+    await expect(judgmentStep).toBeVisible({ timeout: 15_000 });
     await expect(judgmentStep.getByText("当前判断")).toBeVisible();
     await expect(page.locator('[data-transition-step="risk"]')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/state-b-judgment-1440.png` });
 
     // 第二拍:最大风险单独出现,判断已退出
     const riskStep = page.locator('[data-transition-step="risk"]');
-    await expect(riskStep).toBeVisible({ timeout: 10_000 });
+    await expect(riskStep).toBeVisible({ timeout: 15_000 });
     await expect(riskStep.getByText("最大风险")).toBeVisible();
     await expect(page.locator('[data-transition-step="judgment"]')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/state-b-risk-1440.png` });
 
     // 第三拍:下一问成为唯一焦点,判断/风险均退出,不长期同屏
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.locator("[data-transition-step]")).toHaveCount(0);
     await expect(page.getByText("当前判断")).toHaveCount(0);
@@ -162,7 +162,7 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
 
     const judgmentStep = page.locator('[data-transition-step="judgment"]');
-    await expect(judgmentStep).toBeVisible({ timeout: 10_000 });
+    await expect(judgmentStep).toBeVisible({ timeout: 15_000 });
     // 焦点落在判断步骤文本上,不掉 body;且动画被禁用
     await expect
       .poll(() => page.evaluate(() => document.activeElement?.getAttribute("data-step-kind")))
@@ -173,17 +173,17 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
     expect(animationName).toBe("none");
 
     const riskStep = page.locator('[data-transition-step="risk"]');
-    await expect(riskStep).toBeVisible({ timeout: 10_000 });
+    await expect(riskStep).toBeVisible({ timeout: 15_000 });
     await expect
       .poll(() => page.evaluate(() => document.activeElement?.getAttribute("data-step-kind")))
       .toBe("risk");
 
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     // 时序结束后焦点接续到新一幕的回答器(与正常动效一致)
     await expect
-      .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 10_000 })
+      .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 15_000 })
       .toBe("coach-answer");
   });
 });
@@ -210,7 +210,7 @@ test.describe("状态 C:后续幕的历史压缩轨迹", () => {
     // 第三幕:两条轨迹,当前问题仍占据视觉中心
     await submit(page, ANSWERS[1]);
     await expect(page.getByRole("heading", { name: QUESTIONS[2] })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.locator(".coach-trace")).toHaveCount(2);
     await expect(page.getByText(ANSWERS[1])).toHaveCount(0);
@@ -229,7 +229,7 @@ test.describe("状态 D:问题种子与工作空间长出", () => {
     await answerUntilQuestion(page, 2);
     await submit(page, ANSWERS[2]);
 
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // 长出:Artifacts 图标入口 + 主张—证据—缺口 + 一个主 CTA + 弱化重开
     await expect(page.locator(".coach-artifact-rail")).toBeVisible();
@@ -250,7 +250,7 @@ test.describe("状态 D:问题种子与工作空间长出", () => {
 
     // 焦点落在种子标题且仍在可视区域,不被滚出
     await expect
-      .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 10_000 })
+      .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 15_000 })
       .toBe("workbench-coach-seed-title");
     const geometry = await page.evaluate(() => {
       const focused = document.activeElement?.getBoundingClientRect();
@@ -313,7 +313,7 @@ test.describe("移动端 375×812 与桌面 1280×800 视口", () => {
     expect(overflow).toBeLessThanOrEqual(0);
     await answerUntilQuestion(page, 2, 1);
     await submit(page, ANSWERS[2]);
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
     await page.screenshot({ path: `${SHOTS}/state-d-seed-375.png` });
   });
 
@@ -350,13 +350,13 @@ test.describe("移动端 390×844 四状态截图证据", () => {
 
     // 状态 B 移动端:判断单独出现,风险未并列
     const judgmentStep = page.locator('[data-transition-step="judgment"]');
-    await expect(judgmentStep).toBeVisible({ timeout: 10_000 });
+    await expect(judgmentStep).toBeVisible({ timeout: 15_000 });
     await expect(page.locator('[data-transition-step="risk"]')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/state-b-judgment-390.png` });
 
     // 状态 C 移动端:轨迹压缩,完整回答不可见
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.getByText(ANSWERS[0])).toHaveCount(0);
     await expect(page.locator(".coach-trace")).toHaveCount(1);
@@ -365,7 +365,7 @@ test.describe("移动端 390×844 四状态截图证据", () => {
     // 状态 D 移动端:种子长出,无横向溢出
     await answerUntilQuestion(page, 2, 1);
     await submit(page, ANSWERS[2]);
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(page.locator(".coach-artifact-rail")).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth

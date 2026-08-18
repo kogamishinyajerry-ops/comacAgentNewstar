@@ -55,6 +55,7 @@ export function CoachWorkspaceScene({
   onResponderFocus,
   onAttachmentSelect,
   onAttachmentRemove,
+  onCancelWait,
   onSubmit,
 }: {
   act: CoachAct;
@@ -92,6 +93,8 @@ export function CoachWorkspaceScene({
   onResponderFocus: (focused: boolean) => void;
   onAttachmentSelect: (file: File) => void;
   onAttachmentRemove: () => void;
+  /** 等待期取消(可选):仅真实请求在途时渲染取消入口 */
+  onCancelWait?: () => void;
   onSubmit: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -186,6 +189,13 @@ export function CoachWorkspaceScene({
                     ? "正在把三幕回答凝结成问题种子……"
                     : "Coach 正在收拢这一幕的回答……"}
                 </span>
+                {/* 等待期出口:仅在真实请求在途时出现;取消不是错误,
+                    本幕立即改用本地确定性追问继续 */}
+                {!condensing && pending && onCancelWait && (
+                  <button type="button" className="coach-cancel-wait" onClick={onCancelWait}>
+                    不再等待，改用确定性追问
+                  </button>
+                )}
               </p>
             )}
             {transitionStep === "judgment" && nextAct && (

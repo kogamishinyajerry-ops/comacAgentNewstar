@@ -153,7 +153,7 @@ test.describe("合法附件:Chip、按需隐私确认与一次性发送", () => 
 
     // 请求体:attachment 携带原文与文件名(不截断、不改写)
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect(captured[0].attachment?.name).toBe(ATTACHMENT_NAME);
@@ -184,7 +184,7 @@ test.describe("合法附件:Chip、按需隐私确认与一次性发送", () => 
 
     await submitAnswer(page, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect("attachment" in captured[0]).toBe(false);
@@ -264,16 +264,16 @@ test.describe("附件提示注入不改变 Coach 人格", () => {
     // 注入内容确实随请求外发(作为不可信 attachment 数据,不是指令)
     await expect(page.locator('[data-transition-step="judgment"]')).toContainText(
       SECOND_ACT.judgment,
-      { timeout: 10_000 }
+      { timeout: 15_000 }
     );
     expect(captured[0].attachment?.content).toContain(INJECTION_MARKER);
 
     // 判断/风险/问题逐拍等于 fixture 文案,人格未被改写
     await expect(page.locator('[data-transition-step="risk"]')).toContainText(SECOND_ACT.risk, {
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     // 注入文本不作为 Coach 输出出现在页面上
     await expect(page.locator("body")).not.toContainText(INJECTION_MARKER);
@@ -330,18 +330,18 @@ test.describe("过渡幕折叠 Composer", () => {
 
     // 第一拍:当前判断单独出现,完整 Composer 不渲染(不占视觉中心)
     await expect(page.locator('[data-transition-step="judgment"]')).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.locator(".coach-composer")).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/composer-transition-folded-1440.png` });
 
     // 第二拍:最大风险单独出现,Composer 仍不渲染
-    await expect(page.locator('[data-transition-step="risk"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-transition-step="risk"]')).toBeVisible({ timeout: 15_000 });
     await expect(page.locator(".coach-composer")).toHaveCount(0);
 
     // 时序结束后 Composer 恢复,可继续作答
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.locator(".coach-composer")).toHaveCount(1);
   });
@@ -361,7 +361,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     await expect(page.getByRole("button", { name: ATTACH_LABEL })).toHaveCount(1);
     await submitAnswer(page, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
 
     // 第二幕:附件入口仍在
@@ -369,7 +369,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     await submitAnswer(page, "已有两份历史记录可对照,但缺少统一的对账口径");
     const THIRD_ACT = coachDemoActs.problem[2];
     await expect(page.getByRole("heading", { name: THIRD_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
 
     // 第三幕只在客户端凝结种子:任何承诺"附件将发送"的入口都不得存在
@@ -379,7 +379,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     await expect(page.locator("#coach-attachment-note")).toHaveCount(0);
 
     await submitAnswer(page, "对账口径已在团队内评审过一次,缺的是自动归集");
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
 
     // 只有前两幕产生 Coach POST;第三幕没有请求,种子在客户端凝结
     expect(captured).toHaveLength(2);
@@ -397,7 +397,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     // 第一幕:不带附件,正常提交
     await submitAnswer(page, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect("attachment" in captured[0]).toBe(false);
@@ -412,7 +412,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     await submitAnswer(page, "已有两份历史记录可对照,但缺少统一的对账口径");
     const THIRD_ACT = coachDemoActs.problem[2];
     await expect(page.getByRole("heading", { name: THIRD_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
 
     // 第二幕请求确实携带该附件原文;进入第三幕后 Chip 不跨幕残留
@@ -430,7 +430,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     // 完成第三幕:种子在客户端凝结,全程仍只有前两幕产生 Coach POST;
     // 不存在第三次请求,自然不存在携带附件数据的第三幕请求体
     await submitAnswer(page, "对账口径已在团队内评审过一次,缺的是自动归集");
-    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
     await page.waitForTimeout(300);
     expect(captured).toHaveLength(2);
     expect(captured.map((body) => body.completedAct)).toEqual([0, 1]);
@@ -506,7 +506,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
 
     await send.click();
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect(captured[0].attachment?.content).toBe("异常记录、依据、处理结果分散在三处。");
@@ -580,7 +580,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     // 随后提交:请求体不得携带 attachment 键
     await submitAnswer(page, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect("attachment" in captured[0]).toBe(false);
@@ -623,7 +623,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     // 提交:请求体附件是 B,不含 A 的迟到内容
     await submitAnswer(page, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     await expect(page.getByRole("heading", { name: SECOND_ACT.question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect(captured[0].attachment?.name).toBe("b-second.md");
@@ -659,7 +659,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     // 新流程正常作答:首个请求体不得携带 attachment 键(污染不得进入请求)
     await submitAnswer(page, "评审前夜,团队在三个文档之间来回核对数字");
     await expect(page.getByRole("heading", { name: coachDemoActs.idea[1].question })).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
     expect(captured[0].entry).toBe("idea");

@@ -77,12 +77,15 @@ function transitionMs(): number {
   return 560;
 }
 
-/** 判断/风险每一拍的停留时长;减弱动态时直接切换、缩短停留,信息顺序不变 */
-function stepMs(): number {
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return 220;
-  }
-  return 1150;
+/** 判断/风险每一拍的停留时长:动画下限之上按可见字符数给足阅读时间;
+    减弱动态只缩短动画下限,不剥夺阅读时间(live 文案可达 72 字) */
+function stepMs(text?: string): number {
+  const reduce =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const floor = reduce ? 220 : 1150;
+  if (!text) return floor;
+  return Math.max(floor, Math.ceil(text.replace(/\s/g, "").length * 140));
 }
 
 function delay(ms: number): Promise<void> {
@@ -169,6 +172,9 @@ export function CoachFlow({
   /* 提交瞬间的附件快照:transition effect 从 ref 读取,
      避免 effect 闭包捕获与 exhaustive-deps 压力(与 requestVersionRef 同策) */
   const attachmentRef = useRef<CoachAttachment | null>(null);
+  /* 等待期可取消:持有当前过渡请求的 AbortController,
+     用户取消即中止在途请求、立即改用本地确定性追问 */
+  const waitAbortRef = useRef<AbortController | null>(null);
 
   const transitioning = state.phase === "transition";
   const condensing = transitioning && state.actIndex === ACT_COUNT - 1;
@@ -194,6 +200,7 @@ export function CoachFlow({
     let active = true;
     const requestVersion = ++requestVersionRef.current;
     const controller = new AbortController();
+    waitAbortRef.current = controller;
     const requestTimeout = window.setTimeout(() => controller.abort(), CLIENT_REQUEST_TIMEOUT_MS);
     const minimumTransition = delay(transitionMs());
     const condensingToSeed = state.actIndex >= ACT_COUNT - 1;
@@ -242,13 +249,15 @@ export function CoachFlow({
 
       setProviderPending(false);
 
-      /* 判断 → 风险:同一幕内容的两拍,每拍单独出现、单独退出 */
+      /* 判断 → 风险:同一幕内容的两拍,每拍单独出现、单独退出;
+         停留时长按该拍真实文案的阅读时间自适应(live 长文案不再即焚) */
       if (!condensingToSeed) {
+        const dwellAct = response?.act ?? actsFor(state.entry)[state.actIndex + 1];
         setTransitionStep("judgment");
-        await delay(stepMs());
+        await delay(stepMs(dwellAct.judgment));
         if (!active || requestVersion !== requestVersionRef.current) return;
         setTransitionStep("risk");
-        await delay(stepMs());
+        await delay(stepMs(dwellAct.risk));
         if (!active || requestVersion !== requestVersionRef.current) return;
       }
 
@@ -261,6 +270,7 @@ export function CoachFlow({
       active = false;
       window.clearTimeout(requestTimeout);
       controller.abort();
+      if (waitAbortRef.current === controller) waitAbortRef.current = null;
     };
   }, [state.actIndex, state.answers, state.entry, state.phase]);
 
@@ -344,6 +354,12 @@ export function CoachFlow({
     setAttachmentError(null);
     setAttachmentReading(false);
     attachmentRef.current = null;
+  }
+
+  /** 等待期取消:中止在途请求,本幕立即改用本地确定性追问;
+      用户主动取消不是错误,不触发断网式回退告警(signal.aborted 已防) */
+  function handleCancelWait() {
+    waitAbortRef.current?.abort();
   }
 
   function resetFlow() {
@@ -456,6 +472,7 @@ export function CoachFlow({
             onResponderFocus={setListening}
             onAttachmentSelect={(file) => void handleAttachmentSelect(file)}
             onAttachmentRemove={handleAttachmentRemove}
+            onCancelWait={handleCancelWait}
             onSubmit={handleSubmit}
           />
         )}

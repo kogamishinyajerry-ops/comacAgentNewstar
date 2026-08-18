@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
   },
+  // 判断/风险每拍停留按文案长度自适应(§20),幕间等待普遍变长
+  expect: { timeout: 15_000 },
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {

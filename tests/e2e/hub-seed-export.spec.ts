@@ -9,11 +9,11 @@ async function completeThreeActs(page: Page) {
   await page.goto("/start");
   for (let act = 0; act < 3; act += 1) {
     const responder = page.locator("#coach-answer");
-    await expect(responder).toBeVisible();
+    await expect(responder).toBeVisible({ timeout: 15_000 });
     await responder.fill(`第${act + 1}幕:试验异常记录分散在三处,工程师对账每次多花两小时,需按流程调用工具留痕。`);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
   }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 8000 });
+  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("问题种子导出", () => {
