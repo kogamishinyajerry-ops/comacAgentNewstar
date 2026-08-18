@@ -221,7 +221,8 @@ export type HubCoachOutcome =
   | "network"
   | "invalid-output";
 
-const HUB_COACH_OUTCOMES: readonly HubCoachOutcome[] = [
+/** 已知结局键的唯一权威清单;探针等观测端复用,避免键列表双维护(§26 D3) */
+export const HUB_COACH_OUTCOMES: readonly HubCoachOutcome[] = [
   "live",
   "not-configured",
   "daily-cap",
