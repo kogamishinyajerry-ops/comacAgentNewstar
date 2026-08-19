@@ -4,13 +4,15 @@ import {
   ACT_COUNT,
   advance,
   clearError,
+  composeReviewRounds,
   composeSeed,
   composeSeedText,
-  composeTrace,
   createCoachState,
   currentAct,
   excerpt,
   isSubmittableAnswer,
+  miniSlots,
+  startArtifact,
   submitAnswer,
   visualStateFor,
 } from "../lib/hub/coach-machine";
@@ -102,14 +104,6 @@ describe("coach-machine:问题种子合成", () => {
     expect(excerpt(long, 20).endsWith("……")).toBe(true);
   });
 
-  it("结论轨迹是幕标签加短摘录,不含完整原回答", () => {
-    const answer = "试验异常记录、依据和处理结果分散在三处,对账要来回翻找";
-    const trace = composeTrace(0, answer);
-    expect(trace.startsWith("问题:")).toBe(true);
-    expect(trace.length).toBeLessThan(answer.length);
-    expect(composeTrace(1, "短回答")).toBe("影响:短回答");
-    expect(composeTrace(2, "需要工具")).toBe("Agent 必要性:需要工具");
-  });
 
   it("种子纯文本导出重组既有槽位,不新增结论", () => {
     const seed = {
@@ -166,5 +160,73 @@ describe("coach-machine:两条入口的人格红线", () => {
     for (const banned of ["非常棒", "太好了", "很棒", "厉害", "干得漂亮"]) {
       expect(all).not.toContain(banned);
     }
+  });
+});
+
+describe("coach-machine:打磨轮⑥ 常驻问题卡与回看(§29)", () => {
+  it("miniSlots:未作答时三幕槽全为幽灵,无深化槽", () => {
+    const slots = miniSlots(createCoachState("problem"));
+    expect(slots).toHaveLength(3);
+    for (const slot of slots) {
+      expect(slot.filled).toBe(false);
+      expect(slot.text).toBeNull();
+    }
+    expect(slots.map((slot) => slot.key)).toEqual(["moment", "impact", "necessity"]);
+  });
+
+  it("miniSlots:按幕序点亮,摘录与轨迹同档(20 字),深化槽随回答追加", () => {
+    let s = createCoachState("problem");
+    s = submitAnswer(s, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
+    let slots = miniSlots(s);
+    expect(slots.filter((slot) => slot.filled)).toHaveLength(1);
+    const moment = slots[0];
+    expect(moment.filled).toBe(true);
+    /* 20 字截断加省略号:完整回答默认不可见的压缩原则不破 */
+    expect(moment.text).not.toContain("对账要来回翻找");
+    expect(moment.text?.endsWith("……")).toBe(true);
+
+    s = advance(s);
+    s = submitAnswer(s, "影响试验工程师与复核人,每次对账约多花两小时");
+    s = advance(s);
+    s = submitAnswer(s, "需要记住项目口径,按固定流程调用检索工具逐步核对并留痕");
+    s = advance(s);
+    s = startArtifact(s);
+    s = submitAnswer(s, "大约四十名试验工程师,每周对账三次,每次多花约两小时");
+    slots = miniSlots(s);
+    expect(slots).toHaveLength(4);
+    expect(slots[3].key).toBe("deepening-0");
+    expect(slots[3].filled).toBe(true);
+    expect(slots.slice(0, 3).every((slot) => slot.filled)).toBe(true);
+  });
+
+  it("composeReviewRounds:空状态无轮次;完成后按幕/深化顺序携带全文与当前标记", () => {
+    const actQuestions = ["问一?", "问二?", "问三?"];
+    const artifactQuestions = ["深化一?", "深化二?", "深化三?"];
+    expect(composeReviewRounds(createCoachState("problem"), actQuestions, artifactQuestions)).toEqual([]);
+
+    let s = createCoachState("problem");
+    s = submitAnswer(s, "答一");
+    s = advance(s);
+    /* 第二幕问题态:第一轮已答;当前位置由抽屉「当前」行表达,不在轮次上标记 */
+    let rounds = composeReviewRounds(s, actQuestions, artifactQuestions);
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0]).toMatchObject({ kind: "act", question: "问一?", answer: "答一" });
+    expect("current" in rounds[0]).toBe(false);
+
+    /* 三幕+两轮深化后:五轮全量,全文保留 */
+    s = submitAnswer(s, "答二");
+    s = advance(s);
+    s = submitAnswer(s, "答三");
+    s = advance(s);
+    s = startArtifact(s);
+    s = submitAnswer(s, "深答一");
+    s = advance(s);
+    s = submitAnswer(s, "深答二");
+    s = advance(s);
+    rounds = composeReviewRounds(s, actQuestions, artifactQuestions);
+    expect(rounds).toHaveLength(5);
+    expect(rounds.map((round) => round.kind)).toEqual(["act", "act", "act", "deepening", "deepening"]);
+    /* 回答保留全文(抽屉默认关闭承接压缩原则) */
+    expect(rounds[3].answer).toBe("深答一");
   });
 });

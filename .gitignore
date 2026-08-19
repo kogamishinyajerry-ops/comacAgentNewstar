@@ -16,3 +16,6 @@ next-env.d.ts
 
 # 本地 GUI 测试过程截图(临时产物,不入库;验收证据一律归档 docs/)
 gui-test-screenshots/
+
+# ZCode 会话目录(本地工具产物,不入库)
+.zcode/

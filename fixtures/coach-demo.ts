@@ -137,6 +137,27 @@ export const coachPrivacyNotice =
 export const attachmentPrivacyNotice =
   "本轮回答与附件内容将发送至 AI 服务，仅用于本次分析；请勿上传保密、个人或未公开信息。";
 
+/**
+ * 打磨轮⑥(§29):进展可感知的固定文案——常驻问题卡、进度条、回看抽屉、等待计时。
+ * 只描述状态,不伪造推理内容;高亮只确认"你的回答沉淀到了哪里"。
+ */
+export const coachProgressCopy = {
+  cardTitle: "问题卡",
+  cardNote: "由对话逐格沉淀;深化不等于解决。",
+  ghostLabel: "待打磨",
+  gapsSummary: "缺口 3 条 · 诚实保留",
+  deepeningSectionLabel: "深化记录",
+  reviewLabel: "回看",
+  reviewTitle: "回看全程",
+  reviewMetaLabel: "问答",
+  reviewEmpty: "还没有已完成的问答——回答第一问后,这里会逐轮留下全文。",
+  reviewGuideHint: "离开这条流程,回到活动指南。",
+  waitingPrefix: "AI Coach 正在思考",
+  waitingSecondUnit: "s",
+  depositPrefix: "你的回答已沉淀到「",
+  depositSuffix: "」。",
+} as const;
+
 /** 三幕完成后问题种子的固定提示文案 */
 export const seedCopy = {
   title: "问题种子",

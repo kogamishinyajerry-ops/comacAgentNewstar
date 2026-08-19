@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { CoachAct } from "@/fixtures/coach-demo";
+import { coachProgressCopy } from "@/fixtures/coach-demo";
 import {
   COACH_ATTACHMENT_ACCEPT,
   formatCoachAttachmentSize,
@@ -28,7 +29,6 @@ const COMPOSER_INPUT_MAX_HEIGHT = 144;
 export function CoachWorkspaceScene({
   act,
   nextAct,
-  traces,
   actIndex,
   actCount,
   value,
@@ -49,7 +49,9 @@ export function CoachWorkspaceScene({
   visual,
   visualLabel,
   orbIdPrefix,
-  backHref,
+  flowBackHref,
+  reviewOpen,
+  onOpenReview,
   switchEntryHref,
   switchEntryLabel,
   returnAction,
@@ -63,7 +65,6 @@ export function CoachWorkspaceScene({
   act: CoachAct;
   /** 正在进入的一幕;判断/风险时序只在其内容确定后端上 */
   nextAct: CoachAct | null;
-  traces: readonly string[];
   actIndex: number;
   actCount: number;
   value: string;
@@ -90,7 +91,11 @@ export function CoachWorkspaceScene({
   visual: CoachVisualState;
   visualLabel: string;
   orbIdPrefix: string;
-  backHref: string;
+  /** 打磨轮⑥:顶栏左槽——尚无回答的第一幕保留指南出口,此后让位给"回看" */
+  flowBackHref: string | null;
+  /** 回看抽屉开态(触发器 aria-expanded 用) */
+  reviewOpen: boolean;
+  onOpenReview: () => void;
   /** 换一条入口链接(三幕态);深化轮不传 */
   switchEntryHref?: string;
   switchEntryLabel?: string;
@@ -110,6 +115,20 @@ export function CoachWorkspaceScene({
   const judgmentRef = useRef<HTMLParagraphElement>(null);
   const riskRef = useRef<HTMLParagraphElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  /* 打磨轮⑥:真实请求在途的已等待秒数——只报状态不伪造阶段(§29 G2) */
+  const [waitSeconds, setWaitSeconds] = useState(0);
+  useEffect(() => {
+    if (!pending) {
+      setWaitSeconds(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(
+      () => setWaitSeconds(Math.floor((Date.now() - startedAt) / 1000)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [pending]);
   const answerDescription = [
     attachmentEnabled && attachment ? "coach-attachment-note" : null,
     error ? "coach-answer-error" : null,
@@ -132,14 +151,14 @@ export function CoachWorkspaceScene({
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
+      top: scrollRef.current?.scrollHeight ?? 0,
       behavior: reduceMotion ? "auto" : "smooth",
     });
     /* 新一幕问题端上后,焦点接续到回答器(回答器由问题标题命名) */
     if (!transitioning && actIndex > 0) {
       textareaRef.current?.focus();
     }
-  }, [actIndex, traces.length, transitioning]);
+  }, [actIndex, transitioning]);
 
   /* 自动增高:单行起步,随内容长到上限后出现内部滚动;
      提交清空或过渡折叠后重新挂载时回到单行 */
@@ -153,9 +172,23 @@ export function CoachWorkspaceScene({
   return (
     <div className="coach-workspace-dialog coach-solo" data-phase={transitioning ? "transition" : "question"}>
       <div className="coach-topbar">
-        <Link href={backHref} className="coach-topbar-back hub-quiet-link">
-          ← 返回活动指南
-        </Link>
+        {/* 打磨轮⑥:黄金位让给流程上下文——尚无回答的第一幕保留唯一出口,
+            此后左槽是"回看";指南链接在抽屉页脚常驻可达 */}
+        {flowBackHref ? (
+          <Link href={flowBackHref} className="coach-topbar-back hub-quiet-link">
+            ← 返回活动指南
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="coach-topbar-back hub-quiet-link"
+            data-coach-review-trigger
+            aria-expanded={reviewOpen}
+            onClick={onOpenReview}
+          >
+            ← {coachProgressCopy.reviewLabel}
+          </button>
+        )}
         <p
           className="coach-workspace-count"
           aria-label={
@@ -199,25 +232,22 @@ export function CoachWorkspaceScene({
           <span className="coach-state-hint-label">AI Coach · {visualLabel}</span>
         </div>
 
-        {traces.length > 0 && (
-          <ol className="coach-trace-list" aria-label="已完成的结论轨迹">
-            {traces.map((line, index) => (
-              <li className="coach-trace" key={`${index}-${line}`}>
-                {line}
-              </li>
-            ))}
-          </ol>
-        )}
-
         {transitioning ? (
           <div className="coach-transition">
             {transitionStep === "collect" && (
-              <p className="coach-step" data-transition-step="collect">
+              <p className="coach-step motion-step-in" data-transition-step="collect">
                 <span ref={collectRef} tabIndex={-1} data-step-kind="collect" className="coach-step-text">
                   {condensing
                     ? "正在把三幕回答凝结成问题种子……"
                     : "Coach 正在收拢这一幕的回答……"}
                 </span>
+                {/* 打磨轮⑥:等待计时只报已等待时长,不伪造推理阶段 */}
+                {pending && (
+                  <span className="coach-wait-timer" data-coach-waiting aria-hidden="true">
+                    {coachProgressCopy.waitingPrefix} · {waitSeconds}
+                    {coachProgressCopy.waitingSecondUnit}
+                  </span>
+                )}
                 {/* 等待期出口:仅在真实请求在途时出现;取消不是错误,
                     本幕立即改用本地确定性追问继续 */}
                 {!condensing && pending && onCancelWait && (
@@ -228,7 +258,11 @@ export function CoachWorkspaceScene({
               </p>
             )}
             {transitionStep === "judgment" && nextAct && (
-              <section className="coach-step coach-step--judgment" data-transition-step="judgment" aria-label="当前判断">
+              <section
+                className="coach-step coach-step--judgment motion-step-in"
+                data-transition-step="judgment"
+                aria-label="当前判断"
+              >
                 <p className="coach-step-label">当前判断</p>
                 <p ref={judgmentRef} tabIndex={-1} data-step-kind="judgment" className="coach-step-text">
                   {nextAct.judgment}
@@ -236,7 +270,11 @@ export function CoachWorkspaceScene({
               </section>
             )}
             {transitionStep === "risk" && nextAct && (
-              <section className="coach-step coach-step--risk" data-transition-step="risk" aria-label="最大风险">
+              <section
+                className="coach-step coach-step--risk motion-step-in"
+                data-transition-step="risk"
+                aria-label="最大风险"
+              >
                 <p className="coach-step-label">最大风险</p>
                 <p ref={riskRef} tabIndex={-1} data-step-kind="risk" className="coach-step-text">
                   {nextAct.risk}
@@ -245,7 +283,8 @@ export function CoachWorkspaceScene({
             )}
           </div>
         ) : (
-          <div className="coach-current">
+          /* key 随主问题变化:新一问自右轻移入场,解释"流程在前进" */
+          <div className="coach-current motion-step-in" key={act.question}>
             {/* 任一时刻只有一个语义主标题,且就是当前主问题 */}
             <h1 className="coach-question" id="coach-question">
               {act.question}

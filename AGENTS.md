@@ -46,7 +46,12 @@ refresh and closure. Following that closure the user authorized **Act 4
 the seed, session-only, one question per scene, deterministic composition,
 clipboard export, live Coach with unchanged three-field contract. The
 participant "completion state" decision remains open and gates later
-artifacts.
+artifacts. Polish round ⑥ "progress-legible interaction" (§29, same day) is
+also delivered: persistent problem card with ghost→filled→highlight slots,
+full Q/A review drawer, honest waiting timer, directional scene motion, and
+topbar replan; provider contract, routes, and persistence are untouched.
+Chain-level changes (streaming output, a thinking-summary field, editable
+back-steps) remain unauthorized future work.
 
 Do not expand the milestone into:
 

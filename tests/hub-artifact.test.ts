@@ -5,7 +5,6 @@ import {
   artifactActsFor,
   composeArtifact,
   composeArtifactText,
-  composeArtifactTrace,
   createCoachState,
   returnToSeed,
   startArtifact,
@@ -136,12 +135,6 @@ describe("第四幕:确定性合成与导出", () => {
     expect(text).toContain("【缺口】");
     expect(text).not.toContain("已解决");
     expect(text).not.toContain("验证完成");
-  });
-
-  it("深化轨迹与三幕轨迹同形:维度标签加短摘录", () => {
-    const trace = composeArtifactTrace(0, DEEPENING_ANSWERS[0]);
-    expect(trace).toContain("深化·影响量化:");
-    expect(trace.length).toBeLessThanOrEqual(40);
   });
 
   it("fixture 三轮文案满足三字段合同:长度/问号/合计 50-150,无泛化夸奖", () => {

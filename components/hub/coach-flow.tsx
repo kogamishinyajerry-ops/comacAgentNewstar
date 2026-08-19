@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
-import Link from "next/link";
 import { COACH_STATE_LABELS } from "./coach-orb";
 import { CoachWorkspaceScene, type CoachTransitionStep } from "./coach-workspace-scene";
+import { CoachMiniCard } from "./coach-mini-card";
+import { CoachReviewDrawer } from "./coach-review-drawer";
 import { SeedCard } from "./seed-card";
 import { ArtifactCard } from "./artifact-card";
 import {
   artifactCopy,
   attachmentPrivacyNotice,
   coachPrivacyNotice,
+  coachProgressCopy,
   seedCopy,
   type CoachAct,
   type CoachEntry,
@@ -26,15 +28,16 @@ import {
   actsFor,
   clearError,
   composeArtifact,
-  composeArtifactTrace,
+  composeReviewRounds,
   composeSeed,
-  composeTrace,
   createCoachState,
   currentAct,
   isSubmittableAnswer,
+  miniSlots,
   returnToSeed,
   startArtifact,
   submitAnswer,
+  TRACE_LABELS,
   visualStateFor,
   type CoachState,
 } from "@/lib/hub/coach-machine";
@@ -199,6 +202,10 @@ export function CoachFlow({
   const [attachment, setAttachment] = useState<CoachAttachment | null>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [attachmentReading, setAttachmentReading] = useState(false);
+  /* 打磨轮⑥:回看抽屉开态;关闭时焦点回触发器 */
+  const [reviewOpen, setReviewOpen] = useState(false);
+  /* 刚沉淀的槽位 key(保留到下次提交/重置):小卡高亮 + sr-only 播报用 */
+  const [justFilledKey, setJustFilledKey] = useState<string | null>(null);
   const seedHeadingRef = useRef<HTMLHeadingElement>(null);
   const seedScrollRef = useRef<HTMLDivElement>(null);
   const artifactHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -384,11 +391,7 @@ export function CoachFlow({
     state.artifactRound < ARTIFACT_ROUND_COUNT - 1
       ? (artifactRemoteActs[state.artifactRound + 1] ?? artifactFallbackActs[state.artifactRound + 1])
       : null;
-  /* 深化轮轨迹接在三幕轨迹之后,同一列表承载全部已完成结论 */
-  const traces = [
-    ...state.answers.map((text, index) => composeTrace(index, text)),
-    ...state.artifactAnswers.map((text, index) => composeArtifactTrace(index, text)),
-  ];
+  /* 深化轮轨迹退役(§29 G6):压缩上下文由常驻小卡承接,完整回看由抽屉承接 */
   const providerStatus = transitioning
     ? null
     : providerMode === "live"
@@ -416,6 +419,15 @@ export function CoachFlow({
        同时作废读取令牌,提交后不允许任何在途读取回写(深化轮无附件入口,快照恒为空) */
     attachmentRef.current = attachment;
     attachmentReadTokenRef.current += 1;
+    /* 打磨轮⑥:标记刚沉淀的槽位——回答在提交瞬间即写入状态机,
+       小卡立即可见"你的回答去了哪里",不必等模型返回 */
+    setJustFilledKey(
+      artifactStage
+        ? `deepening-${Math.min(state.artifactRound, ARTIFACT_ROUND_COUNT - 1)}`
+        : (["moment", "impact", "necessity"] as const)[
+            Math.min(state.actIndex, ACT_COUNT - 1)
+          ],
+    );
     dispatch({ type: "submit", answer });
     setAnswer("");
     setListening(false);
@@ -484,12 +496,37 @@ export function CoachFlow({
     setAttachmentError(null);
     setAttachmentReading(false);
     attachmentRef.current = null;
+    setJustFilledKey(null);
+    setReviewOpen(false);
   }
 
   const seed = state.phase === "seed" ? composeSeed(state) : null;
   const artifactDone = state.phase === "artifact-done" ? composeArtifact(state) : null;
   const grown = Boolean(seed || artifactDone);
   const backHref = "/guide";
+  /* 打磨轮⑥派生:常驻小卡、回看数据、当前轮标记、指南出口的阶段性行为 */
+  const progressSlots = miniSlots(state);
+  const reviewRounds = composeReviewRounds(
+    state,
+    resolvedActs.map((item) => item.question),
+    artifactFallbackActs.map(
+      (fixture, index) => artifactRemoteActs[index]?.question ?? fixture.question,
+    ),
+  );
+  const currentRoundLabel =
+    state.phase === "question"
+      ? `第 ${state.actIndex + 1} 幕 · ${TRACE_LABELS[state.actIndex] ?? ""}`
+      : state.phase === "artifact-question"
+        ? `深化 ${state.artifactRound + 1} · ${
+            artifactCopy.dimensionLabels[Math.min(state.artifactRound, ARTIFACT_ROUND_COUNT - 1)]
+          }`
+        : null;
+  const flowBackHref =
+    state.phase === "question" && state.actIndex === 0 && state.answers.length === 0
+      ? backHref
+      : null;
+  const justFilledLabel =
+    progressSlots.find((slot) => slot.key === justFilledKey)?.label ?? null;
   const switchEntryHref = state.entry === "problem" ? `${entryBasePath}?entry=idea` : entryBasePath;
   const switchEntryLabel = state.entry === "problem" ? "换一条入口:从已有想法开始" : "换一条入口:从真实问题开始";
   const nextAct = state.actIndex < ACT_COUNT - 1 ? resolvedActs[state.actIndex + 1] : null;
@@ -498,16 +535,22 @@ export function CoachFlow({
 
   return (
     <div
-      className={`coach-workspace-grid coach-stage${grown ? " coach-workspace-grid--grown" : ""}`}
+      className={`coach-workspace-grid coach-stage${grown ? " coach-workspace-grid--grown" : " coach-workspace-grid--duo"}`}
       aria-busy={transitioning || providerPending}
     >
       {grown ? (
         /* 状态 D:问题种子/问题定义凝结后,工作空间才长出来 */
         <div className="coach-grown">
           <div className="coach-topbar">
-            <Link href={backHref} className="coach-topbar-back hub-quiet-link">
-              ← 返回活动指南
-            </Link>
+            <button
+              type="button"
+              className="coach-topbar-back hub-quiet-link"
+              data-coach-review-trigger
+              aria-expanded={reviewOpen}
+              onClick={() => setReviewOpen(true)}
+            >
+              ← {coachProgressCopy.reviewLabel}
+            </button>
             <p className="coach-workspace-count">
               {artifactDone ? "问题定义已深化" : "问题种子已形成"}
             </p>
@@ -586,100 +629,102 @@ export function CoachFlow({
             </div>
           </div>
         </div>
-      ) : artifactStage ? (
-        <CoachWorkspaceScene
-          act={artifactAct}
-          nextAct={artifactNextAct}
-          traces={traces}
-          actIndex={state.artifactRound}
-          actCount={ARTIFACT_ROUND_COUNT}
-          counterPrefix={artifactCopy.counterPrefix}
-          value={answer}
-          error={state.error}
-          transitioning={transitioning}
-          condensing={condensing}
-          transitionStep={transitionStep}
-          pending={providerPending}
-          attachment={null}
-          attachmentError={null}
-          attachmentNotice={attachmentPrivacyNotice}
-          /* 深化轮隐私披露与三幕同构:round 0/1 的回答会外发,末轮客户端凝结不外发 */
-          privacyNotice={
-            state.artifactRound < ARTIFACT_ROUND_COUNT - 1 ? coachPrivacyNotice : null
-          }
-          attachmentEnabled={false}
-          attachmentReading={false}
-          providerStatus={providerStatus}
-          providerError={providerError}
-          visual={visual}
-          visualLabel={COACH_STATE_LABELS[visual]}
-          orbIdPrefix={orbIdPrefix}
-          backHref={backHref}
-          returnAction={{
-            label: `← ${artifactCopy.backToSeedLabel}`,
-            onClick: () => dispatch({ type: "returnToSeed" }),
-          }}
-          onChange={(value) => {
-            setAnswer(value);
-            if (state.error) dispatch({ type: "clearError" });
-            if (providerError) setProviderError(null);
-          }}
-          onResponderFocus={setListening}
-          onAttachmentSelect={() => undefined}
-          onAttachmentRemove={() => undefined}
-          onCancelWait={handleCancelWait}
-          onSubmit={handleSubmit}
-        />
       ) : (
-        <CoachWorkspaceScene
-          act={act}
-          nextAct={nextAct}
-          traces={traces}
-          actIndex={state.actIndex}
-          actCount={ACT_COUNT}
-          value={answer}
-          error={state.error}
-          transitioning={transitioning}
-          condensing={condensing}
-          transitionStep={transitionStep}
-          pending={providerPending}
-          attachment={attachment}
-          attachmentError={attachmentError}
-          attachmentNotice={attachmentPrivacyNotice}
-          privacyNotice={state.actIndex < ACT_COUNT - 1 ? coachPrivacyNotice : null}
-          attachmentEnabled={state.actIndex < ACT_COUNT - 1}
-          attachmentReading={attachmentReading}
-          providerStatus={providerStatus}
-          providerError={providerError}
-          visual={visual}
-          visualLabel={COACH_STATE_LABELS[visual]}
-          orbIdPrefix={orbIdPrefix}
-          backHref={backHref}
-          switchEntryHref={switchEntryHref}
-          switchEntryLabel={switchEntryLabel}
-          onChange={(value) => {
-            setAnswer(value);
-            if (state.error) dispatch({ type: "clearError" });
-            if (providerError) setProviderError(null);
-          }}
-          onResponderFocus={setListening}
-          onAttachmentSelect={(file) => void handleAttachmentSelect(file)}
-          onAttachmentRemove={handleAttachmentRemove}
-          onCancelWait={handleCancelWait}
-          onSubmit={handleSubmit}
-        />
+        <>
+          {/* 打磨轮⑥:常驻问题卡(桌面右栏/窄屏进度条),与主场景同格渲染;
+              只读上下文,不是第二决策点 */}
+          <CoachMiniCard
+            slots={progressSlots}
+            showDeepenings={artifactStage}
+            justFilledKey={justFilledKey}
+            waiting={providerPending}
+          />
+          <CoachWorkspaceScene
+            act={artifactStage ? artifactAct : act}
+            nextAct={artifactStage ? artifactNextAct : nextAct}
+            actIndex={artifactStage ? state.artifactRound : state.actIndex}
+            actCount={artifactStage ? ARTIFACT_ROUND_COUNT : ACT_COUNT}
+            counterPrefix={artifactStage ? artifactCopy.counterPrefix : undefined}
+            value={answer}
+            error={state.error}
+            transitioning={transitioning}
+            condensing={condensing}
+            transitionStep={transitionStep}
+            pending={providerPending}
+            attachment={artifactStage ? null : attachment}
+            attachmentError={artifactStage ? null : attachmentError}
+            attachmentNotice={attachmentPrivacyNotice}
+            /* 隐私前置披露:会外发的幕/轮常驻,客户端凝结的末幕/末轮不渲染 */
+            privacyNotice={
+              artifactStage
+                ? state.artifactRound < ARTIFACT_ROUND_COUNT - 1
+                  ? coachPrivacyNotice
+                  : null
+                : state.actIndex < ACT_COUNT - 1
+                  ? coachPrivacyNotice
+                  : null
+            }
+            attachmentEnabled={!artifactStage && state.actIndex < ACT_COUNT - 1}
+            attachmentReading={attachmentReading}
+            providerStatus={providerStatus}
+            providerError={providerError}
+            visual={visual}
+            visualLabel={COACH_STATE_LABELS[visual]}
+            orbIdPrefix={orbIdPrefix}
+            flowBackHref={flowBackHref}
+            reviewOpen={reviewOpen}
+            onOpenReview={() => setReviewOpen(true)}
+            switchEntryHref={artifactStage ? undefined : switchEntryHref}
+            switchEntryLabel={artifactStage ? undefined : switchEntryLabel}
+            returnAction={
+              artifactStage
+                ? {
+                    label: `← ${artifactCopy.backToSeedLabel}`,
+                    onClick: () => dispatch({ type: "returnToSeed" }),
+                  }
+                : undefined
+            }
+            onChange={(value) => {
+              setAnswer(value);
+              if (state.error) dispatch({ type: "clearError" });
+              if (providerError) setProviderError(null);
+            }}
+            onResponderFocus={setListening}
+            onAttachmentSelect={(file) => {
+              if (!artifactStage) void handleAttachmentSelect(file);
+            }}
+            onAttachmentRemove={handleAttachmentRemove}
+            onCancelWait={handleCancelWait}
+            onSubmit={handleSubmit}
+          />
+        </>
       )}
 
+      {/* 打磨轮⑥:回看抽屉(关闭时内容不挂载,焦点回触发器) */}
+      <CoachReviewDrawer
+        open={reviewOpen}
+        rounds={reviewRounds}
+        currentLabel={currentRoundLabel}
+        guideHref={backHref}
+        onClose={() => {
+          setReviewOpen(false);
+          document.querySelector<HTMLButtonElement>("[data-coach-review-trigger]")?.focus();
+        }}
+      />
+
       {/* 场景更迭播报:过渡期各拍由焦点元素自播报,这里不再复述;
-          问题由回答器的 aria-labelledby 朗读,避免同一内容重复朗读 */}
+          问题由回答器的 aria-labelledby 朗读,避免同一内容重复朗读;
+          打磨轮⑥:提交瞬间播报"回答沉淀到了哪一格" */}
       <p aria-live="polite" className="sr-only">
-        {seed
-          ? `三幕完成，已凝结为问题种子。${seedCopy.subtitle}`
-          : artifactDone
-            ? `三轮深化完成，已凝结为${artifactCopy.title}。${artifactCopy.doneSubtitle}`
-            : transitioning
-              ? ""
-              : providerStatus ?? ""}
+        {justFilledKey && justFilledLabel && transitioning
+          ? `${coachProgressCopy.depositPrefix}${justFilledLabel}${coachProgressCopy.depositSuffix}`
+          : seed
+            ? `三幕完成，已凝结为问题种子。${seedCopy.subtitle}`
+            : artifactDone
+              ? `三轮深化完成，已凝结为${artifactCopy.title}。${artifactCopy.doneSubtitle}`
+              : transitioning
+                ? ""
+                : providerStatus ?? ""}
       </p>
     </div>
   );

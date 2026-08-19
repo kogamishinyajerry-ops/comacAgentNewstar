@@ -192,14 +192,8 @@ export function excerpt(raw: string, max = EXCERPT_MAX): string {
   return text.slice(0, Math.max(0, max - 2)) + "……";
 }
 
-/** 已完成幕在一行结论轨迹中的标签(历史退为轨迹,不再保留完整问答气泡) */
+/** 已完成幕的短标签(回看抽屉的轮次标签沿用同一命名) */
 export const TRACE_LABELS = ["问题", "影响", "Agent 必要性"] as const;
-
-/** 一行结论轨迹:幕标签 + 短摘录;完整原回答默认不再展示 */
-export function composeTrace(actIndex: number, answer: string): string {
-  const label = TRACE_LABELS[actIndex] ?? `第 ${actIndex + 1} 幕`;
-  return `${label}:${excerpt(answer, 20)}`;
-}
 
 export function composeSeed(state: CoachState): QuestionSeed {
   const [moment = "", impact = "", necessity = ""] = state.answers;
@@ -233,10 +227,75 @@ export function composeSeedText(seed: QuestionSeed): string {
   ].join("\n");
 }
 
-/** 深化轮在一行结论轨迹中的标签(与三幕轨迹同形) */
-export function composeArtifactTrace(round: number, answer: string): string {
-  const label = artifactCopy.dimensionLabels[round] ?? `第 ${round + 1} 轮`;
-  return `${artifactCopy.counterPrefix}·${label}:${excerpt(answer, 20)}`;
+/**
+ * 打磨轮⑥:常驻问题卡的槽位派生(纯函数)。
+ * 三幕槽按回答序点亮;深化槽只在已有深化回答时出现;
+ * 摘录与轨迹同档(20 字),维持"完整回答默认不可见"的压缩原则。
+ */
+export type MiniSlotKey = "moment" | "impact" | "necessity" | "deepening-0" | "deepening-1" | "deepening-2";
+
+export interface MiniSlot {
+  key: MiniSlotKey;
+  /** 展示槽名(与种子槽/深化维度一致) */
+  label: string;
+  filled: boolean;
+  /** 已填充时的短摘录;幽灵槽为 null */
+  text: string | null;
+}
+
+/** 深化槽只在第四幕阶段渲染(由组件按 phase 判定,本函数只给数据) */
+export function miniSlots(state: CoachState): MiniSlot[] {
+  const actDefs: readonly { key: MiniSlotKey; label: string }[] = [
+    { key: "moment", label: seedCopy.slots.moment },
+    { key: "impact", label: seedCopy.slots.impact },
+    { key: "necessity", label: seedCopy.slots.necessity },
+  ];
+  const acts = actDefs.map(({ key, label }, index): MiniSlot => {
+    const answer = state.answers[index];
+    return answer === undefined
+      ? { key, label, filled: false, text: null }
+      : { key, label, filled: true, text: excerpt(answer, 20) };
+  });
+  const deepenings = state.artifactAnswers.map((answer, index): MiniSlot => ({
+    key: (`deepening-${index}` as MiniSlotKey),
+    label: artifactCopy.dimensionLabels[index] ?? `深化 ${index + 1}`,
+    filled: true,
+    text: excerpt(answer, 20),
+  }));
+  return [...acts, ...deepenings];
+}
+
+/**
+ * 打磨轮⑥:回看抽屉的数据构造(纯函数)。
+ * 问题取"实际被问出的那一问"(live 覆盖优先,fixture 兜底);
+ * 回答保留全文——抽屉默认不挂载,压缩原则由"关闭"承接。
+ * 当前位置不在此标记(被问的轮必无回答),由抽屉顶部的「当前」行表达。
+ */
+export interface ReviewRound {
+  kind: "act" | "deepening";
+  label: string;
+  question: string;
+  answer: string;
+}
+
+export function composeReviewRounds(
+  state: CoachState,
+  actQuestions: readonly string[],
+  artifactQuestions: readonly string[],
+): ReviewRound[] {
+  const actRounds = state.answers.map((answer, index): ReviewRound => ({
+    kind: "act",
+    label: TRACE_LABELS[index] ?? `第 ${index + 1} 幕`,
+    question: actQuestions[index] ?? "",
+    answer,
+  }));
+  const deepeningRounds = state.artifactAnswers.map((answer, index): ReviewRound => ({
+    kind: "deepening",
+    label: artifactCopy.dimensionLabels[index] ?? `第 ${index + 1} 轮`,
+    question: artifactQuestions[index] ?? "",
+    answer,
+  }));
+  return [...actRounds, ...deepeningRounds];
 }
 
 /** 问题定义:种子三槽 + 三轮深化记录;缺口原样保留(深化不等于解决) */

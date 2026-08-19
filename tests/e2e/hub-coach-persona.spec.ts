@@ -199,19 +199,24 @@ test.describe("状态 C:后续幕的历史压缩轨迹", () => {
     await expect(page.locator(".coach-message--user")).toHaveCount(0);
     await expect(page.locator(".coach-message--coach")).toHaveCount(0);
 
-    // 压缩轨迹:一行结论,含幕标签,远短于原回答
-    const traces = page.locator(".coach-trace");
-    await expect(traces).toHaveCount(1);
-    const traceText = (await traces.first().textContent()) ?? "";
-    expect(traceText).toContain("问题");
-    expect(traceText.length).toBeLessThan(ANSWERS[0].length);
+    // 打磨轮⑥(§29):回答沉淀到常驻问题卡第一格(20 字摘录),完整回答不可见
+    const momentSlot = page.locator('[data-coach-slot="moment"]');
+    await expect(momentSlot).toHaveAttribute("data-coach-slot-filled", "true");
+    expect((await momentSlot.textContent()) ?? "").not.toContain(ANSWERS[0]);
+    await expect(page.locator('[data-coach-slot="impact"]')).toHaveAttribute(
+      "data-coach-slot-filled",
+      "false",
+    );
 
-    // 第三幕:两条轨迹,当前问题仍占据视觉中心
+    // 第三幕:两格已沉淀,当前问题仍占据视觉中心
     await submit(page, ANSWERS[1]);
     await expect(page.getByRole("heading", { name: QUESTIONS[2] })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.locator(".coach-trace")).toHaveCount(2);
+    await expect(page.locator('[data-coach-slot="impact"]')).toHaveAttribute(
+      "data-coach-slot-filled",
+      "true",
+    );
     await expect(page.getByText(ANSWERS[1])).toHaveCount(0);
     await expect(page.locator("h1")).toHaveText(QUESTIONS[2]);
     await page.screenshot({ path: `${SHOTS}/state-c-traces-1440.png` });
@@ -305,7 +310,10 @@ test.describe("移动端 375×812 与桌面 1280×800 视口", () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
     await answerUntilQuestion(page, 1);
-    await expect(page.locator(".coach-trace")).toHaveCount(1);
+    await expect(page.locator('[data-coach-slot="moment"]')).toHaveAttribute(
+      "data-coach-slot-filled",
+      "true",
+    );
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );
@@ -356,7 +364,10 @@ test.describe("移动端 390×844 四状态截图证据", () => {
       timeout: 15_000,
     });
     await expect(page.getByText(ANSWERS[0])).toHaveCount(0);
-    await expect(page.locator(".coach-trace")).toHaveCount(1);
+    await expect(page.locator('[data-coach-slot="moment"]')).toHaveAttribute(
+      "data-coach-slot-filled",
+      "true",
+    );
     await page.screenshot({ path: `${SHOTS}/state-c-traces-390.png` });
 
     // 状态 D 移动端:种子长出,无横向溢出

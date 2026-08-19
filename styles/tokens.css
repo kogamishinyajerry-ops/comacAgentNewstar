@@ -633,9 +633,249 @@
     display: flex;
     flex-direction: column;
   }
-  /* 种子形成后:工作空间长出,占满可用宽度(任务书§四状态 D) */
+  /* 种子形成后:工作空间长出,占满可用宽度(任务书§四状态 D);
+     打磨轮⑥补记:宽屏与双栏统一 1360 上限,横屏空间不再闲置 */
   .coach-workspace-grid--grown {
-    width: min(100%, 1180px);
+    width: min(100%, 1360px);
+  }
+  /* 打磨轮⑥(§29):非 grown 态双栏——主场景 + 常驻问题卡(右栏) */
+  .coach-workspace-grid--duo {
+    width: min(100%, 1360px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-areas: "scene progress";
+    gap: 12px;
+  }
+  .coach-workspace-grid--duo > .coach-workspace-dialog {
+    grid-area: scene;
+  }
+  .coach-workspace-grid--duo > .coach-progress {
+    grid-area: progress;
+  }
+  /* 常驻问题卡:由对话逐格沉淀的可视模板;只读,不抢主问题的决策焦点 */
+  .coach-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    padding: 14px;
+    border: 1px solid rgba(53, 104, 232, 0.18);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 16px 50px rgba(23, 34, 56, 0.05);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .coach-progress-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    color: var(--text-tertiary);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .coach-progress-count {
+    color: var(--accent-coach-strong);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .coach-progress-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .coach-progress-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 7px 9px;
+    border: 1px dashed var(--border-strong);
+    border-radius: 5px;
+  }
+  .coach-progress-slot--filled {
+    border-style: solid;
+    border-color: rgba(53, 104, 232, 0.32);
+    background: rgba(255, 255, 255, 0.9);
+  }
+  .coach-progress-slot-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+  }
+  .coach-progress-slot--filled .coach-progress-slot-label {
+    color: var(--accent-coach-strong);
+  }
+  .coach-progress-slot-text {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-primary);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .coach-progress-deepening {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-subtle);
+  }
+  .coach-progress-subtitle {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-evidence);
+  }
+  .coach-progress-gaps {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0;
+    padding: 7px 9px;
+    border: 1px dashed var(--accent-gap);
+    border-radius: 5px;
+    background: var(--accent-gap-soft);
+    color: var(--accent-gap);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .coach-progress-note {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-tertiary);
+  }
+  /* 等待计时:只报已等待时长,不伪造推理阶段(§29 G2) */
+  .coach-wait-timer {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-tertiary);
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+  /* 回看抽屉:自左入场(回到历史),模态面板;未打开时不挂载 */
+  .coach-review-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+  }
+  .coach-review-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(23, 34, 56, 0.28);
+  }
+  .coach-review-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(400px, 88vw);
+    height: 100%;
+    padding: 18px 18px 14px;
+    background: rgba(255, 255, 255, 0.98);
+    border-right: 1px solid var(--border-subtle);
+    box-shadow: 24px 0 60px rgba(23, 34, 56, 0.14);
+  }
+  .coach-review-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .coach-review-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: var(--font-hub-display);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .coach-review-close {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text-tertiary);
+  }
+  .coach-review-empty {
+    margin: 18px 0 0;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .coach-review-list {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .coach-review-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.85);
+  }
+  .coach-review-item--current {
+    border-color: rgba(53, 104, 232, 0.5);
+    box-shadow: 0 0 0 2px rgba(53, 104, 232, 0.12);
+  }
+  .coach-review-item-label {
+    margin: 0;
+    color: var(--accent-coach-strong);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .coach-review-item-q,
+  .coach-review-item-a {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+  .coach-review-item-q {
+    color: var(--text-tertiary);
+  }
+  .coach-review-current {
+    flex: none;
+    margin: 10px 0 0;
+    color: var(--accent-coach-strong);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .coach-review-foot {
+    flex: none;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .coach-review-guide {
+    font-size: 12px;
   }
   /* 顶栏:极弱返回 + 幕号 + 弱化换入口,不承担导航与解释 */
   .coach-topbar {
@@ -686,24 +926,6 @@
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
-  }
-  /* 已完成幕退为一行结论轨迹,完整原回答默认不可见(状态 C) */
-  .coach-trace-list {
-    display: flex;
-    flex: none;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 14px;
-  }
-  .coach-trace {
-    padding: 6px 12px;
-    border: 1px solid var(--border-subtle);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
-    color: var(--text-secondary);
-    font-size: 12px;
-    line-height: 1.5;
   }
   /* 当前主问题:任一时刻唯一语义主标题 */
   .coach-current {
@@ -783,7 +1005,7 @@
   }
   .coach-question {
     margin: 0;
-    max-width: 720px;
+    max-width: 800px;
     color: var(--text-primary);
     font-family: var(--font-hub-display);
     font-size: clamp(24px, 2.6vw, 36px);
@@ -1202,6 +1424,25 @@
       0%, 100% { transform: rotate(-1.5deg) translateY(0); }
       50% { transform: rotate(1.5deg) translateY(-4px); }
     }
+    /* 打磨轮⑥(§29):自右轻移入场——流程在前进 */
+    @keyframes hub-step-in {
+      from { transform: translateX(26px); opacity: 0; }
+      to { transform: none; opacity: 1; }
+    }
+    /* 刚沉淀槽位:一次扩散脉冲;等待期改为呼吸微光,请求落定即停 */
+    @keyframes hub-slot-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(53, 104, 232, 0.35); }
+      100% { box-shadow: 0 0 0 9px rgba(53, 104, 232, 0); }
+    }
+    @keyframes hub-slot-glow {
+      0%, 100% { border-color: rgba(53, 104, 232, 0.32); }
+      50% { border-color: rgba(53, 104, 232, 0.8); }
+    }
+    /* 回看抽屉:自左入场——回到历史 */
+    @keyframes hub-drawer-in {
+      from { transform: translateX(-40px); opacity: 0.4; }
+      to { transform: none; opacity: 1; }
+    }
 
     /* 端上来:内容自下浮现 */
     .motion-rise { animation: hub-rise var(--dur-rise) var(--ease-soft) both; }
@@ -1211,9 +1452,17 @@
     .motion-condense { animation: hub-condense var(--dur-scene) var(--ease-soft) both; }
     /* 取到眼前:关键物靠近 */
     .motion-approach { animation: hub-approach var(--dur-rise) var(--ease-soft) both; }
-    /* 幕间时序逐拍端上:判断/风险单独出现;已完成回答收拢为一行轨迹 */
-    .coach-step { animation: hub-rise 320ms var(--ease-soft) both; }
-    .coach-trace { animation: hub-rise 260ms var(--ease-soft) both; }
+    /* 打磨轮⑥:新一问与过渡各拍自右轻移入场 */
+    .motion-step-in { animation: hub-step-in var(--dur-scene) var(--ease-soft) both; }
+    /* 刚沉淀的卡槽:先脉冲两次;等待期改呼吸微光 */
+    .coach-progress-slot--just { animation: hub-slot-pulse 900ms var(--ease-soft) 2; }
+    .coach-progress[data-coach-progress-waiting="true"] .coach-progress-slot--just {
+      animation: hub-slot-glow 1.6s ease-in-out infinite;
+    }
+    /* 回看抽屉自左入场 */
+    .coach-review-panel { animation: hub-drawer-in 320ms var(--ease-soft) both; }
+    /* 幕间时序逐拍端上:打磨轮⑥改为自右轻移入场,解释流程前进方向 */
+    .coach-step { animation: hub-step-in 320ms var(--ease-soft) both; }
     /* confirmed:一次脉冲后静止 */
     .motion-pulse-once { animation: hub-pulse-once 620ms var(--ease-soft) both; }
     /* 平面标记只做缓慢套色漂移，不模拟说话、呼吸或体积光。 */
@@ -1282,6 +1531,67 @@
     .coach-workspace-grid--grown {
       width: min(100%, 980px);
     }
+    /* 打磨轮⑥:窄屏双栏折叠为上下结构,问题卡退为顶栏下方一行进度条 */
+    .coach-workspace-grid--duo {
+      width: min(100%, 820px);
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        "progress"
+        "scene";
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
+    }
+    .coach-progress {
+      flex-direction: row;
+      align-items: stretch;
+      gap: 6px;
+      padding: 5px 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .coach-progress-title {
+      flex: none;
+      align-self: center;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .coach-progress-slots {
+      flex: 1;
+      flex-direction: row;
+      gap: 6px;
+    }
+    .coach-progress-slot {
+      flex: 1;
+      padding: 4px 8px;
+    }
+    .coach-progress-slot-text {
+      -webkit-line-clamp: 1;
+      font-size: 11px;
+    }
+    .coach-progress-deepening {
+      flex: 1;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      padding-top: 0;
+      border-top: 0;
+      border-left: 1px dashed var(--border-subtle);
+      padding-left: 8px;
+    }
+    .coach-progress-subtitle {
+      flex: none;
+    }
+    .coach-progress-slots--deepening {
+      flex: none;
+    }
+    .coach-progress-gaps {
+      flex: none;
+      padding: 4px 8px;
+      font-size: 10.5px;
+    }
+    .coach-progress-note {
+      display: none;
+    }
     .coach-grown-body {
       grid-template-columns: 132px minmax(0, 1fr);
       gap: 8px;
@@ -1329,13 +1639,18 @@
     .coach-state-hint-label {
       font-size: 10px;
     }
-    .coach-trace-list {
-      margin-top: 10px;
-      gap: 6px;
+    /* 打磨轮⑥:移动端进度条进一步压缩(单行摘录、摘要常驻、说明退场) */
+    .coach-progress {
+      gap: 5px;
+      padding: 4px 6px;
     }
-    .coach-trace {
-      padding: 4px 10px;
-      font-size: 11px;
+    .coach-progress-slot-text {
+      -webkit-line-clamp: 1;
+      font-size: 10.5px;
+    }
+    .coach-progress-gaps {
+      padding: 3px 6px;
+      font-size: 10px;
     }
     .coach-question {
       font-size: 20px;
