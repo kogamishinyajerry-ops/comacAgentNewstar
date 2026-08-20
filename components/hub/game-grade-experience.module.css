@@ -1,0 +1,651 @@
+.shell {
+  position: relative;
+  display: grid;
+  grid-template-rows: 76px minmax(0, 1fr);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% -20%, color-mix(in srgb, var(--accent-coach) 9%, transparent), transparent 44%),
+    var(--surface-canvas);
+  isolation: isolate;
+}
+
+.worldTrace {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.5fr) minmax(430px, 1.5fr);
+  align-items: center;
+  gap: clamp(20px, 4vw, 64px);
+  min-width: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-coach) 15%, var(--border-subtle));
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--surface-primary) 96%, transparent), color-mix(in srgb, var(--surface-focus) 91%, transparent));
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--text-primary) 3.5%, transparent);
+  padding: 10px clamp(18px, 4vw, 54px);
+}
+
+.worldTrace::after {
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-coach) 45%, transparent), transparent);
+  content: "";
+  opacity: 0.55;
+  transform: scaleX(0.72);
+}
+
+.traceCopy {
+  min-width: 0;
+}
+
+.traceEyebrow {
+  display: block;
+  color: var(--accent-coach-strong);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.traceStatus {
+  margin: 3px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.traceNodes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.traceNode {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--text-tertiary);
+}
+
+.traceDot {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 5%, transparent);
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 800;
+  transition:
+    border-color var(--dur-rise) var(--ease-soft),
+    background-color var(--dur-rise) var(--ease-soft),
+    box-shadow var(--dur-rise) var(--ease-soft),
+    color var(--dur-rise) var(--ease-soft),
+    transform var(--dur-rise) var(--ease-soft);
+}
+
+.traceLabel {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--dur-rise) var(--ease-soft);
+}
+
+.traceConnector {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 28px;
+  width: calc(100% - 28px);
+  height: 1px;
+  background: linear-gradient(90deg, var(--border-strong), color-mix(in srgb, var(--border-strong) 45%, transparent));
+  content: "";
+  transform: translateY(-50%);
+  transform-origin: left center;
+  transition: background-color var(--dur-rise) var(--ease-soft), opacity var(--dur-rise) var(--ease-soft);
+}
+
+.traceNode[data-world-state="current"] {
+  color: var(--text-primary);
+}
+
+.traceNode[data-world-state="current"] .traceDot {
+  border-color: var(--accent-coach);
+  box-shadow:
+    0 0 0 4px var(--accent-coach-soft),
+    0 8px 18px color-mix(in srgb, var(--accent-coach) 13%, transparent);
+  color: var(--accent-coach-strong);
+  transform: translateY(-1px);
+}
+
+.traceNode[data-world-state="filled"] {
+  color: var(--text-primary);
+}
+
+.traceNode[data-world-state="filled"] .traceDot {
+  border-color: var(--accent-coach);
+  background: var(--accent-coach);
+  color: #fff;
+}
+
+.traceNode[data-world-state="filled"] .traceConnector {
+  background: linear-gradient(90deg, var(--accent-coach), color-mix(in srgb, var(--accent-coach) 35%, var(--border-strong)));
+}
+
+.worldTrace[data-world-status="confirmed"] .traceDot {
+  border-color: var(--accent-evidence);
+  background: var(--accent-evidence);
+}
+
+.worldTrace[data-world-status="confirmed"] .traceConnector {
+  background: var(--accent-evidence);
+}
+
+.worldTrace[data-world-status="confirmed"] .traceStatus {
+  color: var(--accent-evidence);
+}
+
+.worldTrace[data-world-status="reordering"] .traceDot {
+  animation: trace-collect 540ms var(--ease-soft) both;
+}
+
+.workbench {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workbench :global(.hub-workspace-screen) {
+  height: 100%;
+  padding-top: 10px;
+}
+
+.prologue {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    linear-gradient(115deg, rgba(245, 247, 252, 0.97) 0%, rgba(245, 247, 252, 0.9) 46%, rgba(238, 241, 249, 0.95) 100%),
+    url("/hub/art/hub-hero-cognitive-canvas.webp") center / cover no-repeat;
+  padding: max(22px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) max(22px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+}
+
+.prologueAtmosphere {
+  position: absolute;
+  inset: -18%;
+  background:
+    radial-gradient(circle at 25% 42%, color-mix(in srgb, var(--accent-purple) 16%, transparent), transparent 31%),
+    radial-gradient(circle at 70% 48%, color-mix(in srgb, var(--accent-coach) 15%, transparent), transparent 34%),
+    linear-gradient(105deg, transparent 0 42%, color-mix(in srgb, var(--surface-primary) 28%, transparent) 42% 58%, transparent 58%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+.prologuePanel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(420px, 1.1fr);
+  width: min(1080px, 94vw);
+  min-height: min(650px, 82vh);
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-coach) 18%, var(--border-subtle));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-primary) 88%, transparent);
+  box-shadow:
+    0 2px 4px color-mix(in srgb, var(--text-primary) 4%, transparent),
+    0 32px 90px color-mix(in srgb, var(--text-primary) 13%, transparent);
+  backdrop-filter: blur(20px);
+  isolation: isolate;
+}
+
+.prologuePanel::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--accent-coach) 4%, transparent), transparent 43%),
+    url("/hub/art/paper-atlas-texture.webp") center / 900px 900px;
+  content: "";
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.prologue[data-intro-state="open"] .prologuePanel {
+  animation: prologue-arrive 720ms var(--ease-soft) both;
+}
+
+.prologue[data-intro-state="closing"] {
+  animation: prologue-leave 520ms var(--ease-soft) both;
+  pointer-events: none;
+}
+
+.prologueVisual {
+  position: relative;
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+}
+
+.prologueVisual::before,
+.prologueVisual::after {
+  position: absolute;
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+}
+
+.prologueVisual::before {
+  width: 310px;
+  height: 310px;
+  border: 1px solid color-mix(in srgb, var(--accent-coach) 16%, transparent);
+  box-shadow: inset 0 0 80px color-mix(in srgb, var(--accent-coach) 5%, transparent);
+}
+
+.prologueVisual::after {
+  width: 390px;
+  height: 390px;
+  border: 1px dashed color-mix(in srgb, var(--accent-purple) 16%, transparent);
+}
+
+.prologueOrbit {
+  position: absolute;
+  width: 470px;
+  height: 180px;
+  border: 1px solid color-mix(in srgb, var(--accent-coach) 17%, transparent);
+  border-radius: 50%;
+  transform: rotate(-14deg);
+}
+
+.prologueOrb {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 24px 42px color-mix(in srgb, var(--accent-coach) 20%, transparent));
+}
+
+.prologueCopy {
+  position: relative;
+  z-index: 2;
+  padding: clamp(40px, 6vw, 76px) clamp(36px, 6vw, 80px) clamp(40px, 6vw, 72px) clamp(22px, 3vw, 38px);
+}
+
+.prologueEyebrow {
+  margin: 0;
+  color: var(--accent-coach-strong);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.prologueTitle {
+  max-width: 650px;
+  margin: 18px 0 0;
+  color: var(--text-primary);
+  font-family: var(--font-hub-display);
+  font-size: clamp(38px, 4.2vw, 58px);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.17;
+  text-wrap: balance;
+}
+
+.prologueBody {
+  max-width: 590px;
+  margin: 24px 0 0;
+  color: var(--text-secondary);
+  font-size: clamp(15px, 1.35vw, 18px);
+  line-height: 1.75;
+}
+
+.prologueRules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 26px;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.prologueRules span {
+  position: relative;
+  padding-left: 15px;
+}
+
+.prologueRules span::before {
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-coach);
+  box-shadow: 0 0 0 4px var(--accent-coach-soft);
+  content: "";
+}
+
+.prologueActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 22px;
+  margin-top: 34px;
+}
+
+.primaryAction {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  border: 1px solid var(--accent-coach);
+  border-radius: 8px;
+  background: var(--accent-coach);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--accent-coach) 23%, transparent);
+  padding: 11px 22px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.4;
+  transition:
+    background-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft),
+    transform var(--dur-micro) var(--ease-soft);
+}
+
+.primaryAction:hover {
+  background: var(--accent-coach-strong);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--accent-coach) 29%, transparent);
+  transform: translateY(-1px);
+}
+
+.primaryAction:active {
+  transform: translateY(0);
+}
+
+.primaryAction:focus-visible,
+.simpleModeLink:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent-coach) 35%, transparent);
+  outline-offset: 4px;
+}
+
+.simpleModeLink {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 6px;
+  transition: color var(--dur-micro) var(--ease-soft), text-decoration-color var(--dur-micro) var(--ease-soft);
+}
+
+.simpleModeLink:hover {
+  color: var(--accent-coach-strong);
+  text-decoration-color: var(--accent-coach);
+}
+
+.prologueNote {
+  margin: 22px 0 0;
+  color: var(--text-tertiary);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+@keyframes prologue-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes prologue-leave {
+  0% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes trace-collect {
+  0% {
+    transform: scale(1);
+  }
+  55% {
+    transform: scale(0.82);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-rows: 68px minmax(0, 1fr);
+  }
+
+  .worldTrace {
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 18px;
+    padding-inline: 16px;
+  }
+
+  .traceLabel {
+    font-size: 10.5px;
+  }
+
+  .prologuePanel {
+    grid-template-columns: minmax(220px, 0.72fr) minmax(360px, 1.28fr);
+  }
+
+  .prologueVisual::after {
+    width: 320px;
+    height: 320px;
+  }
+
+  .prologueOrbit {
+    width: 350px;
+  }
+}
+
+@media (max-width: 767px) {
+  .shell {
+    grid-template-rows: 60px minmax(0, 1fr);
+  }
+
+  .worldTrace {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 6px 10px;
+  }
+
+  .traceCopy {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .traceEyebrow {
+    flex: none;
+    font-size: 8.5px;
+  }
+
+  .traceStatus {
+    margin: 0;
+    font-size: 9.5px;
+  }
+
+  .traceDot {
+    width: 22px;
+    height: 22px;
+    font-size: 8px;
+  }
+
+  .traceNode {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .traceLabel {
+    font-size: 9px;
+  }
+
+  .traceConnector {
+    left: 22px;
+    width: calc(100% - 22px);
+  }
+
+  .workbench :global(.hub-workspace-screen) {
+    padding-top: 6px;
+  }
+
+  .prologue {
+    align-items: stretch;
+    overflow-y: auto;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+
+  .prologuePanel {
+    grid-template-columns: 1fr;
+    width: min(100%, 520px);
+    min-height: 0;
+    margin-block: auto;
+    border-radius: 12px;
+  }
+
+  .prologueVisual {
+    min-height: 184px;
+  }
+
+  .prologueVisual::before {
+    width: 174px;
+    height: 174px;
+  }
+
+  .prologueVisual::after {
+    width: 214px;
+    height: 214px;
+  }
+
+  .prologueOrbit {
+    width: 250px;
+    height: 94px;
+  }
+
+  .prologueOrb {
+    width: 146px !important;
+    height: 146px !important;
+  }
+
+  .prologueCopy {
+    padding: 8px 24px 28px;
+  }
+
+  .prologueEyebrow {
+    font-size: 10px;
+  }
+
+  .prologueTitle {
+    margin-top: 12px;
+    font-size: clamp(29px, 9vw, 40px);
+    letter-spacing: -0.03em;
+  }
+
+  .prologueBody {
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.66;
+  }
+
+  .prologueRules {
+    gap: 6px 15px;
+    margin-top: 18px;
+    font-size: 10.5px;
+  }
+
+  .prologueRules span {
+    padding-left: 12px;
+  }
+
+  .prologueRules span::before {
+    width: 5px;
+    height: 5px;
+  }
+
+  .prologueActions {
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .primaryAction {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+
+  .simpleModeLink {
+    align-self: center;
+    padding: 7px 3px;
+  }
+
+  .prologueNote {
+    margin-top: 15px;
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prologue,
+  .prologuePanel,
+  .traceDot {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .primaryAction,
+  .simpleModeLink,
+  .traceLabel,
+  .traceConnector {
+    transition: none !important;
+  }
+
+  .primaryAction:hover {
+    transform: none;
+  }
+}
