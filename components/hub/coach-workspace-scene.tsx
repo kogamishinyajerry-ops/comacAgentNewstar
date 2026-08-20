@@ -144,8 +144,15 @@ export function CoachWorkspaceScene({
   const displayActIndex = transitioning ? Math.min(actIndex + 1, actCount - 1) : actIndex;
 
   /* 提交后回答器折叠,焦点会掉到 body;时序各拍显式落在对应步骤文本上,
-     每拍自播报,不再依赖 aria-live 复述,避免同一内容重复朗读。 */
+     每拍自播报,不再依赖 aria-live 复述,避免同一内容重复朗读。
+     回看抽屉(模态)开着时不得抢焦点——焦点陷阱不破(ref 镜像读开态,
+     不把 reviewOpen 放进依赖,避免抽屉关闭瞬间重新抢走已归还触发器的焦点) */
+  const reviewOpenRef = useRef(reviewOpen);
   useEffect(() => {
+    reviewOpenRef.current = reviewOpen;
+  }, [reviewOpen]);
+  useEffect(() => {
+    if (reviewOpenRef.current) return;
     if (transitionStep === "collect") collectRef.current?.focus();
     else if (transitionStep === "judgment") judgmentRef.current?.focus();
     else if (transitionStep === "risk") riskRef.current?.focus();
@@ -158,8 +165,9 @@ export function CoachWorkspaceScene({
       behavior: reduceMotion ? "auto" : "smooth",
     });
     /* 新一幕问题端上后,焦点接续到回答器(回答器由问题标题命名);
-       建立拍经「开始第一问」进入第一幕时同样接续(focusSignal>0) */
-    if (!transitioning && (actIndex > 0 || focusSignal > 0)) {
+       建立拍经「开始第一问」进入第一幕时同样接续(focusSignal>0);
+       回看抽屉开态不抢焦点(模态焦点陷阱不破) */
+    if (!transitioning && (actIndex > 0 || focusSignal > 0) && !reviewOpenRef.current) {
       textareaRef.current?.focus();
     }
   }, [actIndex, transitioning, focusSignal]);

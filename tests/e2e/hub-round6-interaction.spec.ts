@@ -111,6 +111,36 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
     await expect(trigger).toBeFocused();
   });
 
+  test("过渡期打开回看抽屉:过渡拍不抢焦点,Esc 仍关闭并归还焦点(§31 修复)", async ({ page }) => {
+    /* mock 响应加延迟撑开过渡窗口:抽屉开态下 judgment/risk 拍会正常更替 */
+    await page.route("**/api/hub/coach", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      await route.continue();
+    });
+    await page.goto("/start");
+    await beginCoach(page);
+    await submitCoachAnswer(page, ANSWERS[0]);
+
+    const trigger = page.locator("[data-coach-review-trigger]");
+    await trigger.click();
+    await expect(page.locator("[data-coach-review]")).toBeVisible();
+
+    /* 过渡拍更替(judgment 端上)时,焦点仍在抽屉面板内——模态焦点陷阱不被抢走 */
+    await expect(page.locator('[data-transition-step="judgment"]')).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.activeElement?.closest("[data-coach-review]") !== null),
+      )
+      .toBe(true);
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator("[data-coach-review]")).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  });
+
   test("深化阶段:小卡渲染固定三维模板,完成点亮、未完保持幽灵", async ({ page }) => {
     await completeThreeActs(page);
     await page.locator("[data-artifact-entry]").click();

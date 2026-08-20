@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // 并行 dev 隔离:默认不变。另一会话同时跑 dev 时共享 .next 会互写清单
+  // 导致路由间歇 404,此时以 NEXT_DIST_DIR=.next/live 之类切换独立目录。
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   async headers() {
     return [
