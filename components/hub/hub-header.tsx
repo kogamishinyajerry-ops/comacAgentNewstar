@@ -34,9 +34,12 @@ function BrandMark() {
 }
 
 export function HubHeader() {
-  /* 两个 Coach 入口均不显示自指 CTA，避免整棵状态树重挂载并丢失进度。 */
+  /* 三个 Coach 入口均不显示自指 CTA，避免整棵状态树重挂载并丢失进度。 */
   const pathname = usePathname();
-  const onWorkbench = pathname === "/" || pathname === "/start";
+  const onWorkbench =
+    pathname === "/" ||
+    pathname === "/start" ||
+    pathname === "/experience";
   const [open, setOpen] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +54,9 @@ export function HubHeader() {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    drawerRef.current?.querySelector<HTMLElement>("[data-drawer-initial-focus]")?.focus();
+    drawerRef.current
+      ?.querySelector<HTMLElement>("[data-drawer-initial-focus]")
+      ?.focus();
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -63,8 +68,8 @@ export function HubHeader() {
       if (!scope) return;
       const focusables = Array.from(
         scope.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
       );
       if (focusables.length === 0) return;
       const first = focusables[0];
@@ -154,7 +159,9 @@ export function HubHeader() {
               onClick={() => close(false)}
             >
               {item.label}
-              <span aria-hidden className="text-[var(--text-tertiary)]">→</span>
+              <span aria-hidden className="text-[var(--text-tertiary)]">
+                →
+              </span>
             </Link>
           ))}
         </nav>

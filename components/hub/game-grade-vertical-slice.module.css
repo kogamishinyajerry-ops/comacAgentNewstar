@@ -1,0 +1,221 @@
+.root {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 75% 18%, rgba(124, 98, 232, 0.09), transparent 31%),
+    radial-gradient(circle at 16% 82%, rgba(43, 85, 201, 0.08), transparent 34%),
+    linear-gradient(155deg, #f8f9fc, #f2f4f9 54%, #faf8f2);
+}
+
+.root::before,
+.root::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.root::before {
+  inset: -8%;
+  opacity: 0.2;
+  filter: saturate(0.72) contrast(0.9);
+  transform: scale(1.04);
+  background:
+    linear-gradient(90deg, rgba(248, 249, 252, 0.86), rgba(248, 249, 252, 0.38)),
+    url("/hub/art/hub-hero-cognitive-canvas.webp") center / cover no-repeat;
+}
+
+.root::after {
+  opacity: 0.75;
+  background-image:
+    linear-gradient(rgba(43, 85, 201, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 85, 201, 0.032) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, #000, transparent 84%);
+}
+
+.world {
+  position: absolute;
+  inset: 64px 0 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.worldArc,
+.worldCore,
+.worldNode {
+  position: absolute;
+  transition:
+    opacity 540ms var(--ease-soft),
+    transform 540ms var(--ease-soft),
+    box-shadow 540ms var(--ease-soft),
+    border-color 540ms var(--ease-soft);
+}
+
+.worldArc {
+  left: 50%;
+  top: 48%;
+  width: min(78vw, 980px);
+  height: min(38vw, 430px);
+  border: 1px solid rgba(43, 85, 201, 0.08);
+  border-right-color: rgba(124, 98, 232, 0.11);
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  opacity: 0.44;
+  transform: translate(-50%, -50%) rotate(-7deg);
+}
+
+.worldCore {
+  left: 50%;
+  top: 50%;
+  width: 170px;
+  height: 170px;
+  border: 1px solid rgba(43, 85, 201, 0.08);
+  border-radius: 50%;
+  opacity: 0.25;
+  transform: translate(-50%, -50%) scale(0.82);
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.78) 0 13%, rgba(43, 85, 201, 0.08) 14% 33%, transparent 34%),
+    radial-gradient(circle, rgba(124, 98, 232, 0.08), transparent 68%);
+  box-shadow: 0 0 80px rgba(43, 85, 201, 0.06);
+}
+
+.worldNode {
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(43, 85, 201, 0.32);
+  border-radius: 50%;
+  opacity: 0.22;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 7px rgba(43, 85, 201, 0.025);
+}
+
+.worldNodeOne { left: 18%; top: 61%; }
+.worldNodeTwo { left: 50%; top: 33%; }
+.worldNodeThree { right: 16%; top: 58%; }
+
+.world[data-completed="1"] .worldNodeOne,
+.world[data-completed="2"] .worldNodeOne,
+.world[data-completed="2"] .worldNodeTwo,
+.world[data-completed="3"] .worldNodeOne,
+.world[data-completed="3"] .worldNodeTwo,
+.world[data-completed="3"] .worldNodeThree {
+  opacity: 0.74;
+  transform: scale(1.12);
+  background: var(--accent-coach);
+  box-shadow:
+    0 0 0 7px rgba(43, 85, 201, 0.055),
+    0 0 26px rgba(43, 85, 201, 0.13);
+}
+
+.world[data-completed="3"] .worldArc {
+  opacity: 0.68;
+  transform: translate(-50%, -50%) rotate(0deg);
+  border-color: rgba(43, 85, 201, 0.16);
+  border-bottom-color: transparent;
+}
+
+.world[data-completed="3"] .worldCore {
+  opacity: 0.66;
+  transform: translate(-50%, -50%) scale(1);
+  box-shadow:
+    0 0 0 18px rgba(43, 85, 201, 0.025),
+    0 0 96px rgba(43, 85, 201, 0.12);
+}
+
+.stage {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  min-height: 0;
+  transition:
+    opacity 500ms var(--ease-soft),
+    transform 620ms var(--ease-soft),
+    filter 620ms var(--ease-soft);
+}
+
+.root[data-intro-state="open"] .stage {
+  opacity: 0.12;
+  filter: blur(9px);
+  transform: scale(0.985);
+}
+
+.root[data-intro-state="leaving"] .stage {
+  opacity: 0.7;
+  filter: blur(2px);
+  transform: scale(0.995);
+}
+
+.root[data-intro-state="closed"] .stage {
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
+
+.stage > :global(.hub-workspace-screen) {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 78px 18px 18px;
+  background: transparent;
+}
+
+.stage :global(.coach-workspace-dialog),
+.stage :global(.coach-progress),
+.stage :global(.coach-grown) {
+  border-color: color-mix(in srgb, var(--accent-coach) 12%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-primary) 94%, transparent);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.88),
+    0 24px 70px rgba(23, 34, 56, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.stage :global(.coach-orb) {
+  filter: drop-shadow(0 18px 36px rgba(43, 85, 201, 0.1));
+}
+
+.stage :global(#coach-answer) {
+  background: color-mix(in srgb, var(--surface-primary) 96%, transparent);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.88),
+    0 12px 32px rgba(23, 34, 56, 0.045);
+}
+
+.stage :global(a[href="/start"]),
+.stage :global(a[href="/start?entry=idea"]) {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .world { inset: 58px 0 0; }
+  .worldArc { width: 130vw; height: 64vw; }
+  .worldCore { width: 120px; height: 120px; }
+  .stage > :global(.hub-workspace-screen) { padding: 65px 8px 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .worldArc,
+  .worldCore,
+  .worldNode {
+    transition: none !important;
+  }
+  .root[data-intro-state="open"] .stage {
+    filter: none;
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .root { background: Canvas; }
+  .world,
+  .root::before,
+  .root::after { display: none; }
+}
