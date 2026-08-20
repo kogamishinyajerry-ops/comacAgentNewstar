@@ -57,6 +57,12 @@ test.describe("J-1 建立拍", () => {
     await expect(intro).toBeVisible();
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h1")).toHaveText(coachIntroCopy.title);
+    /* §33:站点导航栏不在场;品牌眉行补活动身份,顶栏给流程位置 */
+    await expect(page.locator(".hub-header")).toHaveCount(0);
+    await expect(page.locator("[data-coach-intro-brand]")).toHaveText(
+      "COMAC 青年 AI Agent 创新实践月",
+    );
+    await expect(page.locator(".coach-workspace-count")).toHaveText("开始之前 · 到场与流程");
     for (const key of ["workbuddy", "group", "site"] as const) {
       await expect(page.locator(`[data-intro-step="${key}"]`)).toBeVisible();
     }
@@ -86,6 +92,8 @@ test.describe("J-1 建立拍", () => {
 
     await begin.click();
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
+    /* §33 K2:顶栏流程位置文字化 */
+    await expect(page.locator(".coach-workspace-count")).toHaveText("第 1 幕 · 问题(共 3 幕)");
     await expect(page.locator("#coach-answer")).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => document.activeElement?.id), { timeout: 15_000 })

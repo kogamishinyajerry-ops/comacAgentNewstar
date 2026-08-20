@@ -34,7 +34,9 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await expect(
       page.getByRole("heading", { name: "你最想改变的具体工作瞬间是什么?" })
     ).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "主导航" })).toBeVisible();
+    /* §33 K1:工作台页站点导航不渲染(主导航/burger/品牌图都不在场) */
+    await expect(page.getByRole("navigation", { name: "主导航" })).toHaveCount(0);
+    await expect(page.locator(".hub-header")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "打开导航菜单" })).toHaveCount(0);
     await expect(page.locator(".hub-brand img")).toHaveCount(0);
     const switchEntry = page.getByRole("link", { name: /换一条入口/ });

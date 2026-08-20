@@ -58,6 +58,7 @@ export function HubHeader() {
         close();
         return;
       }
+
       if (e.key !== "Tab") return;
       const scope = drawerRef.current;
       if (!scope) return;
@@ -83,6 +84,10 @@ export function HubHeader() {
       document.body.style.overflow = previousOverflow;
     };
   }, [open, close]);
+
+  /* §33 K1:工作台页是全幅 Agent 工作台,站点导航栏在此只增加使用与理解成本,
+     直接不渲染(布局为 flex,主区自动占满);指南/角色等内容页保留站点 chrome */
+  if (onWorkbench) return null;
 
   return (
     /* 抽屉必须留在 header 之外:header 的 backdrop-filter 会成为

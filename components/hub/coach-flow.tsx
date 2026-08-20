@@ -727,6 +727,7 @@ export function CoachFlow({
             nextAct={artifactStage ? artifactNextAct : nextAct}
             actIndex={artifactStage ? state.artifactRound : state.actIndex}
             actCount={artifactStage ? ARTIFACT_ROUND_COUNT : ACT_COUNT}
+            stageLabels={artifactStage ? artifactCopy.dimensionLabels : TRACE_LABELS}
             counterPrefix={artifactStage ? artifactCopy.counterPrefix : undefined}
             value={answer}
             error={state.error}

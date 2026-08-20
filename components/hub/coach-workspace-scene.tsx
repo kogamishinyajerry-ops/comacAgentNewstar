@@ -31,6 +31,7 @@ export function CoachWorkspaceScene({
   nextAct,
   actIndex,
   actCount,
+  stageLabels,
   value,
   error,
   transitioning,
@@ -68,6 +69,8 @@ export function CoachWorkspaceScene({
   nextAct: CoachAct | null;
   actIndex: number;
   actCount: number;
+  /** §33 K2:顶栏流程位置文字化的各幕/轮标签(如 问题/影响/Agent 必要性) */
+  stageLabels: readonly string[];
   value: string;
   error: string | null;
   transitioning: boolean;
@@ -205,12 +208,15 @@ export function CoachWorkspaceScene({
           className="coach-workspace-count"
           aria-label={
             counterPrefix
-              ? `${counterPrefix}第 ${displayActIndex + 1} 轮，共 ${actCount} 轮`
-              : `第 ${displayActIndex + 1} 幕，共 ${actCount} 幕`
+              ? `${counterPrefix}第 ${displayActIndex + 1} 轮，共 ${actCount} 轮:${stageLabels[displayActIndex] ?? ""}`
+              : `第 ${displayActIndex + 1} 幕，共 ${actCount} 幕:${stageLabels[displayActIndex] ?? ""}`
           }
         >
+          {/* §33 K2:流程位置文字化——纯数字只有进度感,文字才是流程引导 */}
           {counterPrefix && <span className="coach-count-prefix">{counterPrefix} </span>}
-          {String(displayActIndex + 1).padStart(2, "0")} / {String(actCount).padStart(2, "0")}
+          {`第 ${displayActIndex + 1} ${counterPrefix ? "轮" : "幕"} · ${
+            stageLabels[displayActIndex] ?? ""
+          }(共 ${actCount} ${counterPrefix ? "轮" : "幕"})`}
         </p>
         {returnAction ? (
           <button

@@ -44,6 +44,8 @@ test.describe("桌面 1440×900", () => {
     await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
     await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
+    /* §33 K1:工作台页是全幅 Agent 工作台,站点导航栏不渲染 */
+    await expect(page.locator(".hub-header")).toHaveCount(0);
     await expect(page.locator(".hub-footer")).toBeHidden();
     // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分;
     // 也不把技术名词当首屏卖点(01号基线§10 第16条,§25 C3)
@@ -126,13 +128,13 @@ test.describe("桌面 1440×900", () => {
         `锚点 ${href} 应有对应元素`
       ).toBe(true);
     }
-    // 站内路由全部可达
+    // 站内路由全部可达(§33 K1:工作台无站点导航,链接集=指南出口/换入口/定向层)
     const routes = new Set(
       hrefs
         .filter((h) => h.startsWith("/") && !h.startsWith("/#") && !h.includes("://"))
         .map((h) => h.split("#")[0])
     );
-    expect(routes.size).toBeGreaterThanOrEqual(3);
+    expect(routes.size).toBeGreaterThanOrEqual(2);
     for (const route of routes) {
       const res = await request.get(route);
       expect(res.status(), `GET ${route}`).toBeLessThan(400);
@@ -172,8 +174,9 @@ test.describe("桌面 1440×900", () => {
   });
 
   test("9. 键盘完成角色选择与移动端抽屉(键盘 Esc 复位)", async ({ page }) => {
-    await page.goto("/");
-    // Tab 到参赛者入口并回车
+    /* §33 K1:工作台页已无站点导航,角色入口的规范位置是 /guide「你的下一步」 */
+    await page.goto("/guide");
+    // Tab 到「我是参赛者」并回车
     for (let i = 0; i < 80; i++) {
       const focused = await page.evaluate(() => document.activeElement?.getAttribute("href"));
       if (focused === "/role/participant") break;
@@ -218,7 +221,7 @@ test.describe("移动端 390×844", () => {
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
   });
 
-  test("11. 移动端 Coach 单焦点场景与抽屉导航", async ({ page }) => {
+  test("11. 移动端 Coach 单焦点场景", async ({ page }) => {
     await page.goto("/start");
     await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
@@ -228,15 +231,9 @@ test.describe("移动端 390×844", () => {
     await expect(
       page.getByRole("heading", { name: ACT_QUESTIONS.problem[1] })
     ).toBeVisible({ timeout: 15_000 });
+    /* §33 K1:工作台页站点导航(含 burger 抽屉)已移除;
+       抽屉导航闭环由 a11y 套件在 /guide 覆盖 */
+    await expect(page.locator(".hub-header")).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/coach-390.png` });
-
-    // 抽屉:打开 → 链接可达 → Esc 关闭并归还焦点
-    const burger = page.getByRole("button", { name: "打开导航菜单" });
-    await burger.click();
-    await expect(page.locator("#hub-drawer")).toHaveAttribute("data-open", "true");
-    await expect(page.locator("#hub-drawer").getByRole("link", { name: "活动指南" })).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#hub-drawer")).toHaveAttribute("data-open", "false");
-    await expect(burger).toBeFocused();
   });
 });

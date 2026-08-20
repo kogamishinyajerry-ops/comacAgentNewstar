@@ -61,7 +61,7 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
 
     // 保留的七个元素:极弱返回、幕号、Coach 状态提示、主问题、回答器、附件按钮、主提交
     await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
-    await expect(page.getByText("01 / 03")).toBeVisible();
+    await expect(page.getByText("第 1 幕 · 问题(共 3 幕)")).toBeVisible();
     // begin 后焦点接续到回答器(§31 J-1),状态提示由"静候"转为"倾听",均为合法首幕态
     await expect(page.getByText(/AI Coach · (静候|倾听)/)).toBeVisible();
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { coachIntroCopy, coachPrivacyNotice } from "@/fixtures/coach-demo";
 import { arrivalSteps, PENDING_LABEL } from "@/config/activity";
+import { site } from "@/config/site";
 import { COACH_STATE_LABELS, CoachOrb } from "./coach-orb";
 
 /**
@@ -28,6 +29,8 @@ export function CoachIntroScene({
         <Link href={guideHref} className="coach-topbar-back hub-quiet-link">
           ← 返回活动指南
         </Link>
+        {/* §33 K2/K3:工作台无站点导航栏,顶栏中央给出流程位置与活动身份 */}
+        <p className="coach-workspace-count">开始之前 · 到场与流程</p>
         <span className="coach-topbar-spacer" aria-hidden="true" />
       </div>
 
@@ -42,7 +45,10 @@ export function CoachIntroScene({
         </div>
 
         <div className="coach-intro motion-step-in" data-coach-intro>
-          {/* 任一时刻只有一个语义主标题 */}
+          {/* 任一时刻只有一个语义主标题;眉行补活动身份(§33 K3:头部已移除) */}
+          <p className="hub-eyebrow" data-coach-intro-brand>
+            {site.brand.name}
+          </p>
           <h1 className="coach-question" id="coach-intro-title">
             {coachIntroCopy.title}
           </h1>
