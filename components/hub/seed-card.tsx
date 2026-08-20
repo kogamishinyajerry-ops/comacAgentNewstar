@@ -27,12 +27,16 @@ export function SeedCard({
   meta,
   headingRef,
   headingId = "coach-seed-title",
+  onStartArtifact,
 }: {
   seed: QuestionSeed;
   /** P0-1:导出可追述元信息(会话卡号 + 凝结时刻本地时钟) */
   meta: ExportMeta;
   headingRef?: RefObject<HTMLHeadingElement>;
   headingId?: string;
+  /** 打磨轮⑦(§32 I3):grown 态单一主行动——卡内直启第四幕深化;
+      场景演示页不传则不渲染该 CTA */
+  onStartArtifact?: () => void;
 }) {
   const [copyState, setCopyState] = useState<"idle" | "done" | "failed">("idle");
 
@@ -110,13 +114,27 @@ export function SeedCard({
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-        <Link href={seedCopy.cta.href} className="hub-btn hub-btn--primary">
-          {seedCopy.cta.label}
-        </Link>
+      {/* 打磨轮⑦(§32 I3):位置提示 + 单一主行动;次要与安静动作降级 */}
+      <p className="hub-caption mt-7" data-seed-position>
+        {seedCopy.nextStepHint}
+      </p>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+        {onStartArtifact && (
+          <button
+            type="button"
+            className="hub-btn hub-btn--primary"
+            data-seed-deepen-cta
+            onClick={onStartArtifact}
+          >
+            {seedCopy.deepenCta}
+          </button>
+        )}
         <button type="button" className="hub-btn hub-btn--secondary" onClick={handleCopy}>
           复制问题种子
         </button>
+        <Link href={seedCopy.cta.href} className="hub-quiet-link self-start">
+          {seedCopy.cta.label} <span aria-hidden="true">→</span>
+        </Link>
         <p className="hub-caption max-w-[300px]">{seedCopy.previewNote}</p>
       </div>
 

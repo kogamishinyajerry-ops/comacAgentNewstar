@@ -85,12 +85,13 @@ function reducer(state: CoachState, action: Action): CoachState {
 const CLIENT_FALLBACK_NOTICE = "AI 服务暂不可用，本幕已按确定性追问继续。";
 const CLIENT_REQUEST_TIMEOUT_MS = 100_000;
 
-/** 种子长出后 Artifacts 的图标入口(下一阶段能力预告,默认仅图标) */
+/** 种子长出后 Artifacts 栏:第一格真实开放,其余为完整流程能力预告。
+    打磨轮⑦(§32 I2):名称/说明/状态徽标全部可见,图标不再是唯一信息 */
 const ARTIFACT_SLOTS = [
-  { label: "问题定义", icon: "▤" },
-  { label: "用户与场景", icon: "◍" },
-  { label: "Agent 方案", icon: "⧉" },
-  { label: "验证计划", icon: "◇" },
+  { label: "问题定义", icon: "▤", description: "三幕种子再答 3 问深化而成,可复制带走", open: true },
+  { label: "用户与场景", icon: "◍", description: "完整流程中逐份沉淀", open: false },
+  { label: "Agent 方案", icon: "⧉", description: "完整流程中逐份沉淀", open: false },
+  { label: "验证计划", icon: "◇", description: "完整流程中逐份沉淀", open: false },
 ] as const;
 
 /** transition 期满时长:默认与场景切换动效一致;减弱动态时缩短 */
@@ -551,12 +552,22 @@ export function CoachFlow({
   };
   /* 打磨轮⑥派生:常驻小卡、回看数据、当前轮标记、指南出口的阶段性行为 */
   const progressSlots = miniSlots(state);
+  /* 打磨轮⑦(§32 I1):回看每轮携带过渡拍实际端上的判断/风险——首轮无过渡拍为 null */
   const reviewRounds = composeReviewRounds(
     state,
-    resolvedActs.map((item) => item.question),
-    artifactFallbackActs.map(
-      (fixture, index) => artifactRemoteActs[index]?.question ?? fixture.question,
-    ),
+    resolvedActs.map((item, index) => ({
+      question: item.question,
+      judgment: index === 0 ? null : item.judgment,
+      risk: index === 0 ? null : item.risk,
+    })),
+    artifactFallbackActs.map((fixture, index) => {
+      const item = artifactRemoteActs[index] ?? fixture;
+      return {
+        question: item.question,
+        judgment: index === 0 ? null : item.judgment,
+        risk: index === 0 ? null : item.risk,
+      };
+    }),
   );
   const currentRoundLabel =
     state.phase === "question"
@@ -604,7 +615,7 @@ export function CoachFlow({
           <div className="coach-grown-body">
             <aside
               className="coach-artifact-rail"
-              aria-label="Artifacts 入口(问题定义已开放深化,其余为下一阶段能力预告)"
+              aria-label="Artifacts:问题定义已开放深化,其余为完整流程能力预告"
             >
               <p className="coach-artifact-title">Artifacts</p>
               <ul className="coach-artifact-list">
@@ -622,23 +633,35 @@ export function CoachFlow({
                           <span className="coach-artifact-icon" aria-hidden="true">
                             {slot.icon}
                           </span>
-                          <span>{artifactCopy.startLabel}</span>
+                          <span className="coach-artifact-entry-text">
+                            <span className="coach-artifact-name">{artifactCopy.startLabel}</span>
+                            <span className="coach-artifact-desc">{slot.description}</span>
+                          </span>
+                          <span className="coach-artifact-badge coach-artifact-badge--open">可深化</span>
                         </button>
                       ) : (
                         <span className="coach-artifact-entry coach-artifact-entry--lit" data-artifact-lit>
                           <span className="coach-artifact-icon" aria-hidden="true">
                             {slot.icon}
                           </span>
-                          <span>{artifactCopy.litLabel}</span>
+                          <span className="coach-artifact-entry-text">
+                            <span className="coach-artifact-name">{artifactCopy.litLabel}</span>
+                            <span className="coach-artifact-desc">深化完成,可复制导出</span>
+                          </span>
+                          <span className="coach-artifact-badge coach-artifact-badge--done">已完成</span>
                         </span>
                       )}
                     </li>
                   ) : (
-                    <li key={slot.label} data-coach-artifact>
+                    <li key={slot.label} data-coach-artifact className="coach-artifact-slot--pending">
                       <span className="coach-artifact-icon" aria-hidden="true">
                         {slot.icon}
                       </span>
-                      <span className="sr-only">{slot.label}</span>
+                      <span className="coach-artifact-entry-text">
+                        <span className="coach-artifact-name">{slot.label}</span>
+                        <span className="coach-artifact-desc">{slot.description}</span>
+                      </span>
+                      <span className="coach-artifact-badge">未开放</span>
                     </li>
                   )
                 )}
@@ -658,6 +681,7 @@ export function CoachFlow({
                     meta={seedMeta}
                     headingRef={seedHeadingRef}
                     headingId={`${orbIdPrefix}-seed-title`}
+                    onStartArtifact={() => dispatch({ type: "startArtifact" })}
                   />
                 ) : (
                   <ArtifactCard

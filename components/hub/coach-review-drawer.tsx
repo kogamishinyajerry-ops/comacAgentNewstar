@@ -114,6 +114,14 @@ export function CoachReviewDrawer({
                   </p>
                   <p className="coach-review-item-q">问:{round.question}</p>
                   <p className="coach-review-item-a">答:{round.answer}</p>
+                  {/* 打磨轮⑦(§32 I1):过渡拍实际端上过的判断/风险留在历史里;
+                      首轮无过渡拍,不渲染 */}
+                  {round.judgment && round.risk && (
+                    <div className="coach-review-item-jr" data-coach-review-jr>
+                      <p className="coach-review-item-j">当时的判断:{round.judgment}</p>
+                      <p className="coach-review-item-r">当时的风险:{round.risk}</p>
+                    </div>
+                  )}
                 </li>
               );
             })}

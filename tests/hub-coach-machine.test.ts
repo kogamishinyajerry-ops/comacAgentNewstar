@@ -261,18 +261,30 @@ describe("coach-machine:打磨轮⑥ 常驻问题卡与回看(§29)", () => {
     expect(slots.slice(0, 3).every((slot) => slot.filled)).toBe(true);
   });
 
-  it("composeReviewRounds:空状态无轮次;完成后按幕/深化顺序携带全文与当前标记", () => {
-    const actQuestions = ["问一?", "问二?", "问三?"];
-    const artifactQuestions = ["深化一?", "深化二?", "深化三?"];
-    expect(composeReviewRounds(createCoachState("problem"), actQuestions, artifactQuestions)).toEqual([]);
+  it("composeReviewRounds:空状态无轮次;完成后按幕/深化顺序携带全文、判断与风险(§32 I1)", () => {
+    /* 每轮来源=实际端上的问题+过渡拍判断/风险;首轮无过渡拍为 null */
+    const actSources = [
+      { question: "问一?", judgment: null, risk: null },
+      { question: "问二?", judgment: "判断二", risk: "风险二" },
+      { question: "问三?", judgment: "判断三", risk: "风险三" },
+    ];
+    const artifactSources = [
+      { question: "深化一?", judgment: null, risk: null },
+      { question: "深化二?", judgment: "深判断二", risk: "深风险二" },
+      { question: "深化三?", judgment: "深判断三", risk: "深风险三" },
+    ];
+    expect(composeReviewRounds(createCoachState("problem"), actSources, artifactSources)).toEqual([]);
 
     let s = begunState("problem");
     s = submitAnswer(s, "答一");
     s = advance(s);
     /* 第二幕问题态:第一轮已答;当前位置由抽屉「当前」行表达,不在轮次上标记 */
-    let rounds = composeReviewRounds(s, actQuestions, artifactQuestions);
+    let rounds = composeReviewRounds(s, actSources, artifactSources);
     expect(rounds).toHaveLength(1);
     expect(rounds[0]).toMatchObject({ kind: "act", question: "问一?", answer: "答一" });
+    /* 首轮无过渡拍:判断/风险为 null,抽屉不渲染 */
+    expect(rounds[0].judgment).toBeNull();
+    expect(rounds[0].risk).toBeNull();
     expect("current" in rounds[0]).toBe(false);
 
     /* 三幕+两轮深化后:五轮全量,全文保留 */
@@ -285,11 +297,16 @@ describe("coach-machine:打磨轮⑥ 常驻问题卡与回看(§29)", () => {
     s = advance(s);
     s = submitAnswer(s, "深答二");
     s = advance(s);
-    rounds = composeReviewRounds(s, actQuestions, artifactQuestions);
+    rounds = composeReviewRounds(s, actSources, artifactSources);
     expect(rounds).toHaveLength(5);
     expect(rounds.map((round) => round.kind)).toEqual(["act", "act", "act", "deepening", "deepening"]);
     /* 回答保留全文(抽屉默认关闭承接压缩原则) */
     expect(rounds[3].answer).toBe("深答一");
+    /* 判断/风险随轮入史:第 2、3 幕与深化第 2 轮携带实际端上内容 */
+    expect(rounds[1]).toMatchObject({ judgment: "判断二", risk: "风险二" });
+    expect(rounds[2]).toMatchObject({ judgment: "判断三", risk: "风险三" });
+    expect(rounds[3].judgment).toBeNull();
+    expect(rounds[4]).toMatchObject({ judgment: "深判断二", risk: "深风险二" });
   });
 });
 

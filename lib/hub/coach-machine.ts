@@ -332,31 +332,54 @@ export function miniSlots(state: CoachState): MiniSlot[] {
  * 问题取"实际被问出的那一问"(live 覆盖优先,fixture 兜底);
  * 回答保留全文——抽屉默认不挂载,压缩原则由"关闭"承接。
  * 当前位置不在此标记(被问的轮必无回答),由抽屉顶部的「当前」行表达。
+ *
+ * 打磨轮⑦(§32 I1):每轮补上过渡拍实际端上过的判断/风险——
+ * Coach 说过的话不再几秒后消失,全部留在历史里。
+ * 首轮(第 1 幕/深化第 1 轮)没有过渡拍,judgment/risk 传 null,抽屉不渲染。
  */
+export interface ReviewRoundSource {
+  question: string;
+  /** 该轮过渡拍实际端上的判断/风险;首轮(无过渡拍)为 null */
+  judgment: string | null;
+  risk: string | null;
+}
+
 export interface ReviewRound {
   kind: "act" | "deepening";
   label: string;
   question: string;
   answer: string;
+  judgment: string | null;
+  risk: string | null;
 }
 
 export function composeReviewRounds(
   state: CoachState,
-  actQuestions: readonly string[],
-  artifactQuestions: readonly string[],
+  actSources: readonly ReviewRoundSource[],
+  artifactSources: readonly ReviewRoundSource[],
 ): ReviewRound[] {
-  const actRounds = state.answers.map((answer, index): ReviewRound => ({
-    kind: "act",
-    label: TRACE_LABELS[index] ?? `第 ${index + 1} 幕`,
-    question: actQuestions[index] ?? "",
-    answer,
-  }));
-  const deepeningRounds = state.artifactAnswers.map((answer, index): ReviewRound => ({
-    kind: "deepening",
-    label: artifactCopy.dimensionLabels[index] ?? `第 ${index + 1} 轮`,
-    question: artifactQuestions[index] ?? "",
-    answer,
-  }));
+  const actRounds = state.answers.map((answer, index): ReviewRound => {
+    const source = actSources[index];
+    return {
+      kind: "act",
+      label: TRACE_LABELS[index] ?? `第 ${index + 1} 幕`,
+      question: source?.question ?? "",
+      answer,
+      judgment: source?.judgment ?? null,
+      risk: source?.risk ?? null,
+    };
+  });
+  const deepeningRounds = state.artifactAnswers.map((answer, index): ReviewRound => {
+    const source = artifactSources[index];
+    return {
+      kind: "deepening",
+      label: artifactCopy.dimensionLabels[index] ?? `第 ${index + 1} 轮`,
+      question: source?.question ?? "",
+      answer,
+      judgment: source?.judgment ?? null,
+      risk: source?.risk ?? null,
+    };
+  });
   return [...actRounds, ...deepeningRounds];
 }
 

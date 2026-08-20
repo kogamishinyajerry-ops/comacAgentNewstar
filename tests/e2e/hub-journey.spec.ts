@@ -1,7 +1,20 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { artifactCopy, coachIntroCopy, handoffCopy } from "../../fixtures/coach-demo";
-import { beginCoach, completeArtifact, completeThreeActs } from "./helpers";
+import {
+  artifactCopy,
+  coachDemoActs,
+  coachDemoArtifactActs,
+  coachIntroCopy,
+  handoffCopy,
+} from "../../fixtures/coach-demo";
+import {
+  ACT_ANSWERS,
+  ACT_QUESTIONS,
+  beginCoach,
+  completeArtifact,
+  completeThreeActs,
+  submitCoachAnswer,
+} from "./helpers";
 
 /**
  * 旅程叙事轮(§31)验收:
@@ -330,5 +343,71 @@ test.describe("J-5 揭示拍", () => {
       .first()
       .evaluate((el) => getComputedStyle(el).animationName);
     expect(animationName).toBe("none");
+  });
+});
+
+test.describe("打磨轮⑦:可读性(判断入史/Artifact 栏/grown 主行动)", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("回看抽屉留下每轮判断与风险:首轮无过渡拍不渲染,后续轮如实入史(§32 I1)", async ({
+    page,
+  }) => {
+    await page.goto("/start");
+    await beginCoach(page);
+    /* 走完前两幕开抽屉:第一轮(无过渡拍)无判断/风险,第二轮有且为实际端上内容 */
+    await submitCoachAnswer(page, ACT_ANSWERS[0]);
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS[1] })).toBeVisible({
+      timeout: 15_000,
+    });
+    await submitCoachAnswer(page, ACT_ANSWERS[1]);
+    await expect(page.getByRole("heading", { name: ACT_QUESTIONS[2] })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.locator("[data-coach-review-trigger]").click();
+    await expect(page.locator("[data-coach-review]")).toBeVisible();
+    await expect(page.locator("[data-coach-review-item]")).toHaveCount(2);
+    await expect(page.locator("[data-coach-review-jr]")).toHaveCount(1);
+    await expect(page.locator("[data-coach-review-jr]")).toContainText(
+      `当时的判断:${coachDemoActs.problem[1].judgment}`,
+    );
+    await expect(page.locator("[data-coach-review-jr]")).toContainText(
+      `当时的风险:${coachDemoActs.problem[1].risk}`,
+    );
+  });
+
+  test("种子卡主行动唯一且说清代价:位置提示在场,CTA 直启深化(§32 I3)", async ({ page }) => {
+    await completeThreeActs(page);
+    await expect(page.locator("[data-seed-position]")).toContainText("再答 3 问");
+    const cta = page.locator("[data-seed-deepen-cta]");
+    await expect(cta).toBeVisible();
+    /* 主 CTA 是按钮而非侧栏发现;了解路径降级为安静链接仍在场 */
+    await expect(page.getByRole("link", { name: /了解完整实践路径/ })).toBeVisible();
+    await cta.click();
+    await expect(
+      page.getByRole("heading", { name: coachDemoArtifactActs[0].question }),
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("Artifact 栏可读:四槽名称/说明/状态徽标可见,grown 态 Axe 零违规(§32 I2)", async ({
+    page,
+  }) => {
+    await completeThreeActs(page);
+    const rail = page.locator(".coach-artifact-rail");
+    await expect(rail).toBeVisible();
+
+    const names = rail.locator(".coach-artifact-name");
+    await expect(names).toHaveCount(4);
+    await expect(names.nth(0)).toHaveText("深化问题定义");
+    await expect(names.nth(1)).toHaveText("用户与场景");
+    await expect(names.nth(2)).toHaveText("Agent 方案");
+    await expect(names.nth(3)).toHaveText("验证计划");
+    await expect(rail.locator(".coach-artifact-desc").nth(0)).toContainText("再答 3 问");
+    await expect(rail.getByText("可深化", { exact: true })).toBeVisible();
+    await expect(rail.getByText("未开放", { exact: true })).toHaveCount(3);
+    await expect(rail.getByText("完整流程中逐份沉淀").first()).toBeVisible();
+
+    await waitRevealSettled(page, ".seed-card");
+    await expectNoAxeViolations(page);
   });
 });

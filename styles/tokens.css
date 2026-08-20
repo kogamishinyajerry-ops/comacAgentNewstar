@@ -861,6 +861,25 @@
   .coach-review-item-q {
     color: var(--text-tertiary);
   }
+  /* 打磨轮⑦(§32 I1):过渡拍实际端上过的判断/风险留在历史里 */
+  .coach-review-item-jr {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-subtle);
+  }
+  .coach-review-item-j,
+  .coach-review-item-r {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .coach-review-item-r {
+    color: var(--accent-gap);
+  }
   .coach-review-current {
     flex: none;
     margin: 10px 0 0;
@@ -1245,10 +1264,11 @@
     flex: 1;
     min-height: 0;
     display: grid;
-    grid-template-columns: 168px minmax(0, 1fr);
+    grid-template-columns: 240px minmax(0, 1fr);
     gap: 10px;
   }
-  /* Artifacts 入口:默认仅图标,下一阶段能力预告,不做假交互 */
+  /* Artifacts 栏(§32 I2):名称/说明/状态徽标全部可见的行式列表;
+     第一格真实交互(可深化/已深化),其余为完整流程能力预告,不做假交互 */
   .coach-artifact-rail {
     display: flex;
     flex-direction: column;
@@ -1274,48 +1294,77 @@
   }
   .coach-artifact-list [data-coach-artifact] {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border: 1px solid var(--border-strong);
-    border-radius: 8px;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
     background: var(--surface-primary);
     color: var(--text-secondary);
-    font-size: 17px;
   }
-  /* 第一格(问题定义)的入口形态:真实按钮/常亮指示,可承载可见文字(§28) */
-  .coach-artifact-list [data-artifact-slot-active] {
-    width: auto;
-    min-height: 44px;
-    padding: 6px 10px;
-    justify-content: flex-start;
-    gap: 8px;
+  .coach-artifact-icon {
+    flex: none;
+    width: 22px;
+    padding-top: 1px;
+    text-align: center;
+    font-size: 15px;
+    color: var(--text-tertiary);
   }
-  .coach-artifact-entry {
+  .coach-artifact-entry-text {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    min-height: 44px;
-    padding: 6px 10px;
-    border: 1px solid var(--border-control);
-    border-radius: 8px;
-    background: var(--surface-primary);
+    flex-direction: column;
+    gap: 2px;
+  }
+  .coach-artifact-name {
+    font-size: 13px;
+    font-weight: 700;
     color: var(--text-primary);
-    font-size: 12.5px;
-    font-weight: 600;
+  }
+  .coach-artifact-desc {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--text-tertiary);
+  }
+  .coach-artifact-badge {
+    flex: none;
+    align-self: flex-start;
+    padding: 2px 7px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+  }
+  .coach-artifact-badge--open {
+    color: var(--accent-coach-strong);
+    border-color: rgba(53, 104, 232, 0.4);
+  }
+  .coach-artifact-badge--done {
+    color: var(--accent-evidence);
+    border-color: var(--accent-evidence);
+  }
+  .coach-artifact-slot--pending {
+    background: transparent;
+  }
+  /* 第一格(问题定义)的入口形态:真实按钮/常亮指示(§28),整行可点 */
+  .coach-artifact-entry {
     cursor: pointer;
-    transition: border-color var(--dur-micro) var(--ease-soft),
-      color var(--dur-micro) var(--ease-soft);
+    transition: border-color var(--dur-micro) var(--ease-soft);
   }
   .coach-artifact-entry:hover {
     border-color: var(--accent-evidence);
   }
+  .coach-artifact-entry:focus-visible {
+    outline: 2px solid var(--accent-coach);
+    outline-offset: 2px;
+  }
   .coach-artifact-entry--lit {
     border-style: dashed;
     border-color: var(--accent-evidence);
-    color: var(--accent-evidence);
     cursor: default;
   }
   .coach-count-prefix {
@@ -1716,8 +1765,11 @@
       display: none;
     }
     .coach-grown-body {
-      grid-template-columns: 132px minmax(0, 1fr);
+      grid-template-columns: 200px minmax(0, 1fr);
       gap: 8px;
+    }
+    .coach-artifact-badge {
+      display: none;
     }
     .coach-conversation-scroll {
       padding: 18px;
@@ -1806,7 +1858,7 @@
     .coach-attachment-name {
       max-width: 140px;
     }
-    /* 种子长出:移动端 Artifacts 收成顶部图标行,不再占整列 */
+    /* 种子长出:移动端 Artifacts 收成顶部行,名称仍可见(说明/徽标让位) */
     .coach-grown-body {
       grid-template-columns: 1fr;
       grid-template-rows: auto minmax(0, 1fr);
@@ -1819,8 +1871,28 @@
       padding: 8px 12px;
     }
     .coach-artifact-list {
+      flex: 1;
       flex-direction: row;
       gap: 6px;
+    }
+    .coach-artifact-list [data-coach-artifact] {
+      flex: 1;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+    }
+    .coach-artifact-icon {
+      width: auto;
+      padding-top: 0;
+      font-size: 13px;
+    }
+    .coach-artifact-name {
+      font-size: 11.5px;
+      white-space: nowrap;
+    }
+    .coach-artifact-desc,
+    .coach-artifact-badge {
+      display: none;
     }
     .coach-artifact-note {
       display: none;
