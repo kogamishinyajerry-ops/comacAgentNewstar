@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - codex/game-grade-experience-vertical-slice
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
