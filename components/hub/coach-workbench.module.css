@@ -1,0 +1,388 @@
+.shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flow {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+}
+
+.flow :global(.coach-workspace-grid) {
+  height: 100%;
+}
+
+.orientation {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  min-height: 76px;
+  align-items: center;
+  gap: 20px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent-coach) 18%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-primary) 90%, transparent);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--text-primary) 5.5%, transparent);
+  padding: 12px 18px;
+  isolation: isolate;
+}
+
+.orientationArt {
+  z-index: -2;
+  object-fit: cover;
+  object-position: 30% 50%;
+  opacity: 0.72;
+  filter: saturate(0.88) contrast(0.96);
+}
+
+.orientationWash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--surface-primary) 86%, transparent) 0%,
+      color-mix(in srgb, var(--surface-primary) 74%, transparent) 52%,
+      color-mix(in srgb, var(--surface-primary) 94%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent-coach) 2.5%, transparent),
+      transparent
+    );
+}
+
+.orientationCopy {
+  min-width: 0;
+}
+
+.orientationEyebrow {
+  margin: 0;
+  color: var(--accent-coach-strong);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.orientationTitle {
+  margin: 2px 0 0;
+  color: var(--text-primary);
+  font-family: var(--font-hub-display);
+  font-size: clamp(16px, 1.45vw, 21px);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.orientationPromise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 16px;
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.orientationMobileSummary {
+  display: none;
+}
+
+.orientationPromise span {
+  position: relative;
+  padding-left: 10px;
+  white-space: nowrap;
+}
+
+.orientationPromise span::before {
+  position: absolute;
+  left: 0;
+  top: 0.58em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent-coach);
+  content: "";
+  opacity: 0.6;
+}
+
+.orientationLink {
+  flex: none;
+  margin-left: auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-primary) 82%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-coach) 20%, transparent);
+  padding: 8px 13px;
+  color: var(--accent-coach-strong);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color var(--dur-micro) var(--ease-soft), box-shadow var(--dur-micro) var(--ease-soft);
+}
+
+.orientationLink:hover {
+  background: var(--surface-primary);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-coach) 42%, transparent),
+    0 8px 20px color-mix(in srgb, var(--accent-coach) 8%, transparent);
+}
+
+/*
+ * 第一问不提前端出完整问题卡：保留一枚极弱的“种子轨”作为进展暗示，
+ * 第一份回答提交后，既有 320px 问题卡才真正长出来。
+ */
+@media (min-width: 768px) {
+  .flow :global(.coach-workspace-grid--duo:has(.coach-progress[aria-label="问题卡（已沉淀 0/3）"])) {
+    grid-template-columns: minmax(0, 1fr) 68px;
+    grid-template-areas: "scene progress";
+    grid-template-rows: minmax(0, 1fr);
+    width: min(100%, 1120px);
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"]) {
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    padding: 12px 8px;
+    background: color-mix(in srgb, var(--surface-primary) 54%, transparent);
+    box-shadow: none;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-title) {
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-title::before) {
+    content: "种子";
+    color: var(--text-tertiary);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-count) {
+    font-size: 10.5px;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slots) {
+    width: 100%;
+    gap: 5px;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot) {
+    min-height: 28px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot-label),
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot-text),
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-note) {
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot::after) {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-strong);
+    content: "";
+    opacity: 0.75;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps) {
+    width: 30px;
+    height: 30px;
+    justify-content: center;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps::after) {
+    content: "3";
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 767px) {
+  .shell {
+    gap: 6px;
+  }
+
+  .orientation {
+    min-height: 66px;
+    gap: 8px;
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+
+  .orientationArt {
+    object-position: 20% 50%;
+    opacity: 0.58;
+  }
+
+  .orientationPromise {
+    display: none;
+  }
+
+  .orientationEyebrow {
+    font-size: 8.5px;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+  }
+
+  .orientationTitle {
+    max-width: 250px;
+    margin-top: 1px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .orientationMobileSummary {
+    display: block;
+    margin: 2px 0 0;
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  .orientationLink {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .flow :global(.coach-workspace-grid--duo) {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "progress"
+      "scene";
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .flow :global(.coach-progress) {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+    max-height: 64px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 6px;
+  }
+
+  .flow :global(.coach-progress-title) {
+    flex: none;
+    align-self: center;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .flow :global(.coach-progress-slots) {
+    flex: 1;
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .flow :global(.coach-progress-slot) {
+    flex: 1;
+    min-height: 34px;
+    justify-content: center;
+    padding: 3px 5px;
+  }
+
+  .flow :global(.coach-progress-slot-text) {
+    -webkit-line-clamp: 1;
+    font-size: 10px;
+  }
+
+  .flow :global(.coach-progress-gaps) {
+    flex: none;
+    align-self: center;
+    padding: 3px 5px;
+    font-size: 9px;
+  }
+
+  .flow :global(.coach-progress-note) {
+    display: none;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"]) {
+    height: 44px;
+    align-items: center;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-title) {
+    font-size: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-title::before) {
+    content: "种子";
+    color: var(--text-tertiary);
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-count) {
+    font-size: 9px;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot) {
+    min-height: 26px;
+    align-items: center;
+    padding: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot-label),
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot-text) {
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot::after) {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border-strong);
+    content: "";
+    opacity: 0.75;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps) {
+    width: 26px;
+    height: 26px;
+    justify-content: center;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps::after) {
+    content: "3";
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orientationLink {
+    transition: none;
+  }
+}

@@ -34,8 +34,9 @@ function BrandMark() {
 }
 
 export function HubHeader() {
-  /* 主 CTA 不在 Coach 工作台页自指:工作台即开始,再点会整树重挂载丢进度 */
-  const onWorkbench = usePathname() === "/";
+  /* 两个 Coach 入口均不显示自指 CTA，避免整棵状态树重挂载并丢失进度。 */
+  const pathname = usePathname();
+  const onWorkbench = pathname === "/" || pathname === "/start";
   const [open, setOpen] = useState(false);
   const burgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -89,41 +90,41 @@ export function HubHeader() {
     <>
       <header className="hub-header">
         <div className="hub-container hub-header-inner">
-        <BrandMark />
+          <BrandMark />
 
-        <nav className="ml-4 hidden items-center gap-7 md:flex" aria-label="主导航">
-          {site.nav.map((item) => (
-            <Link key={item.href} href={item.href} className="hub-nav-link">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+          <nav className="ml-4 hidden items-center gap-7 md:flex" aria-label="主导航">
+            {site.nav.map((item) => (
+              <Link key={item.href} href={item.href} className="hub-nav-link">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
 
-        <div className="ml-auto flex items-center gap-3">
-          {!onWorkbench && (
-            <Link
-              href={site.primaryCta.href}
-              className="hub-btn hub-btn--primary hidden !min-h-[40px] px-5 text-[14px] md:inline-flex"
+          <div className="ml-auto flex items-center gap-3">
+            {!onWorkbench && (
+              <Link
+                href={site.primaryCta.href}
+                className="hub-btn hub-btn--primary hidden !min-h-[40px] px-5 text-[14px] md:inline-flex"
+              >
+                {site.primaryCta.label}
+              </Link>
+            )}
+            <button
+              ref={burgerRef}
+              type="button"
+              className="hub-burger md:hidden"
+              aria-expanded={open}
+              aria-controls="hub-drawer"
+              aria-label={open ? "关闭导航菜单" : "打开导航菜单"}
+              data-open={open}
+              onClick={() => (open ? close(false) : setOpen(true))}
             >
-              {site.primaryCta.label}
-            </Link>
-          )}
-          <button
-            ref={burgerRef}
-            type="button"
-            className="hub-burger md:hidden"
-            aria-expanded={open}
-            aria-controls="hub-drawer"
-            aria-label={open ? "关闭导航菜单" : "打开导航菜单"}
-            data-open={open}
-            onClick={() => (open ? close(false) : setOpen(true))}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
-      </div>
       </header>
 
       <div

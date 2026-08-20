@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { computeProjectProgress, type ProjectProgress } from "@/lib/progress";
 import type { ProjectBundleLike } from "@/lib/progress";
+import { summarizeTestRecords } from "@/lib/project-evidence";
 import {
   ACHIEVEMENTS,
   RARITY_LABEL,
@@ -80,13 +81,14 @@ export function useAchievementCelebration(projectId: string, unlocked: Achieveme
 export function useAchievementTracker(projectId: string, data: WizardData): AchievementDef[] {
   const unlocked = useMemo(() => {
     const progress = wizardProgress(data);
+    const testRecordSummary = summarizeTestRecords(data.testCases);
     return evaluateAchievements({
       progress,
       teamExists: data.team.members.length > 0,
       feedbackCount: data.feedbacks.length,
       hasSnapshot: data.snapshots.length > 0,
       submitted: ["SUBMITTED", "PRELIMINARY", "FINAL"].includes(data.status),
-      hasDocumentedFailure: data.testCases.some((t) => (t.type === "FAILURE" || t.type === "NA") && !!t.failureReason?.trim()),
+      hasDocumentedFailure: testRecordSummary.hasDocumentedFailure,
     });
   }, [data]);
   useAchievementCelebration(projectId, unlocked);
