@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { beginCoach } from "./helpers";
+import { coachDemoActs } from "../../fixtures/coach-demo";
 
 /**
  * K3 本轮:Coach 人格与三幕减法的行为验收(任务书§四状态 A–D、§七)。
@@ -128,6 +129,8 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
     const judgmentStep = page.locator('[data-transition-step="judgment"]');
     await expect(judgmentStep).toBeVisible({ timeout: 15_000 });
     await expect(judgmentStep.getByText("当前判断")).toBeVisible();
+    /* P1-1(§31 H6,⚑D2):mock 链路落屏的是口径校准后的业务专家话术 */
+    await expect(judgmentStep).toContainText(coachDemoActs.problem[1].judgment);
     await expect(page.locator('[data-transition-step="risk"]')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/state-b-judgment-1440.png` });
 
@@ -135,6 +138,7 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
     const riskStep = page.locator('[data-transition-step="risk"]');
     await expect(riskStep).toBeVisible({ timeout: 15_000 });
     await expect(riskStep.getByText("最大风险")).toBeVisible();
+    await expect(riskStep).toContainText(coachDemoActs.problem[1].risk);
     await expect(page.locator('[data-transition-step="judgment"]')).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/state-b-risk-1440.png` });
 

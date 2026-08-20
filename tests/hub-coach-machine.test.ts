@@ -20,7 +20,7 @@ import {
   visualStateFor,
   type ExportMeta,
 } from "../lib/hub/coach-machine";
-import { coachDemoActs, exportTraceabilityCopy } from "../fixtures/coach-demo";
+import { coachDemoActs, coachDemoArtifactActs, exportTraceabilityCopy } from "../fixtures/coach-demo";
 
 /** J-1 后:流程从建立拍开始,先 begin 才进入第一幕 */
 function begunState(entry: "problem" | "idea" = "problem") {
@@ -206,6 +206,21 @@ describe("coach-machine:两条入口的人格红线", () => {
     const all = JSON.stringify(coachDemoActs);
     for (const banned of ["非常棒", "太好了", "很棒", "厉害", "干得漂亮"]) {
       expect(all).not.toContain(banned);
+    }
+  });
+
+  it("口吻红线(v2.0,⚑D2):判断与风险不含评委席框架词,业务拷问优先", () => {
+    /* 口吻已切「懂 Agent 落地的业务专家」:业务拷问优先于评委视角引用 */
+    const all = JSON.stringify(coachDemoActs) + JSON.stringify(coachDemoArtifactActs);
+    expect(all).not.toContain("评委");
+    /* 业务拷问优先:第二幕必问具体的人与损失 */
+    expect(coachDemoActs.problem[1].question).toContain("谁");
+    expect(coachDemoActs.problem[1].question).toContain("损失");
+    /* Agent 必要性拷问自然带出:直接对照普通大模型聊天 */
+    expect(coachDemoActs.problem[2].question).toContain("普通大模型聊天");
+    /* 严苛但不羞辱:话术只否定表述,不否定人 */
+    for (const insult of ["你没入门", "根本不成立", "水平太差", "不懂业务"]) {
+      expect(all).not.toContain(insult);
     }
   });
 });

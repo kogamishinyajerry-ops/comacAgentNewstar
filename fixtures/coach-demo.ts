@@ -3,7 +3,8 @@
  *
  * 两条入口 × 三幕。每幕逻辑上包含:当前判断 / 最大风险 / 一个关键问题 / 一个回答器,
  * 但视觉上是一幕,只突出主问题(docs/product/01 §2.4、docs/product/02 §3.2)。
- * 文案人格:严格但建设性,不迎合、不泛化夸奖。
+ * 文案人格(v2.0,⚑D2):懂 Agent 落地的业务专家——业务拷问优先(具体的人与损失),
+ * Agent 必要性拷问自然带出;严苛但不羞辱、不奉承。
  */
 
 export type CoachEntry = "problem" | "idea";
@@ -11,7 +12,7 @@ export type CoachEntry = "problem" | "idea";
 export interface CoachAct {
   /** 当前判断:Coach 对你刚刚给出的信息的确定性读法 */
   judgment: string;
-  /** 最大风险:评委视角下此刻最可能被追问的薄弱处 */
+  /** 最大风险:业务专家视角下此刻最可能被追问的薄弱处 */
   risk: string;
   /** 一个关键问题:本幕唯一的主要问题 */
   question: string;
@@ -24,21 +25,21 @@ export interface CoachAct {
 export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
   problem: [
     {
-      judgment: "还没有结论,这是好事——评委先看的是真实瞬间,不是宏大方向。",
+      judgment: "还没有结论,这不妨碍起步——先落地的是真实瞬间,不是宏大方向。",
       risk: "最常见的失败不是做不出来,而是问题只存在于设想里,不发生在任何人的具体时刻。",
       question: "你最想改变的具体工作瞬间是什么?",
       placeholder: "写一个真实发生的瞬间:谁在做什么,卡在哪里。",
       emptyHint: "先写一句粗糙的也可以——具体到某个时刻、某件事。",
     },
     {
-      judgment: "瞬间成立了。但评委会追问:它落在谁身上,代价是什么。",
+      judgment: "瞬间成立了。接下来要压实的是:它落在谁身上,代价是什么。",
       risk: "说不清谁受影响、损失多大,后面所有技术选择都会失去判断依据。",
       question: "这个问题对谁造成了什么具体损失?",
       placeholder: "点出具体的人和代价:时间、返工、等待都算。",
       emptyHint: "试着写出具体的人和具体的代价。",
     },
     {
-      judgment: "问题与影响成形。下一问是评委席上一定会出现的一问。",
+      judgment: "问题与影响成形。剩下躲不开的一问:这件事为什么非 Agent 不可。",
       risk: "如果一次普通大模型对话就能解决,做成 Agent 反而增加了不必要的复杂度。",
       question: "为什么普通大模型聊天不足以解决它?",
       placeholder: "它真正需要哪几样:记忆、工具、流程、留痕。",
@@ -47,7 +48,7 @@ export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
   ],
   idea: [
     {
-      judgment: "你已经带着方案来了。评委做的第一件事,是把方案放回问题里检验。",
+      judgment: "你已经带着方案来了。先把方案放回问题里检验——问题立不住,功能都是空转。",
       risk: "方案先行是最高频的失败路径:功能做出来了,要解决的问题却讲不具体。",
       question: "先不要描述功能。你观察到的真实问题是什么?",
       placeholder: "只说你看到的现象:谁、在什么时候、被什么困住。",
@@ -77,7 +78,7 @@ export const coachDemoActs: Record<CoachEntry, readonly CoachAct[]> = {
  */
 export const coachDemoArtifactActs: readonly CoachAct[] = [
   {
-    judgment: "影响已有人物与代价,但评委还会问规模:多少人、多频繁,决定问题的分量。",
+    judgment: "影响已有人物与代价。规模决定问题的分量:多少人、多频繁,要说得出处。",
     risk: "规模说不清,小改进会被当成大问题,大问题反而被低估。",
     question: "受影响的人大约有多少、多长时间发生一次?",
     placeholder: "给一个粗估:大约多少人、多久一次、每次代价多少。",
@@ -91,7 +92,7 @@ export const coachDemoArtifactActs: readonly CoachAct[] = [
     emptyHint: "找一个能观察到的信号:更少、更快、更准、更省。",
   },
   {
-    judgment: "必要性此刻仍是一句主张,评委会要求指出非聊天不可的一环。",
+    judgment: "必要性此刻仍是一句主张——要立住,得指出非聊天不可的一环。",
     risk: "若每一步普通对话都能完成,Agent 就只是更贵的聊天。",
     question: "整个流程里,哪一步是普通大模型聊天做不到、必须靠 Agent 的?",
     placeholder: "点名一环:长期记忆、工具调用、固定流程或反馈回路。",
