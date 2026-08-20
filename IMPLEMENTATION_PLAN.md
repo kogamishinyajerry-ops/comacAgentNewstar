@@ -920,3 +920,34 @@ N4 提交评分（完整交付包 + 评委配合智能体验收 + 结合全过�
    设计上可接受，可选统一文案。
 
 运行时跨账号 PoC 复测未做（本批只做代码走查）；如需可在 P1 修复轮一并回归第 1 项。
+
+### 31.4 验收记录（2026-08-20，分支 agent/hub-deep-ux-image2-polish）
+
+- `npm run lint`：通过；`npm run typecheck`：通过；`npm run test`：**22 files / 231 tests** 通过
+  （开工基线实为 224——开工提示词的 218 与 HEAD 有偏差，下同；新增 7：建立拍 3 + 导出可追述 3 + 口吻红线 1）。
+- `npm run build`：通过（含活动配置校验「配置有效」）。
+- `npx playwright test`：**114/114** 通过（基线实为 103；新增 11：hub-journey 10 + 抽屉焦点回归 1；
+  既有 spec 全部走建立拍 click-through，新增 `tests/e2e/helpers.ts`）。
+- `npm run probe:coach`（真实出站，5 live + 1 超时放弃，日预算内）：**ALL PASS**；
+  normal 用例可见口吻轮生效（先问具体的人与损失、Agent 必要性自然带出、无评委席框架词）。
+- 演示录屏：`demo-recordings/旅程全链路-建立拍到终章交棒.webm`（mock，93s 全链路）+
+  `问题定义导出.txt`（含生成时间/卡号 QD-HY72G/格式版本 v1/问答映射，CAD 检查话术）。
+- 提交：efc933d（P0）→ 2af6cf7（旅程叙事轮）→ c5690d8（P1 口吻轮）→ ab44149（抽屉焦点修复+录屏）。
+
+过程如实记录：
+
+1. **环境**：3000 端口被当日上午的非 mock 生产构建（PID 18363）占用，污染头两轮 e2e（80 过/31 过，均无效）；
+   杀掉后由 playwright 自起 mock dev。中途 `npm run build` 与常驻 dev 共享 `.next` 互写清单，
+   造成路由间歇 404（一轮 20 失败）；`rm -rf .next` + 干净 dev 后全绿。e2e 同步子代理此前已在
+   `next.config.mjs` 预留 `NEXT_DIST_DIR` 隔离逃生口（默认不变），本次保留。
+2. **真实缺陷修复**：mock 速度下暴露 §29 潜伏缺陷——过渡各拍的焦点效果会把焦点从回看抽屉（模态）
+   里抢走，破坏焦点陷阱（live 慢速下从未触发）；`coach-workspace-scene.tsx` 以 reviewOpenRef 守住，
+   新增 e2e 回归（过渡期开抽屉焦点不丢、Esc 仍归还触发器）。
+3. 测试侧三处如实调整：persona 状态 A「静候」放宽为（静候|倾听）（begin 后焦点进回答器触发 listening，
+   是 J-1 预期行为）；J-5 错峰动画致 Axe color-contrast 瞬时误报，三处扫描前加动画落定等待；
+   三处换入口流程显式等建立拍端上再 begin（抗重挂载竞态）。
+4. 开工提示词基线数字与 HEAD 的实际偏差（218→224 单测、98→103 e2e）已按实际口径报告。
+
+未完成与边界：P0-3 三项低危发现的修复按授权留 P1+（本批仅审计）；`docs/product/02` 文件名保留
+`-v1.0` 以维持 AGENTS.md 引用，内容已升版 v2.0；P2–P4 零触碰（无持久化、无评分、无组织/评委侧改动）；
+三字段合同、provider 校验、限流/日预算、既有路由零改动。实现中未发现文档-代码矛盾。
