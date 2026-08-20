@@ -45,8 +45,15 @@ refresh and closure. Following that closure the user authorized **Act 4
 `IMPLEMENTATION_PLAN.md` §28): three fixed-dimension deepening rounds after
 the seed, session-only, one question per scene, deterministic composition,
 clipboard export, live Coach with unchanged three-field contract. The
-participant "completion state" decision remains open and gates later
-artifacts. Polish round ⑥ "progress-legible interaction" (§29, same day) is
+participant "completion state" decision was settled 2026-08-20: completion
+means a complete delivery package — problem-definition card, test assets,
+code-repo references, demo/defense materials, plus full process evidence —
+never a completion percentage. The later artifact batches and the four-node
+activity journey proposal (see `IMPLEMENTATION_PLAN.md` §30/§30.5,
+`docs/product/07`–`08`) remain gated on separate authorization; the
+verification boundary is fixed at ⚑D8=A: the agent organizes and reviews
+participant-provided test evidence, the platform never runs the tests
+itself. Polish round ⑥ "progress-legible interaction" (§29, same day) is
 also delivered: persistent problem card with ghost→filled→highlight slots,
 full Q/A review drawer, honest waiting timer, directional scene motion, and
 topbar replan; provider contract, routes, and persistence are untouched.
