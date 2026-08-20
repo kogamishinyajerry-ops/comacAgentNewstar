@@ -863,3 +863,60 @@ N4 提交评分（完整交付包 + 评委配合智能体验收 + 结合全过�
 「完成态」决策（§28）已随 ⚑D9 落定（2026-08-20）：完成态 = 完整交付包（问题定义卡 +
 测试资产 + 代码仓库引用 + Demo/答辩材料 + 过程证据）+ 全过程证据，非任何完成度百分比；
 `docs/product/05` 阶段 2 的 Artifact 清单与映射表可据此排期（排期与开工仍待单独授权）。
+
+## 31. P0+旅程叙事轮+P1 批次（2026-08-20 授权，Kimi-K3 开工提示词 v1.0）
+
+授权范围：§30.1 的 P0 最小集 + 旅程叙事轮 + P1 口吻轮三项；P2–P4 未授权不开工。
+批次硬时间线：8/30–31 启动，交付物=网站 + PDF 手册 + 演示录屏。
+
+### 31.1 实现决定（H 系）
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| H1 | **P0-1 导出可追述过渡解（⚑D3）**：`composeSeedText`/`composeArtifactText` 新增必传 `ExportMeta`（`generatedAt: Date` + `cardId: string`）；导出头部内嵌四行：生成时间（`YYYY-MM-DD HH:mm`，本地时钟，纯函数 `formatLocalTimestamp`）、卡号（`QD-XXXXX`，5 位无歧义字符，纯函数 `createSessionCardId(rng)` 可注入随机源，标注「本会话生成，未落库」）、格式版本 `v1`、六轮问答映射（种子：主张←第1·3幕、影响←第2幕；问题定义卡追加：深化←第4–6轮）。固定文案入 fixtures `exportTraceabilityCopy`。卡号与时间戳在 CoachFlow 会话级 ref 生成（卡号一次/会话，时间戳在种子/问题定义首次凝结时各捕一次），状态机保持纯函数不碰随机 | 最小解不违宪（无 DB）；卡号-时间戳为 P2 落库预留；结构归状态机 |
+| H2 | **J-1 建立拍**：状态机新 phase `intro` 为 `createCoachState` 初始相位，新 action `begin`（reducer 分支 + 纯函数 `beginCoach`）进入第一幕；`submitAnswer`/`advance` 对 `intro` 直接返回原状态；`visualStateFor(intro)=idle`。UI 新组件 `CoachIntroScene`（复用 coach-topbar 体系）：左槽「← 返回活动指南」保留不回退（G1 防线），内容=三件套三步（G0 到场：下载 WorkBuddy〔待活动配置确认〕→ 加入项目群〔待活动配置确认〕→ 进入本站·你在这里）+ 本页流程（6 问、约 10–15 分钟、产出一张可带走的问题定义卡）+ 隐私披露前置（沿用 `coachPrivacyNotice`）+ 主 CTA「开始第一问」。一屏一焦点；开始后焦点接续到回答器；动效走 `no-preference` 媒体门控，reduce-motion 全降级。小卡与回答器在 `intro` 相位不渲染（建立拍独占焦点） | 五拍语法第①拍；不是弹窗轮播；键盘全路径 |
+| H3 | **J-5 揭示拍溯源编排**：种子/问题定义卡的回答槽按会话时序依次落位——纯 CSS 一次编排：每槽 `data-reveal-slot` + 内联 `animationDelay`（种子：瞬间→影响→必要性=0/1/2 序；问题定义卡追加三轮深化=3/4/5 序），新 `hub-slot-in` 关键帧只定义在 `no-preference` 媒体查询内，reduce-motion 下无动画全部立即可见。诚实注记沿用既有「来自本次会话回答的摘录，不构成已验证的证据」 | 一次编排、零 JS 计时器、确定性；reduce-motion 分支天然由媒体门控承接 |
+| H4 | **J-2 N1 终章交棒**：ArtifactCard 收尾区新 `HandoffSection`：①已复制带走（真实状态——`copyState==="done"` 才点亮，未复制显示「先复制这张卡」）→ ②粘贴到项目群/共享文件夹〔链接待活动配置确认〕→ ③「N2 中期答疑（第 2 周〔待活动配置确认〕）开放后凭此卡继续」→ ④「查看完整参与路径」链接 /guide。不做假状态、不预支 N2 能力 | 五拍语法第⑤拍；pending 事实诚实标注 |
+| H5 | **J-3+J-4+P0-2 /guide 操作层**：`config/activity.ts` 新增 `arrivalSteps`（G0 三件套，href 全 null=待活动配置确认）与 `journeyNodes`（N1 问答初筛=进行中·链接 /start；N2 中期答疑/N3 交付冲刺/N4 提交评分=「第 N 周开放·待活动配置确认」，零链接零假状态）；/guide 在配置状态卡之前插入「四周旅程」操作层，现有五段原样保留为方法论层（标题改「方法论：五段实践路径」）。G0–N4 命名贯穿 guide/建立拍/交棒拍（J-4）；三字段名称按 ⚑D1 保持「证据」。不新增路由 | 双层诚实结构：操作层=结构可见+日期 pending；方法论层不动 |
+| H6 | **P1-1 口吻轮（⚑D2）**：`docs/product/02` 升版 v2.0——口吻基线「AI 导师」→「懂 Agent 落地的业务专家」：业务拷问优先（具体的人与损失），Agent 必要性拷问（「直接用 ChatGPT 不行吗」式）自然带出；严苛但不羞辱、不奉承。系统提示词首两句随之改写（钢人纪律与三字段 50–150 合同原样保留）；fixtures 判断/风险话术从「评委席」框架改为业务专家框架（**三幕/三轮 question 文本保持不变**——它们已是业务优先表达，e2e/unit 既有断言零波及；`idea[0].risk` 保留「方案先行」关键词）。e2e 人格断言同步：新增口吻行为断言（业务拷问优先于技术词汇、无奉承词） | D2 已拍板；合同不动，只改措辞框架 |
+| H7 | **e2e 同步策略**：新增 `tests/e2e/helpers.ts` `beginCoach(page)`（建立拍在场则点击「开始第一问」，幂等）；全部触达 Coach 流程的 spec 统一走建立拍 click-through。新增：建立拍全路径与键盘路径、N1 终章交棒内容、guide 四节点操作层、导出可追述四行断言、口吻人格断言、建立拍/交棒拍 Axe 零违规、375 建立拍零溢出。演示录屏脚本同步（建立拍起步 + CAD 检查/管路巡检话术，§30.1③） | 建立拍是新必经场景，既有 spec 必须显式经过它——这不是回归而是新流程 |
+| H8 | **P0-4 PDF 手册**：`docs/manual/` 站外交付物（手册源 md + 打印版 HTML + PDF），不进代码路径、不参与构建 | 启动三件套交付物之一 |
+
+边界声明（红线复述）：三字段输出合同、`coach-provider` 校验、限流/日预算、既有路由零改动；零持久化；建立拍/交棒拍只加在 `app/(hub)`、`components/hub/`、`lib/hub/`；活动事实未知一律 pending；Axe 零豁免不新增；P2–P4 任何能力不开工。
+
+### 31.2 验收口径
+
+1. `npm run lint` / `npm run typecheck` 通过；`npm run test` 全绿（新增用例列清单）；`npm run build` 通过（含活动配置校验）；
+2. `npx playwright test` 全绿（含 H7 全部新增断言；如改动判断/风险停留或幕间时序，同步相关 e2e 超时）；
+3. `demo-record.mjs` 重录「建立拍 → 六问 → 问题定义卡 → 终章交棒」端到端（mock 模式），归档 `demo-recordings/`；
+4. P0-3 隐私走查审计记录（本节 31.3，待走查完成后回填）；
+5. 最终报告如实列各检查实际结果、文件清单、未完成项、文档-代码矛盾（若有）。
+
+### 31.3 P0-3 隐私互不可见走查审计记录（⚑D4 审计部分，2026-08-20）
+
+范围：旧侧 `app/(app)` 参与端全部列表页 + `app/api` 数据端点（只读代码走查，未改动任何文件）。
+**结论：未发现参赛者 → 他队内容的泄露路径。**
+
+- 隔离机制单一事实源：项目级数据全部收敛到 `projectAccess()`（`lib/api-helpers.ts:15`）与
+  `canViewProject()`（`lib/projects.ts:113`），参赛者唯一通路是 `TeamMember` 成员关系；
+  列表数据经 `participantWorkspace(userId)` 按 `teamId` 过滤（`lib/progress-server.ts:89-100`）。
+- 重点嫌疑页 `/inspirations`：确证为**独立策展模型** `InspirationCase`，与真实队伍项目零关联，
+  写入点仅种子脚本与组织者后台（ORGANIZER 守卫）——不暴露他队内容。
+- 逐页过查：`/home`、`/inspirations`、`/announcements`、`/office-hours`（只渲染人数）、
+  `/projects`（teamId 过滤）、`/projects/[id]` 及 chat/card 子页（非本队 `notFound()`）、
+  `/notices`（按 userId）；评委端/组织者端全部 `requireRole` 硬守卫，注册接口强制 PARTICIPANT。
+- 逐 API 过查：projects/chat/tests/attachments/submit/agent/precheck 全部 `projectAccess`；
+  teams GET 只返回本人队伍；notices 按 userId；control 动作注册表对参赛者一律 403；
+  `POST /api/hub/coach` 无 DB 无会话状态。
+
+发现项（均为低危/卫生级，无参赛者间泄露；修复留 P1+ 另行授权，本批不动）：
+
+1. 组织者经 API 可读取草稿项目对话全文，与页面层「草稿全文仅本队」口径不一致
+   （`app/api/projects/[id]/chat/route.ts:16` GET 用 `view` 语义 vs `lib/projects.ts:123-128`
+   `canViewFullContent()`）；参赛者不可利用，属组织者信任边界内的口径对齐问题。
+2. 评委视图不必要地下发本队邀请码（`app/(app)/projects/[id]/page.tsx:63`）；
+   评委无法用其入队（join 限 PARTICIPANT），实际危害近零。
+3. 邀请码存在性预言：join 错误文案可区分「无效」与「已满」（`app/api/teams/join/route.ts:19-21`），
+   设计上可接受，可选统一文案。
+
+运行时跨账号 PoC 复测未做（本批只做代码走查）；如需可在 P1 修复轮一并回归第 1 项。

@@ -78,6 +78,11 @@ export default function DevScenariosPage() {
     }
     return composeSeed(s);
   })();
+  /* 场景演示页的导出元信息只是展示样例,固定值不冒充真实会话 */
+  const seedSampleMeta = {
+    generatedAt: new Date(2026, 7, 20, 10, 30),
+    cardId: "QD-DEMO1",
+  };
 
   return (
     <div className="hub-container pb-24">
@@ -291,7 +296,7 @@ export default function DevScenariosPage() {
 
       <Section id="seed" title="7 · 问题种子" note="三幕凝结产物:主张摘录 + 诚实缺口,不是“项目创建成功”。">
         <div className="max-w-[720px]">
-          <SeedCard seed={seedSample} />
+          <SeedCard seed={seedSample} meta={seedSampleMeta} />
         </div>
       </Section>
 

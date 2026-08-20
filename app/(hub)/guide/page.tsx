@@ -5,8 +5,10 @@ import { FaqList } from "@/components/hub/faq-list";
 import {
   activity,
   activityFact,
+  arrivalSteps,
   platformBoundaries,
   journeySteps,
+  PENDING_LABEL,
 } from "@/config/activity";
 import type { ActivityRules } from "@/lib/hub/activity-config";
 import { site } from "@/config/site";
@@ -76,6 +78,43 @@ export default function GuidePage() {
       </header>
 
       <Reveal>
+        <section aria-labelledby="guide-arrival" className="hub-card p-7 sm:p-8" data-guide-arrival-section>
+          <h2 id="guide-arrival" className="text-[18px] font-bold">到场三件套</h2>
+          <p className="hub-body mt-2 max-w-[560px]">
+            开始之前先完成三步:下载 WorkBuddy、加入项目群、进入本站。链接与二维码待活动配置确认,确认后在此更新,我们不预先编造。
+          </p>
+          <ol className="mt-6 grid gap-4 sm:grid-cols-3">
+            {arrivalSteps.map((step) => (
+              <li
+                key={step.key}
+                className="rounded-xl border border-[var(--border-subtle)] p-4"
+                data-guide-arrival={step.key}
+              >
+                <p className="text-[14.5px] font-bold text-[var(--text-primary)]">
+                  {step.index}. {step.title}
+                  {step.current && (
+                    <span className="ml-2 text-[12px] font-semibold text-[var(--text-tertiary)]">（你在这里）</span>
+                  )}
+                </p>
+                <p className="hub-caption mt-1.5">{step.detail}</p>
+                <p className="mt-2 text-[13px]">
+                  {step.href ? (
+                    <a href={step.href} target="_blank" rel="noreferrer" className="hub-quiet-link">
+                      打开链接<span className="sr-only">（在新窗口打开）</span>
+                    </a>
+                  ) : step.current ? (
+                    <Link href="/start" className="hub-quiet-link">进入问题探索</Link>
+                  ) : (
+                    <span className="text-[var(--text-tertiary)]">{PENDING_LABEL}</span>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </Reveal>
+
+      <Reveal className="mt-14">
         <section aria-labelledby="guide-status" className="hub-card p-7 sm:p-8">
           <h2 id="guide-status" className="text-[18px] font-bold">当前活动配置状态</h2>
           <p className="hub-body mt-2 max-w-[560px]">

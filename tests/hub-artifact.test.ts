@@ -10,9 +10,14 @@ import {
   startArtifact,
   submitAnswer,
   visualStateFor,
+  type ExportMeta,
 } from "../lib/hub/coach-machine";
 import { POST } from "../app/api/hub/coach/route";
-import { artifactCopy, coachDemoArtifactActs } from "../fixtures/coach-demo";
+import {
+  artifactCopy,
+  coachDemoArtifactActs,
+  exportTraceabilityCopy,
+} from "../fixtures/coach-demo";
 import {
   getHubCoachAct,
   type HubCoachLlmConfig,
@@ -31,6 +36,11 @@ const DEEPENING_ANSWERS = [
   "对账时长从两小时降到半小时,且不再出现漏找依据的返工",
   "必须按固定流程调用检索工具并逐步留痕,普通对话记不住口径也不留痕",
 ] as const;
+
+const META: ExportMeta = {
+  generatedAt: new Date(2026, 7, 20, 9, 5),
+  cardId: "QD-T3ST5",
+};
 
 function seedState() {
   let state = createCoachState("problem");
@@ -125,8 +135,8 @@ describe("第四幕:确定性合成与导出", () => {
     expect(artifact.gaps.length).toBeGreaterThan(0);
   });
 
-  it("composeArtifactText 含深化记录三段与诚实尾注,不新增结论", () => {
-    const text = composeArtifactText(composeArtifact(completeArtifact()));
+  it("composeArtifactText 含深化记录三段与诚实尾注,不新增结论;头部内嵌可追述四行(P0-1)", () => {
+    const text = composeArtifactText(composeArtifact(completeArtifact()), META);
     expect(text).toContain("【深化记录】");
     for (const label of artifactCopy.dimensionLabels) {
       expect(text).toContain(`·${label}`);
@@ -135,6 +145,13 @@ describe("第四幕:确定性合成与导出", () => {
     expect(text).toContain("【缺口】");
     expect(text).not.toContain("已解决");
     expect(text).not.toContain("验证完成");
+    /* P0-1 可追述头部:生成时间/会话卡号/格式版本/六轮问答映射 */
+    expect(text).toContain("生成时间:2026-08-20 09:05(本地时钟)");
+    expect(text).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(text).toContain(`格式版本:${exportTraceabilityCopy.formatVersion}`);
+    expect(text).toContain(`问答映射:${exportTraceabilityCopy.mappingArtifact}`);
+    expect(text).toContain("深化←第4–6轮");
+    expect(text.indexOf("格式版本")).toBeLessThan(text.indexOf("【主张】"));
   });
 
   it("fixture 三轮文案满足三字段合同:长度/问号/合计 50-150,无泛化夸奖", () => {

@@ -8,15 +8,23 @@ import {
   composeSeed,
   composeSeedText,
   createCoachState,
+  createSessionCardId,
   currentAct,
   excerpt,
+  formatLocalTimestamp,
   isSubmittableAnswer,
   miniSlots,
   startArtifact,
   submitAnswer,
   visualStateFor,
+  type ExportMeta,
 } from "../lib/hub/coach-machine";
-import { coachDemoActs } from "../fixtures/coach-demo";
+import { coachDemoActs, exportTraceabilityCopy } from "../fixtures/coach-demo";
+
+const META: ExportMeta = {
+  generatedAt: new Date(2026, 7, 20, 9, 5),
+  cardId: "QD-T3ST5",
+};
 
 describe("coach-machine:三幕推进", () => {
   it("两条入口各三幕,幕数一致", () => {
@@ -105,24 +113,59 @@ describe("coach-machine:问题种子合成", () => {
   });
 
 
-  it("种子纯文本导出重组既有槽位,不新增结论", () => {
+  it("种子纯文本导出重组既有槽位,不新增结论;头部内嵌可追述四行(P0-1)", () => {
     const seed = {
       moment: "试验异常记录分散在三处",
       impact: "工程师每次对账多花两小时",
       necessity: "需要按流程调用检索工具留痕",
       gaps: ["影响面尚未量化", "证据尚未接回"],
     };
-    const text = composeSeedText(seed);
+    const text = composeSeedText(seed, META);
     expect(text).toContain("问题种子");
     expect(text).toContain("【主张】");
     expect(text).toContain("想改变的瞬间:试验异常记录分散在三处");
     expect(text).toContain("影响与损失:工程师每次对账多花两小时");
     expect(text).toContain("◇ 影响面尚未量化");
+    /* P0-1 可追述头部:生成时间(本地时钟)/会话卡号/格式版本/问答映射 */
+    expect(text).toContain("生成时间:2026-08-20 09:05(本地时钟)");
+    expect(text).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(text).toContain(`格式版本:${exportTraceabilityCopy.formatVersion}`);
+    expect(text).toContain(`问答映射:${exportTraceabilityCopy.mappingSeed}`);
+    expect(text).not.toContain(exportTraceabilityCopy.mappingArtifact);
     // 只重组、不判断:导出不得出现肯定式完成表述;
     // 副标题的"不是项目创建成功"是诚实声明,属于期望内容
     expect(text).toContain("不是项目创建成功");
     expect(text).not.toContain("项目已创建");
     expect(text).not.toContain("已提交");
+  });
+});
+
+describe("coach-machine:导出可追述过渡解(§31 P0-1,⚑D3)", () => {
+  it("createSessionCardId:QD- 前缀 + 5 位无歧义字符;随机源可注入", () => {
+    expect(createSessionCardId()).toMatch(/^QD-[A-HJ-KMNP-Z2-9]{5}$/);
+    /* 注入确定性随机源:0 → 字母表首字符,0.999 → 末字符(31 字符表) */
+    expect(createSessionCardId(() => 0)).toBe("QD-AAAAA");
+    expect(createSessionCardId(() => 0.999)).toBe("QD-99999");
+    /* 同一字符集不含易混淆的 0/O、1/I/L(0.5 → 索引 15 = S) */
+    expect(createSessionCardId(() => 0.5)).toBe("QD-SSSSS");
+  });
+
+  it("formatLocalTimestamp:本地时钟 YYYY-MM-DD HH:mm,单位数补零", () => {
+    expect(formatLocalTimestamp(new Date(2026, 0, 5, 9, 7))).toBe("2026-01-05 09:07");
+    expect(formatLocalTimestamp(new Date(2026, 11, 31, 23, 59))).toBe("2026-12-31 23:59");
+  });
+
+  it("种子导出头部:时间/卡号/版本/映射四行齐全且先于三字段,不含深化映射", () => {
+    const text = composeSeedText(
+      { moment: "瞬间", impact: "影响", necessity: "必要性", gaps: ["缺口一"] },
+      META,
+    );
+    const head = text.split("\n").slice(0, 7).join("\n");
+    expect(head).toContain("生成时间:2026-08-20 09:05(本地时钟)");
+    expect(head).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(head).toContain("格式版本:v1");
+    expect(head).toContain("问答映射:主张←第1·3幕;影响←第2幕");
+    expect(text.indexOf("格式版本")).toBeLessThan(text.indexOf("【主张】"));
   });
 });
 

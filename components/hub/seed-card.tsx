@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useState, type RefObject } from "react";
 import { seedCopy } from "@/fixtures/coach-demo";
-import { composeSeedText, type QuestionSeed } from "@/lib/hub/coach-machine";
+import {
+  composeSeedText,
+  type ExportMeta,
+  type QuestionSeed,
+} from "@/lib/hub/coach-machine";
 
 /**
  * 问题种子:三幕回答凝结出的草稿,按“主张—证据—缺口”组织。
@@ -12,10 +16,13 @@ import { composeSeedText, type QuestionSeed } from "@/lib/hub/coach-machine";
  */
 export function SeedCard({
   seed,
+  meta,
   headingRef,
   headingId = "coach-seed-title",
 }: {
   seed: QuestionSeed;
+  /** P0-1:导出可追述元信息(会话卡号 + 凝结时刻本地时钟) */
+  meta: ExportMeta;
   headingRef?: RefObject<HTMLHeadingElement>;
   headingId?: string;
 }) {
@@ -25,7 +32,7 @@ export function SeedCard({
   async function handleCopy() {
     try {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
-      await navigator.clipboard.writeText(composeSeedText(seed));
+      await navigator.clipboard.writeText(composeSeedText(seed, meta));
       setCopyState("done");
     } catch {
       setCopyState("failed");

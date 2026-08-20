@@ -14,6 +14,7 @@ import {
   artifactCopy,
   coachDemoActs,
   coachDemoArtifactActs,
+  exportTraceabilityCopy,
   seedCopy,
   type CoachAct,
   type CoachEntry,
@@ -206,14 +207,57 @@ export function composeSeed(state: CoachState): QuestionSeed {
 }
 
 /**
+ * P0-1(§31 H1,⚑D3 过渡解):导出可追述元信息。
+ * 卡号每会话随机生成一次(不落库);生成时间是卡凝结时刻的本地时钟读数。
+ */
+export interface ExportMeta {
+  generatedAt: Date;
+  cardId: string;
+}
+
+/** 无歧义字符集(剔除 0/O、1/I/L),卡号 5 位,肉眼转录不混淆 */
+const CARD_ID_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/** 会话随机卡号;随机源可注入(测试确定性),默认 Math.random */
+export function createSessionCardId(random: () => number = Math.random): string {
+  let body = "";
+  for (let index = 0; index < 5; index += 1) {
+    const pick = Math.floor(random() * CARD_ID_ALPHABET.length);
+    body += CARD_ID_ALPHABET[Math.min(pick, CARD_ID_ALPHABET.length - 1)];
+  }
+  return `${exportTraceabilityCopy.cardIdPrefix}-${body}`;
+}
+
+/** 本地时钟 `YYYY-MM-DD HH:mm`;导出文本用,不做时区换算(如实标注本地时钟) */
+export function formatLocalTimestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  ].join(" ");
+}
+
+/** 导出头部四行:时间/卡号/版本/问答映射;只陈述事实,不新增判断 */
+function composeTraceabilityHeader(meta: ExportMeta, mapping: string): string[] {
+  return [
+    `${exportTraceabilityCopy.generatedAtLabel}:${formatLocalTimestamp(meta.generatedAt)}(${exportTraceabilityCopy.localClockNote})`,
+    `${exportTraceabilityCopy.cardIdLabel}:${meta.cardId}(${exportTraceabilityCopy.sessionNote})`,
+    `${exportTraceabilityCopy.versionLabel}:${exportTraceabilityCopy.formatVersion}`,
+    `${exportTraceabilityCopy.mappingLabel}:${mapping}`,
+    "",
+  ];
+}
+
+/**
  * 种子导出为纯文本(复制到剪贴板用)。只重组既有槽位与固定文案,
  * 不新增判断、不引入未出现的结论;无持久化,复制仅发生在浏览器本地。
  */
-export function composeSeedText(seed: QuestionSeed): string {
+export function composeSeedText(seed: QuestionSeed, meta: ExportMeta): string {
   return [
     seedCopy.title,
     seedCopy.subtitle,
     "",
+    ...composeTraceabilityHeader(meta, exportTraceabilityCopy.mappingSeed),
     `【${seedCopy.structure.claim}】`,
     `${seedCopy.slots.moment}:${seed.moment}`,
     `${seedCopy.slots.necessity}:${seed.necessity}`,
@@ -332,11 +376,12 @@ export function composeArtifact(state: CoachState): QuestionDefinition {
  * 问题定义导出为纯文本(复制到剪贴板用)。只重组种子文本、
  * 深化轮的固定问题与回答摘录,不新增任何判断或结论。
  */
-export function composeArtifactText(artifact: QuestionDefinition): string {
+export function composeArtifactText(artifact: QuestionDefinition, meta: ExportMeta): string {
   return [
     artifactCopy.title,
     artifactCopy.doneSubtitle,
     "",
+    ...composeTraceabilityHeader(meta, exportTraceabilityCopy.mappingArtifact),
     `【${seedCopy.structure.claim}】`,
     `${seedCopy.slots.moment}:${artifact.moment}`,
     `${seedCopy.slots.necessity}:${artifact.necessity}`,

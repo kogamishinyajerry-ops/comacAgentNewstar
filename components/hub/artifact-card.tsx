@@ -4,6 +4,7 @@ import { useState, type RefObject } from "react";
 import { artifactCopy, seedCopy } from "@/fixtures/coach-demo";
 import {
   composeArtifactText,
+  type ExportMeta,
   type QuestionDefinition,
 } from "@/lib/hub/coach-machine";
 
@@ -14,12 +15,15 @@ import {
  */
 export function ArtifactCard({
   artifact,
+  meta,
   headingRef,
   headingId = "coach-artifact-title",
   onReturnToSeed,
   onRestart,
 }: {
   artifact: QuestionDefinition;
+  /** P0-1:导出可追述元信息(会话卡号 + 凝结时刻本地时钟) */
+  meta: ExportMeta;
   headingRef?: RefObject<HTMLHeadingElement>;
   headingId?: string;
   onReturnToSeed: () => void;
@@ -31,7 +35,7 @@ export function ArtifactCard({
   async function handleCopy() {
     try {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard unavailable");
-      await navigator.clipboard.writeText(composeArtifactText(artifact));
+      await navigator.clipboard.writeText(composeArtifactText(artifact, meta));
       setCopyState("done");
     } catch {
       setCopyState("failed");

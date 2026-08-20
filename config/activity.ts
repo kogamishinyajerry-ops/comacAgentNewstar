@@ -96,6 +96,38 @@ export function activityTimeline(): { start: string; end: string; deadline: stri
 }
 
 /**
+ * G0 到场三件套(§31 H5,P0-2):下载 WorkBuddy → 加入项目群 → 进入本站。
+ * 链接/二维码属活动事实,未确认一律 null,UI 统一展示「待活动配置确认」;
+ * 第三步"进入本站"是当前位置标注,不需要链接。
+ */
+export const arrivalSteps = [
+  {
+    key: "workbuddy",
+    index: "1",
+    title: "下载 WorkBuddy",
+    detail: "活动协作、项目群与共享文件夹都在 WorkBuddy 上进行。",
+    href: null as string | null,
+    current: false,
+  },
+  {
+    key: "group",
+    index: "2",
+    title: "加入项目群",
+    detail: "问题定义卡完成后粘贴回群里,让队伍与辅导团队看到。",
+    href: null as string | null,
+    current: false,
+  },
+  {
+    key: "site",
+    index: "3",
+    title: "进入本站",
+    detail: "你在这里——从第一问开始。",
+    href: null as string | null,
+    current: true,
+  },
+] as const;
+
+/**
  * 五段实践路径(§5-D)。桌面横向轨迹,滚动只点亮当前阶段。
  */
 export const journeySteps = [

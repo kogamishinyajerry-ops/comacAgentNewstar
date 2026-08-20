@@ -31,6 +31,7 @@ import {
   composeReviewRounds,
   composeSeed,
   createCoachState,
+  createSessionCardId,
   currentAct,
   isSubmittableAnswer,
   miniSlots,
@@ -40,6 +41,7 @@ import {
   TRACE_LABELS,
   visualStateFor,
   type CoachState,
+  type ExportMeta,
 } from "@/lib/hub/coach-machine";
 
 type Action =
@@ -220,6 +222,12 @@ export function CoachFlow({
   /* 等待期可取消:持有当前过渡请求的 AbortController,
      用户取消即中止在途请求、立即改用本地确定性追问 */
   const waitAbortRef = useRef<AbortController | null>(null);
+  /* P0-1(§31 H1):会话随机卡号一次/会话;种子与问题定义首次凝结时各捕一次
+     本地时钟——导出文本的"生成时间"是凝结时刻,不是点击复制的时刻 */
+  const cardIdRef = useRef<string | null>(null);
+  if (cardIdRef.current === null) cardIdRef.current = createSessionCardId();
+  const seedAtRef = useRef<Date | null>(null);
+  const artifactAtRef = useRef<Date | null>(null);
 
   const artifactStage = state.phase === "artifact-question" || state.phase === "artifact-transition" || state.phase === "artifact-done";
   const transitioning = state.phase === "transition" || state.phase === "artifact-transition";
@@ -372,6 +380,15 @@ export function CoachFlow({
     heading.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
   }, [state.phase]);
 
+  /* P0-1:首次凝结时刻的本地时钟捕获——导出"生成时间"的诚实来源;
+     点击复制只是读出,不再重新取时 */
+  useEffect(() => {
+    if (state.phase === "seed" && seedAtRef.current === null) seedAtRef.current = new Date();
+    if (state.phase === "artifact-done" && artifactAtRef.current === null) {
+      artifactAtRef.current = new Date();
+    }
+  }, [state.phase]);
+
   const visual = useMemo(() => {
     if ((state.phase === "question" || state.phase === "artifact-question") && listening) {
       return "listening" as const;
@@ -498,12 +515,26 @@ export function CoachFlow({
     attachmentRef.current = null;
     setJustFilledKey(null);
     setReviewOpen(false);
+    /* P0-1:重新开始=新会话——新卡号,凝结时刻重捕 */
+    cardIdRef.current = createSessionCardId();
+    seedAtRef.current = null;
+    artifactAtRef.current = null;
   }
 
   const seed = state.phase === "seed" ? composeSeed(state) : null;
   const artifactDone = state.phase === "artifact-done" ? composeArtifact(state) : null;
   const grown = Boolean(seed || artifactDone);
   const backHref = "/guide";
+  /* P0-1:导出可追述元信息——卡号会话级不变,时间是首次凝结时刻(兜底当前时钟,
+     仅在 effect 尚未落时的理论首帧;复制动作必然晚于凝结 effect) */
+  const seedMeta: ExportMeta = {
+    generatedAt: seedAtRef.current ?? new Date(),
+    cardId: cardIdRef.current,
+  };
+  const artifactMeta: ExportMeta = {
+    generatedAt: artifactAtRef.current ?? new Date(),
+    cardId: cardIdRef.current,
+  };
   /* 打磨轮⑥派生:常驻小卡、回看数据、当前轮标记、指南出口的阶段性行为 */
   const progressSlots = miniSlots(state);
   const reviewRounds = composeReviewRounds(
@@ -608,10 +639,16 @@ export function CoachFlow({
                 tabIndex={0}
               >
                 {seed ? (
-                  <SeedCard seed={seed} headingRef={seedHeadingRef} headingId={`${orbIdPrefix}-seed-title`} />
+                  <SeedCard
+                    seed={seed}
+                    meta={seedMeta}
+                    headingRef={seedHeadingRef}
+                    headingId={`${orbIdPrefix}-seed-title`}
+                  />
                 ) : (
                   <ArtifactCard
                     artifact={artifactDone!}
+                    meta={artifactMeta}
                     headingRef={artifactHeadingRef}
                     headingId={`${orbIdPrefix}-artifact-title`}
                     onReturnToSeed={() => dispatch({ type: "returnToSeed" })}

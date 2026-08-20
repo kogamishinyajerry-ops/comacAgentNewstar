@@ -158,6 +158,25 @@ export const coachProgressCopy = {
   depositSuffix: "」。",
 } as const;
 
+/**
+ * P0-1(§31 H1,⚑D3 过渡解):导出可追述的固定文案。
+ * 生成时间用本地时钟;卡号由会话随机生成、不落库——P2 落库后
+ * 由全局卡号替换,本过渡解只为导出文本内嵌追述能力预留格式。
+ */
+export const exportTraceabilityCopy = {
+  formatVersion: "v1",
+  cardIdPrefix: "QD",
+  generatedAtLabel: "生成时间",
+  cardIdLabel: "卡号",
+  versionLabel: "格式版本",
+  mappingLabel: "问答映射",
+  localClockNote: "本地时钟",
+  sessionNote: "本会话生成,未落库",
+  /** 六轮问答映射:种子只凝结了前三幕 */
+  mappingSeed: "主张←第1·3幕;影响←第2幕",
+  mappingArtifact: "主张←第1·3幕;影响←第2幕;深化←第4–6轮",
+} as const;
+
 /** 三幕完成后问题种子的固定提示文案 */
 export const seedCopy = {
   title: "问题种子",
