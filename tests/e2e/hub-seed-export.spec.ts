@@ -1,20 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { completeThreeActs } from "./helpers";
 
 /**
  * 问题种子导出:三幕凝结的种子可复制为纯文本;复制只在浏览器本地发生,
  * 不新增持久化。成功与失败路径都要有可访问反馈(role="status")。
+ * 旅程叙事轮(§31):三幕流程收敛到 ./helpers(内含建立拍 click-through)。
  */
-
-async function completeThreeActs(page: Page) {
-  await page.goto("/start");
-  for (let act = 0; act < 3; act += 1) {
-    const responder = page.locator("#coach-answer");
-    await expect(responder).toBeVisible({ timeout: 15_000 });
-    await responder.fill(`第${act + 1}幕:试验异常记录分散在三处,工程师对账每次多花两小时,需按流程调用工具留痕。`);
-    await page.getByRole("button", { name: "提交这一问的回答" }).click();
-  }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
-}
 
 test.describe("问题种子导出", () => {
   test("三幕完成后一键复制种子纯文本,反馈可访问", async ({ page }) => {

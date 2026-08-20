@@ -1331,6 +1331,122 @@
     line-height: 1.5;
   }
 
+  /* ---------- 建立拍(J-1,§31 H2)与 N1 终章交棒(J-2,§31 H4) ---------- */
+  .coach-intro {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: min(680px, 100%);
+    margin: 0 auto;
+    padding: 8px 0 16px;
+  }
+  .coach-intro-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .coach-intro-steps,
+  .coach-intro-flow {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .coach-intro-step {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .coach-intro-step-index {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+  }
+  .coach-intro-step[data-intro-current] .coach-intro-step-index {
+    border-color: var(--accent-coach);
+    color: var(--accent-coach-strong);
+  }
+  .coach-intro-step-title {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .coach-intro-step-detail {
+    display: block;
+    margin-top: 2px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .coach-intro-flow li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .coach-intro-flow li::before {
+    content: "·";
+    position: absolute;
+    left: 4px;
+    color: var(--accent-coach);
+    font-weight: 700;
+  }
+  /* 建立拍 CTA 接替回答器位置:同一屏唯一的决策点 */
+  .coach-composer--intro {
+    padding-bottom: 20px;
+  }
+  .coach-intro-begin {
+    width: min(760px, 100%);
+    min-height: 52px;
+    justify-content: center;
+    font-size: 16px;
+  }
+  /* N1 终章交棒:步骤如实——复制状态真实点亮,后续节点 pending 标注 */
+  .coach-handoff {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 20px;
+  }
+  .coach-handoff-step {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+  .coach-handoff-mark {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+  }
+  .coach-handoff-step[data-handoff-done="true"] {
+    color: var(--text-primary);
+  }
+  .coach-handoff-step[data-handoff-done="true"] .coach-handoff-mark {
+    border-color: var(--accent-evidence);
+    color: var(--accent-evidence);
+  }
+
   /* 种子卡:主张—证据—缺口 */
   .seed-claim-grid {
     display: grid;
@@ -1454,6 +1570,13 @@
     .motion-approach { animation: hub-approach var(--dur-rise) var(--ease-soft) both; }
     /* 打磨轮⑥:新一问与过渡各拍自右轻移入场 */
     .motion-step-in { animation: hub-step-in var(--dur-scene) var(--ease-soft) both; }
+    /* 旅程叙事轮(J-5):揭示拍溯源——回答摘录依次落位到对应槽;
+       内联 animationDelay 给会话时序,媒体门控外(reduce)自动全部立即可见 */
+    @keyframes hub-slot-in {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: none; opacity: 1; }
+    }
+    .motion-slot-in { animation: hub-slot-in var(--dur-scene) var(--ease-soft) both; }
     /* 刚沉淀的卡槽:先脉冲两次;等待期改呼吸微光 */
     .coach-progress-slot--just { animation: hub-slot-pulse 900ms var(--ease-soft) 2; }
     .coach-progress[data-coach-progress-waiting="true"] .coach-progress-slot--just {

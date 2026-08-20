@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { attachmentPrivacyNotice, coachDemoActs } from "../../fixtures/coach-demo";
 import { formatCoachAttachmentSize } from "../../lib/hub/coach-attachment";
+import { beginCoach } from "./helpers";
 
 /**
  * §13 Composer B2 紧凑浮屿与文本附件的行为验收(任务书 F5)。
@@ -75,6 +76,7 @@ test.describe("附件按钮键盘可访问(1440×900)", () => {
 
   test("Tab 可达、Enter/Space 触发文件选择器、aria-label 准确", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 失败模式:aria-label 漂移(全角标点也必须准确)
@@ -126,6 +128,7 @@ test.describe("合法附件:Chip、按需隐私确认与一次性发送", () => 
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 选中前:Chip 与按需 note 均不存在
@@ -169,6 +172,7 @@ test.describe("合法附件:Chip、按需隐私确认与一次性发送", () => 
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await chooseFile(page, {
@@ -226,6 +230,7 @@ test.describe("非法附件:行内错误且不出 Chip", () => {
   for (const invalid of invalidCases) {
     test(invalid.name, async ({ page }) => {
       await page.goto("/");
+      await beginCoach(page);
       await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
       await chooseFile(page, invalid.file);
@@ -247,6 +252,7 @@ test.describe("附件提示注入不改变 Coach 人格", () => {
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await chooseFile(page, {
@@ -287,6 +293,7 @@ test.describe("回答器自动增高", () => {
 
   test("多行文本使 #coach-answer 增高且不超过 144px 上限", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     const answer = page.locator("#coach-answer");
     await expect(answer).toBeVisible();
 
@@ -305,6 +312,7 @@ test.describe("移动端 390×844", () => {
 
   test("附件钮与发送钮可见,无横向溢出", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
     await expect(page.getByRole("button", { name: ATTACH_LABEL })).toBeVisible();
     await expect(page.getByRole("button", { name: SEND_LABEL })).toBeVisible();
@@ -324,6 +332,7 @@ test.describe("过渡幕折叠 Composer", () => {
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await submitAnswer(page, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
@@ -355,6 +364,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 第一幕:附件能力保留
@@ -392,6 +402,7 @@ test.describe("第三幕:无附件入口,只在客户端凝结种子", () => {
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 第一幕:不带附件,正常提交
@@ -475,6 +486,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await chooseFile(page, {
@@ -517,6 +529,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await chooseFile(page, {
@@ -528,6 +541,9 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
 
     // 切换入口(等价于流程重置:CoachFlow 以 entry 为 key 整体重挂载)
     await page.getByRole("link", { name: /换一条入口/ }).click();
+    // 换入口整体重挂载 CoachFlow,建立拍再次出现(过渡期内旧回答器可能仍在,先等建立拍端上)
+    await page.locator("[data-coach-begin]").waitFor({ state: "visible" });
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: coachDemoActs.idea[0].question })).toBeVisible();
 
     // 旧读取在新流程挂载后才落定:不得回写出 Chip 或隐私提示,也不得有请求发出
@@ -546,6 +562,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 首个文件读取期间 Chip 尚未出现,没有移除入口;先落定一个附件,
@@ -591,6 +608,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await chooseFile(page, {
@@ -636,6 +654,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     await chooseFile(page, {
@@ -647,6 +666,9 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
 
     // 读取挂起时唯一可达的重开路径:换一条入口(CoachFlow 以 entry 为 key 整体重挂载)
     await page.getByRole("link", { name: /换一条入口/ }).click();
+    // 换入口整体重挂载 CoachFlow,建立拍再次出现(过渡期内旧回答器可能仍在,先等建立拍端上)
+    await page.locator("[data-coach-begin]").waitFor({ state: "visible" });
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: coachDemoActs.idea[0].question })).toBeVisible();
 
     // 旧读取在新流程挂载后才落定:不得在新流程回写任何附件 UI,也不得有请求发出

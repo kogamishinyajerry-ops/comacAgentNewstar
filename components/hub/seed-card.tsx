@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type RefObject } from "react";
+import { useState, type CSSProperties, type RefObject } from "react";
 import { seedCopy } from "@/fixtures/coach-demo";
 import {
   composeSeedText,
   type ExportMeta,
   type QuestionSeed,
 } from "@/lib/hub/coach-machine";
+
+/** J-5(§31 H3):揭示拍溯源编排——回答摘录按会话时序依次落位,纯 CSS 一次编排;
+    关键帧只在 no-preference 媒体查询内定义,reduce-motion 下全部立即可见 */
+const REVEAL_STEP_MS = 140;
+
+function revealStyle(order: number): CSSProperties {
+  return { animationDelay: `${order * REVEAL_STEP_MS}ms` };
+}
 
 /**
  * 问题种子:三幕回答凝结出的草稿,按“主张—证据—缺口”组织。
@@ -49,13 +57,13 @@ export function SeedCard({
         <div className="seed-claim-block" data-seed-claim>
           <p className="seed-claim-label">{seedCopy.structure.claim}</p>
           <dl className="mt-3 flex flex-col gap-4">
-            <div>
+            <div className="motion-slot-in" data-reveal-slot="moment" style={revealStyle(0)}>
               <dt className="seed-slot-label">{seedCopy.slots.moment}</dt>
               <dd className="mt-1.5 text-[15px] leading-relaxed text-[var(--text-primary)]">
                 {seed.moment}
               </dd>
             </div>
-            <div>
+            <div className="motion-slot-in" data-reveal-slot="necessity" style={revealStyle(2)}>
               <dt className="seed-slot-label">{seedCopy.slots.necessity}</dt>
               <dd className="mt-1.5 text-[15px] leading-relaxed text-[var(--text-primary)]">
                 {seed.necessity}
@@ -64,7 +72,12 @@ export function SeedCard({
           </dl>
         </div>
 
-        <div className="seed-claim-block" data-seed-evidence>
+        <div
+          className="seed-claim-block motion-slot-in"
+          data-seed-evidence
+          data-reveal-slot="impact"
+          style={revealStyle(1)}
+        >
           <p className="seed-claim-label">{seedCopy.structure.evidence}</p>
           <dl className="mt-3">
             <dt className="seed-slot-label">{seedCopy.slots.impact}</dt>

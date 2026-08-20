@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { beginCoach } from "./helpers";
 
 const desktop = { width: 1440, height: 900 };
 const tablet = { width: 1024, height: 768 };
@@ -28,6 +29,7 @@ test.describe("Hub 无障碍与响应式深化", () => {
   test("1024×768: 无页面级溢出，Coach 回答器可见且可用", async ({ page }) => {
     await page.setViewportSize(tablet);
     await page.goto("/");
+    await beginCoach(page);
 
     await expect(
       page.getByRole("heading", { name: "你最想改变的具体工作瞬间是什么?" })
@@ -50,6 +52,7 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await expect(page.getByRole("link", { name: "组件与动效验收页" })).toHaveCount(0);
 
     await page.goto("/start");
+    await beginCoach(page);
     await expect(page.locator("#coach-answer")).toBeVisible();
     const coachOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
@@ -140,6 +143,8 @@ test.describe("Hub 无障碍与响应式深化", () => {
   test("移动端弱化换入口保留 44px 触控热区", async ({ page }) => {
     await page.setViewportSize(mobile);
     await page.goto("/");
+    // 换一条入口在第一幕问题态渲染,建立拍只有返回指南出口
+    await beginCoach(page);
 
     const quietLink = page.getByRole("link", { name: /换一条入口/ });
     const height = await quietLink.evaluate((link) => link.getBoundingClientRect().height);
@@ -190,6 +195,7 @@ const ACT_AXE_ANSWERS = [
 test("Axe: 过渡后问题态(第二幕)无自动化可检测违规", async ({ page }) => {
   await page.setViewportSize(desktop);
   await page.goto("/start");
+  await beginCoach(page);
   await page.locator("#coach-answer").fill(ACT_AXE_ANSWERS[0]);
   await page.getByRole("button", { name: "提交这一问的回答" }).click();
   await expect(
@@ -201,6 +207,7 @@ test("Axe: 过渡后问题态(第二幕)无自动化可检测违规", async ({ p
 test("Axe: 问题种子态无自动化可检测违规", async ({ page }) => {
   await page.setViewportSize(desktop);
   await page.goto("/start");
+  await beginCoach(page);
   for (const [index, answer] of ACT_AXE_ANSWERS.entries()) {
     await expect(
       page.getByRole("heading", { name: ACT_AXE_QUESTIONS[index] })
@@ -209,12 +216,21 @@ test("Axe: 问题种子态无自动化可检测违规", async ({ page }) => {
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
   }
   await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
+  /* J-5 揭示拍:种子卡槽位 0–280ms 错峰入场,等动画落定再扫描(§25 教训) */
+  await expect
+    .poll(() =>
+      page
+        .locator(".seed-card .motion-slot-in")
+        .evaluateAll((els) => els.every((el) => getComputedStyle(el).opacity === "1"))
+    )
+    .toBe(true);
   await expectNoAxeViolations(page);
 });
 
 test("Axe: 问题种子态(移动端 390×844)无自动化可检测违规", async ({ page }) => {
   await page.setViewportSize(mobile);
   await page.goto("/start");
+  await beginCoach(page);
   for (const [index, answer] of ACT_AXE_ANSWERS.entries()) {
     await expect(
       page.getByRole("heading", { name: ACT_AXE_QUESTIONS[index] })
@@ -223,6 +239,14 @@ test("Axe: 问题种子态(移动端 390×844)无自动化可检测违规", asyn
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
   }
   await expect(page.getByText("问题种子", { exact: true })).toBeVisible({ timeout: 15_000 });
+  /* J-5 揭示拍:种子卡槽位 0–280ms 错峰入场,等动画落定再扫描(§25 教训) */
+  await expect
+    .poll(() =>
+      page
+        .locator(".seed-card .motion-slot-in")
+        .evaluateAll((els) => els.every((el) => getComputedStyle(el).opacity === "1"))
+    )
+    .toBe(true);
   await expectNoAxeViolations(page);
 });
 
@@ -232,6 +256,7 @@ test("Axe: 问题种子态(移动端 390×844)无自动化可检测违规", asyn
 test("Axe+键盘: 空答案行内错误态(390×844)无违规", async ({ page }) => {
   await page.setViewportSize(mobile);
   await page.goto("/start");
+  await beginCoach(page);
   await expect(
     page.getByRole("heading", { name: ACT_AXE_QUESTIONS[0] })
   ).toBeVisible();
@@ -247,6 +272,7 @@ test("Axe+键盘: 空答案行内错误态(390×844)无违规", async ({ page })
 test("Axe: 附件选中态(1024×768)无违规", async ({ page }) => {
   await page.setViewportSize(tablet);
   await page.goto("/start");
+  await beginCoach(page);
   await expect(
     page.getByRole("heading", { name: ACT_AXE_QUESTIONS[0] })
   ).toBeVisible();
@@ -264,6 +290,7 @@ test("Axe: 附件选中态(1024×768)无违规", async ({ page }) => {
 test("Axe: 附件非法类型错误态(1024×768)无违规", async ({ page }) => {
   await page.setViewportSize(tablet);
   await page.goto("/start");
+  await beginCoach(page);
   await expect(
     page.getByRole("heading", { name: ACT_AXE_QUESTIONS[0] })
   ).toBeVisible();
@@ -301,6 +328,7 @@ test("Axe+键盘: 等待/取消态(1440×900)无违规,Enter 可改用确定性�
   });
 
   await page.goto("/start");
+  await beginCoach(page);
   await page.locator("#coach-answer").fill("试验异常记录分散在三处,对账来回翻找。");
   await page.getByRole("button", { name: "提交这一问的回答" }).click();
 

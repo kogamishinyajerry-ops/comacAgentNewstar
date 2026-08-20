@@ -177,6 +177,41 @@ export const exportTraceabilityCopy = {
   mappingArtifact: "主张←第1·3幕;影响←第2幕;深化←第4–6轮",
 } as const;
 
+/**
+ * 旅程叙事轮(§31 H2,J-1):建立拍固定文案——第一幕尚无回答时的前置场景。
+ * 回答三问:我在哪(到场三件套 G0)/要投入什么(6 问·约 10–15 分钟)/
+ * 会得到什么(一张可带走的问题定义卡);隐私披露前置,pending 事实如实标注。
+ */
+export const coachIntroCopy = {
+  title: "开始之前,先知道自己在哪",
+  arrivalTitle: "到场三件套(G0)",
+  flowTitle: "本页要做什么",
+  flowItems: [
+    "AI Coach 一次只问一个问题,共 6 问",
+    "大约 10–15 分钟,回答越具体越好",
+    "产出一张可带走的问题定义卡——N1 问答初筛的产出",
+  ],
+  beginLabel: "开始第一问",
+  beginAriaLabel: "开始第一问(进入 6 问问题探索)",
+} as const;
+
+/**
+ * 旅程叙事轮(§31 H4,J-2):N1 终章交棒固定文案。
+ * 第一步只反映真实复制状态;N2 时间与群/文件夹链接一律待活动配置确认,
+ * 不预支未开放节点的能力。
+ */
+export const handoffCopy = {
+  title: "接下来,把这张卡带回活动旅程",
+  copiedStep: "复制这张卡带走",
+  copiedDone: "已复制带走",
+  copiedPending: "先点上方「复制问题定义」",
+  pasteStep: "粘贴到项目群或共享文件夹,让队伍与辅导团队看到",
+  pasteNote: "群与文件夹链接待活动配置确认",
+  n2Step: "N2 中期答疑开放后,凭此卡继续",
+  n2Timing: "第 2 周 · 待活动配置确认",
+  guideLabel: "查看完整参与路径",
+} as const;
+
 /** 三幕完成后问题种子的固定提示文案 */
 export const seedCopy = {
   title: "问题种子",

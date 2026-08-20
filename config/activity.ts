@@ -96,7 +96,7 @@ export function activityTimeline(): { start: string; end: string; deadline: stri
 }
 
 /**
- * G0 到场三件套(§31 H5,P0-2):下载 WorkBuddy → 加入项目群 → 进入本站。
+ * G0 到场三件套(§31 H5,J-3/J-4,P0-2):下载 WorkBuddy → 加入项目群 → 进入本站。
  * 链接/二维码属活动事实,未确认一律 null,UI 统一展示「待活动配置确认」;
  * 第三步"进入本站"是当前位置标注,不需要链接。
  */
@@ -128,7 +128,57 @@ export const arrivalSteps = [
 ] as const;
 
 /**
+ * 四节点旅程(§31 H5,J-3/J-4,docs/product/08 §2):操作层结构可见、日期 pending。
+ * N1 是当前唯一开放节点;N2–N4 只标「第 N 周开放 · 待活动配置确认」,
+ * 不做假状态、不预支未开放节点的能力。节点日期确认后落 activity.dates。
+ */
+export const journeyNodes = [
+  {
+    key: "n1",
+    node: "N1",
+    week: "第 1 周",
+    name: "问答初筛",
+    outcome: "问题定义卡",
+    status: "in-progress",
+    href: "/start",
+  },
+  {
+    key: "n2",
+    node: "N2",
+    week: "第 2 周",
+    name: "中期答疑",
+    outcome: "验证反馈 + 答疑卡",
+    status: "pending",
+    href: null as string | null,
+  },
+  {
+    key: "n3",
+    node: "N3",
+    week: "第 3 周",
+    name: "交付冲刺",
+    outcome: "Demo/答辩材料精修",
+    status: "pending",
+    href: null as string | null,
+  },
+  {
+    key: "n4",
+    node: "N4",
+    week: "第 4 周",
+    name: "提交评分",
+    outcome: "交付包 + 验收 + 评分",
+    status: "pending",
+    href: null as string | null,
+  },
+] as const;
+
+/** 节点状态展示行:N1 进行中,其余「第 N 周开放 · 待活动配置确认」 */
+export function journeyNodeStatusLabel(node: (typeof journeyNodes)[number]): string {
+  return node.status === "in-progress" ? "进行中" : `${node.week}开放 · ${PENDING_LABEL}`;
+}
+
+/**
  * 五段实践路径(§5-D)。桌面横向轨迹,滚动只点亮当前阶段。
+ * §31 H5:四节点旅程是操作层,本五段保留为方法论层。
  */
 export const journeySteps = [
   {

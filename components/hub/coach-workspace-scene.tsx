@@ -50,6 +50,7 @@ export function CoachWorkspaceScene({
   visualLabel,
   orbIdPrefix,
   flowBackHref,
+  focusSignal,
   reviewOpen,
   onOpenReview,
   switchEntryHref,
@@ -93,6 +94,8 @@ export function CoachWorkspaceScene({
   orbIdPrefix: string;
   /** 打磨轮⑥:顶栏左槽——尚无回答的第一幕保留指南出口,此后让位给"回看" */
   flowBackHref: string | null;
+  /** J-1:建立拍→第一幕后焦点接续到回答器的信号(随 begin 递增;0=未经建立拍) */
+  focusSignal: number;
   /** 回看抽屉开态(触发器 aria-expanded 用) */
   reviewOpen: boolean;
   onOpenReview: () => void;
@@ -154,11 +157,12 @@ export function CoachWorkspaceScene({
       top: scrollRef.current?.scrollHeight ?? 0,
       behavior: reduceMotion ? "auto" : "smooth",
     });
-    /* 新一幕问题端上后,焦点接续到回答器(回答器由问题标题命名) */
-    if (!transitioning && actIndex > 0) {
+    /* 新一幕问题端上后,焦点接续到回答器(回答器由问题标题命名);
+       建立拍经「开始第一问」进入第一幕时同样接续(focusSignal>0) */
+    if (!transitioning && (actIndex > 0 || focusSignal > 0)) {
       textareaRef.current?.focus();
     }
-  }, [actIndex, transitioning]);
+  }, [actIndex, transitioning, focusSignal]);
 
   /* 自动增高:单行起步,随内容长到上限后出现内部滚动;
      提交清空或过渡折叠后重新挂载时回到单行 */

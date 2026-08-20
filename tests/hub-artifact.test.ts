@@ -3,6 +3,7 @@ import {
   ARTIFACT_ROUND_COUNT,
   advance,
   artifactActsFor,
+  beginCoach,
   composeArtifact,
   composeArtifactText,
   createCoachState,
@@ -43,7 +44,7 @@ const META: ExportMeta = {
 };
 
 function seedState() {
-  let state = createCoachState("problem");
+  let state = beginCoach(createCoachState("problem"));
   for (const answer of ACT_ANSWERS) {
     state = submitAnswer(state, answer);
     state = advance(state);

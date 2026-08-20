@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { site } from "../../config/site";
+import { beginCoach } from "./helpers";
 
 const FIRST_QUESTION = "你最想改变的具体工作瞬间是什么?";
 const SECOND_QUESTION = "这个问题对谁造成了什么具体损失?";
@@ -7,6 +8,7 @@ const SECOND_QUESTION = "这个问题对谁造成了什么具体损失?";
 /**
  * 深度优化回归：根入口先说明活动与路径，但不把用户挡在营销页；
  * 第一问只留极弱种子轨，首份回答沉淀后问题卡才完整长出。
+ * 旅程叙事轮(§31):首屏是建立拍——在场确认后 begin,再断言第一问与种子轨。
  */
 test.describe("Hub 冷启动与渐进工作空间", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -28,12 +30,20 @@ test.describe("Hub 冷启动与渐进工作空间", () => {
     await expect(art).toBeVisible();
     expect(await art.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThanOrEqual(800);
 
+    // 建立拍在场:唯一 CTA 是「开始第一问」,小卡与回答器此拍不渲染
+    await expect(page.locator("[data-coach-intro]")).toBeVisible();
+    await expect(page.locator("[data-coach-begin]")).toBeVisible();
+    await expect(page.locator("[data-coach-progress]")).toHaveCount(0);
+    await expect(page.locator("#coach-answer")).toHaveCount(0);
+    await beginCoach(page);
+
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
   });
 
   test("空问题卡先收成窄轨，回答沉淀后再完整长出", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     const progress = page.locator("[data-coach-progress]");
     await expect(progress).toBeVisible();
 
@@ -57,6 +67,7 @@ test.describe("Hub 冷启动与渐进工作空间", () => {
   test("/start 保持纯 Coach 场景，适合已理解活动的用户直接进入", async ({ page }) => {
     await page.goto("/start");
     await expect(page.locator("[data-hub-orientation]")).toHaveCount(0);
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
     await expect(page.locator("#coach-answer")).toBeVisible();
   });
@@ -72,6 +83,16 @@ test("390×844：定向层压缩后无横向或页面级纵向溢出", async ({ 
     "直接回答 → 三幕追问 → 问题种子 → 外部构建与证据",
   );
 
+  // 建立拍同样满足固定视口宪法:零横向溢出且一屏放得下
+  const introGeometry = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth - window.innerWidth,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportHeight: window.innerHeight,
+  }));
+  expect(introGeometry.horizontal).toBeLessThanOrEqual(0);
+  expect(introGeometry.documentHeight).toBeLessThanOrEqual(introGeometry.viewportHeight + 1);
+
+  await beginCoach(page);
   const progress = page.locator("[data-coach-progress]");
   const scene = page.locator(".coach-workspace-dialog");
   const progressBox = await progress.boundingBox();
@@ -94,6 +115,7 @@ test("390×844：定向层压缩后无横向或页面级纵向溢出", async ({ 
 test("1024×768：第一问仍是 68px 种子轨，回答后才展开问题卡", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/");
+  await beginCoach(page);
 
   const progress = page.locator("[data-coach-progress]");
   const initialBox = await progress.boundingBox();

@@ -1,11 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { coachDemoArtifactActs } from "../../fixtures/coach-demo";
+import { beginCoach, completeThreeActs, submitCoachAnswer } from "./helpers";
 
 /**
  * 打磨轮⑥(§29):进展可感知。
  * 常驻问题卡(幽灵→点亮→高亮)、等待计时、阶段性指南出口、回看抽屉、
  * 深化三槽模板、Axe 零违规与窄屏进度条零溢出。
+ * 旅程叙事轮(§31):首屏幽灵槽断言改为建立拍 begin 后;
+ * 指南出口保留在建立拍与第一幕问题态都要成立。
  */
 
 const QUESTIONS = [
@@ -26,27 +29,14 @@ const DEEPENING_ANSWERS = [
   "必须按固定流程调用检索工具并逐步留痕,普通对话记不住口径也不留痕",
 ] as const;
 
-async function submitAnswer(page: Page, answer: string) {
-  await page.locator("#coach-answer").fill(answer);
-  await page.getByRole("button", { name: "提交这一问的回答" }).click();
-}
-
-async function completeThreeActs(page: Page) {
-  await page.goto("/start");
-  for (const [index, question] of QUESTIONS.entries()) {
-    await expect(page.getByRole("heading", { name: question })).toBeVisible({
-      timeout: 15_000,
-    });
-    await submitAnswer(page, ANSWERS[index]);
-  }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({
-    timeout: 15_000,
-  });
-}
-
 test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
   test("首屏:三格幽灵槽与缺口摘要在场;指南出口保留、回看尚未接替", async ({ page }) => {
     await page.goto("/start");
+    // 指南出口在建立拍成立(G1:还有退路价值的时刻,出口不回退)
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
+    await beginCoach(page);
+    // 第一幕问题态:指南出口同样保留
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     await expect(page.locator("[data-coach-progress]")).toBeVisible();
     for (const key of ["moment", "impact", "necessity"]) {
@@ -68,7 +58,8 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
       await route.continue();
     });
     await page.goto("/start");
-    await submitAnswer(page, ANSWERS[0]);
+    await beginCoach(page);
+    await submitCoachAnswer(page, ANSWERS[0]);
 
     /* 沉淀即时:不必等模型,回答的去向立刻可见 */
     await expect(page.locator('[data-coach-slot="moment"]')).toHaveAttribute(
@@ -94,7 +85,8 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
     page,
   }) => {
     await page.goto("/start");
-    await submitAnswer(page, ANSWERS[0]);
+    await beginCoach(page);
+    await submitCoachAnswer(page, ANSWERS[0]);
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
       timeout: 15_000,
     });
@@ -133,7 +125,7 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
       ).toHaveAttribute("data-coach-slot-filled", "false");
     }
 
-    await submitAnswer(page, DEEPENING_ANSWERS[0]);
+    await submitCoachAnswer(page, DEEPENING_ANSWERS[0]);
     await expect(
       page.getByRole("heading", { name: coachDemoArtifactActs[1].question }),
     ).toBeVisible({ timeout: 15_000 });
@@ -151,11 +143,12 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
 test.describe("打磨轮⑥:无障碍与窄屏", () => {
   test("Axe:双栏问题态与回看抽屉开态零自动化可检测违规", async ({ page }) => {
     await page.goto("/start");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
     /* 作答一次让回看接替指南出口,再开抽屉扫描 */
-    await submitAnswer(page, ANSWERS[0]);
+    await submitCoachAnswer(page, ANSWERS[0]);
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
       timeout: 15_000,
     });
@@ -167,8 +160,17 @@ test.describe("打磨轮⑥:无障碍与窄屏", () => {
   test("375×812:进度条形态在场,零横向溢出且回答器仍在视口内", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/start");
+    // 建立拍同样满足固定视口宪法:零横向溢出且一屏放得下
+    const introMetrics = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      documentHeight: document.documentElement.scrollHeight,
+      viewportHeight: window.innerHeight,
+    }));
+    expect(introMetrics.overflow).toBeLessThanOrEqual(0);
+    expect(introMetrics.documentHeight).toBeLessThanOrEqual(introMetrics.viewportHeight + 1);
+    await beginCoach(page);
     await expect(page.locator("[data-coach-progress]")).toBeVisible();
-    await submitAnswer(page, ANSWERS[0]);
+    await submitCoachAnswer(page, ANSWERS[0]);
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
       timeout: 15_000,
     });

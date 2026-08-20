@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { beginCoach } from "./helpers";
 
 const fixtureQuestions = [
   "你最想改变的具体工作瞬间是什么?",
@@ -65,6 +66,7 @@ test.describe("Hub Coach 浏览器级韧性", () => {
       });
 
       await page.goto("/start?entry=problem");
+      await beginCoach(page);
       const stage = page.locator(".coach-stage");
       const answer = page.locator("#coach-answer");
       const submit = page.getByRole("button", { name: "提交这一问的回答" });
@@ -110,6 +112,7 @@ test.describe("Hub Coach 浏览器级韧性", () => {
     );
 
     await page.goto("/start?entry=problem");
+    await beginCoach(page);
     await submitAnswer(page, "试验异常记录分散在多处，复核时常常找不到对应依据。");
 
     // 下一问来自本地 fixture,三幕照常推进
@@ -137,6 +140,7 @@ test.describe("Hub Coach 浏览器级韧性", () => {
     });
 
     await page.goto("/start?entry=problem");
+    await beginCoach(page);
     await submitAnswer(page, "试验异常记录分散在多处，复核时常常找不到对应依据。");
 
     // collect 拍出现取消入口;点击后本地 fixture 接管,不再等待 20s

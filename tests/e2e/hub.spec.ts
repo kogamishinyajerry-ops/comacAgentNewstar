@@ -1,8 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
+import { beginCoach } from "./helpers";
 
 /**
  * 阶段一公共 Hub 验收(开工提示词 §14 的十条流程 + 五张关键视口截图)。
  * 运行:npx playwright tests tests/e2e/hub.spec.ts
+ * 旅程叙事轮(§31):Coach 流程先进建立拍,触达问题态前先 beginCoach。
  */
 
 const SHOTS = "docs/screenshots/phase1";
@@ -21,6 +23,7 @@ const ACT_QUESTIONS = {
 } as const;
 
 async function answerActs(page: Page, questions: readonly string[], label: string) {
+  await beginCoach(page);
   for (let i = 0; i < questions.length; i++) {
     await expect(page.getByRole("heading", { name: questions[i] })).toBeVisible({ timeout: 15_000 });
     await page.locator("#coach-answer").fill(`${label}回答 ${i + 1}`);
@@ -34,6 +37,7 @@ test.describe("桌面 1440×900", () => {
 
   test("1. 首屏:固定视口 Coach、单问题减法场景与无背景信息堆叠", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     // K3 减法:首屏唯一主标题就是当前主问题,完整工作台栏尚未长出
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     await expect(page.locator("h1")).toHaveCount(1);
@@ -52,6 +56,7 @@ test.describe("桌面 1440×900", () => {
 
   test("2. 真实问题入口三幕后生成问题种子", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     // 第一问交互中:截取 Coach 互动预览(第二幕已端上来)
     await page.locator("#coach-answer").fill("试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
@@ -76,8 +81,12 @@ test.describe("桌面 1440×900", () => {
 
   test("3. 已有想法入口第一问挑战方案先行,不直接认可", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await page.getByRole("link", { name: /换一条入口/ }).click();
     await expect(page).toHaveURL(/\?entry=idea/);
+    // 换入口整体重挂载 CoachFlow,建立拍再次出现(过渡期内旧回答器可能仍在,先等建立拍端上)
+    await page.locator("[data-coach-begin]").waitFor({ state: "visible" });
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
     await answerActs(page, ACT_QUESTIONS.idea, "已有想法");
   });
@@ -85,6 +94,7 @@ test.describe("桌面 1440×900", () => {
   test("4. Coach 同屏只有一个主要问题和一个回答器", async ({ page }) => {
     for (const url of ["/", "/start"]) {
       await page.goto(url);
+      await beginCoach(page);
       await expect(page.locator("#coach-answer")).toHaveCount(1);
       await expect(page.locator("#coach-question")).toHaveCount(1);
     }
@@ -132,6 +142,7 @@ test.describe("桌面 1440×900", () => {
   test("7. prefers-reduced-motion 下信息顺序不变,三幕流程完整", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     await expect(page.getByRole("link", { name: /换一条入口/ })).toBeVisible();
     await page.goto("/start");
@@ -141,7 +152,8 @@ test.describe("桌面 1440×900", () => {
 
   test("8. 键盘完成 Coach 三幕输入与提交", async ({ page }) => {
     await page.goto("/start");
-    // 仅用键盘 Tab 到回答器
+    await beginCoach(page);
+    // 仅用键盘 Tab 到回答器(建立拍离开后焦点已接续,循环立即退出)
     for (let i = 0; i < 60; i++) {
       if (await page.evaluate(() => document.activeElement?.id === "coach-answer")) break;
       await page.keyboard.press("Tab");
@@ -180,6 +192,16 @@ test.describe("移动端 390×844", () => {
 
   test("10. 无页面级滚动,弱化换入口可切换", async ({ page }) => {
     await page.goto("/");
+    // 建立拍同样满足固定视口宪法:零横向溢出且无一屏放不下的内容
+    const introMetrics = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      documentHeight: document.documentElement.scrollHeight,
+      viewportHeight: window.innerHeight,
+    }));
+    expect(introMetrics.overflow).toBeLessThanOrEqual(0);
+    expect(introMetrics.documentHeight).toBeLessThanOrEqual(introMetrics.viewportHeight + 1);
+
+    await beginCoach(page);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );
@@ -190,11 +212,15 @@ test.describe("移动端 390×844", () => {
     await page.screenshot({ path: `${SHOTS}/home-first-390.png` });
     await switchEntry.tap();
     await expect(page).toHaveURL(/\?entry=idea/);
+    // 换入口整体重挂载 CoachFlow,建立拍再次出现(过渡期内旧回答器可能仍在,先等建立拍端上)
+    await page.locator("[data-coach-begin]").waitFor({ state: "visible" });
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
   });
 
   test("11. 移动端 Coach 单焦点场景与抽屉导航", async ({ page }) => {
     await page.goto("/start");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     await expect(page.locator("#coach-answer")).toHaveCount(1);
     await page.locator("#coach-answer").fill("移动端第一幕回答");

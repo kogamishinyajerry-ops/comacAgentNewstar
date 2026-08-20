@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { COACH_STATE_LABELS } from "./coach-orb";
 import { CoachWorkspaceScene, type CoachTransitionStep } from "./coach-workspace-scene";
+import { CoachIntroScene } from "./coach-intro-scene";
 import { CoachMiniCard } from "./coach-mini-card";
 import { CoachReviewDrawer } from "./coach-review-drawer";
 import { SeedCard } from "./seed-card";
@@ -26,6 +27,7 @@ import {
   advance,
   artifactActsFor,
   actsFor,
+  beginCoach,
   clearError,
   composeArtifact,
   composeReviewRounds,
@@ -45,6 +47,7 @@ import {
 } from "@/lib/hub/coach-machine";
 
 type Action =
+  | { type: "begin" }
   | { type: "submit"; answer: string }
   | { type: "advance" }
   | { type: "clearError" }
@@ -62,6 +65,8 @@ interface CoachApiResponse {
 
 function reducer(state: CoachState, action: Action): CoachState {
   switch (action.type) {
+    case "begin":
+      return beginCoach(state);
     case "submit":
       return submitAnswer(state, action.answer);
     case "advance":
@@ -228,6 +233,8 @@ export function CoachFlow({
   if (cardIdRef.current === null) cardIdRef.current = createSessionCardId();
   const seedAtRef = useRef<Date | null>(null);
   const artifactAtRef = useRef<Date | null>(null);
+  /* J-1:建立拍→第一幕后,焦点接续到回答器的信号(随 begin 递增) */
+  const [beginCount, setBeginCount] = useState(0);
 
   const artifactStage = state.phase === "artifact-question" || state.phase === "artifact-transition" || state.phase === "artifact-done";
   const transitioning = state.phase === "transition" || state.phase === "artifact-transition";
@@ -421,6 +428,7 @@ export function CoachFlow({
     if (
       submitLockRef.current ||
       transitioning ||
+      state.phase === "intro" ||
       state.phase === "seed" ||
       state.phase === "artifact-done" ||
       attachmentReading
@@ -519,6 +527,12 @@ export function CoachFlow({
     cardIdRef.current = createSessionCardId();
     seedAtRef.current = null;
     artifactAtRef.current = null;
+  }
+
+  /** J-1:建立拍「开始第一问」——进入第一幕并信号焦点接续到回答器 */
+  function handleBegin() {
+    dispatch({ type: "begin" });
+    setBeginCount((count) => count + 1);
   }
 
   const seed = state.phase === "seed" ? composeSeed(state) : null;
@@ -666,6 +680,14 @@ export function CoachFlow({
             </div>
           </div>
         </div>
+      ) : state.phase === "intro" ? (
+        /* J-1(§31 H2):建立拍——第一幕尚无回答时的前置场景,一屏一焦点;
+           常驻小卡与回答器在此拍不渲染,顶栏出口只保留「返回活动指南」 */
+        <CoachIntroScene
+          guideHref={backHref}
+          orbIdPrefix={orbIdPrefix}
+          onBegin={handleBegin}
+        />
       ) : (
         <>
           {/* 打磨轮⑥:常驻问题卡(桌面右栏/窄屏进度条),与主场景同格渲染;
@@ -709,6 +731,8 @@ export function CoachFlow({
             visualLabel={COACH_STATE_LABELS[visual]}
             orbIdPrefix={orbIdPrefix}
             flowBackHref={flowBackHref}
+            /* J-1:建立拍离开后焦点接续到回答器的信号(随 begin 递增) */
+            focusSignal={beginCount}
             reviewOpen={reviewOpen}
             onOpenReview={() => setReviewOpen(true)}
             switchEntryHref={artifactStage ? undefined : switchEntryHref}

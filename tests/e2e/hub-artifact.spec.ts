@@ -1,51 +1,25 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { artifactCopy, coachDemoArtifactActs } from "../../fixtures/coach-demo";
+import {
+  DEEPENING_ANSWERS,
+  completeArtifact,
+  completeThreeActs,
+  submitCoachAnswer,
+} from "./helpers";
 
 /**
  * 第四幕:问题定义 Artifact(§22 阶段1 / §28)。
  * 三幕后第一格点亮 → 三轮一问一答深化 → 确定性凝结问题定义卡 →
  * 纯文本导出;全程无持久化,降级路径回退确定性 fixture。
+ * 旅程叙事轮(§31):三幕/深化流程收敛到 ./helpers(内含建立拍 click-through)。
  */
-
-const ACT_QUESTIONS = [
-  "你最想改变的具体工作瞬间是什么?",
-  "这个问题对谁造成了什么具体损失?",
-  "为什么普通大模型聊天不足以解决它?",
-] as const;
-
-const ACT_ANSWERS = [
-  "试验异常记录分散在三处,对账要来回翻找",
-  "影响试验工程师与复核人,每次对账约多花两小时",
-  "需要记住项目口径,按固定流程调用检索工具逐步核对并留痕",
-] as const;
-
-const DEEPENING_ANSWERS = [
-  "大约四十名试验工程师,每周对账三次,每次多花约两小时",
-  "对账时长从两小时降到半小时,且不再出现漏找依据的返工",
-  "必须按固定流程调用检索工具并逐步留痕,普通对话记不住口径也不留痕",
-] as const;
-
-async function completeThreeActs(page: Page) {
-  await page.goto("/start");
-  for (const [index, question] of ACT_QUESTIONS.entries()) {
-    await expect(page.getByRole("heading", { name: question })).toBeVisible({
-      timeout: 15_000,
-    });
-    await page.locator("#coach-answer").fill(ACT_ANSWERS[index]);
-    await page.getByRole("button", { name: "提交这一问的回答" }).click();
-  }
-  await expect(page.getByText("问题种子", { exact: true })).toBeVisible({
-    timeout: 15_000,
-  });
-}
 
 async function answerArtifactRound(page: Page, round: number) {
   await expect(
     page.getByRole("heading", { name: coachDemoArtifactActs[round].question })
   ).toBeVisible({ timeout: 15_000 });
-  await page.locator("#coach-answer").fill(DEEPENING_ANSWERS[round]);
-  await page.getByRole("button", { name: "提交这一问的回答" }).click();
+  await submitCoachAnswer(page, DEEPENING_ANSWERS[round]);
 }
 
 async function expectNoAxeViolations(page: Page) {
@@ -132,8 +106,7 @@ test.describe("第四幕:问题定义 Artifact", () => {
       await expect(
         page.getByRole("heading", { name: coachDemoArtifactActs[round].question })
       ).toBeVisible({ timeout: 15_000 });
-      await page.locator("#coach-answer").fill(DEEPENING_ANSWERS[round]);
-      await page.getByRole("button", { name: "提交这一问的回答" }).click();
+      await submitCoachAnswer(page, DEEPENING_ANSWERS[round]);
       if (round === 0) {
         await expect(
           page.locator('[role="alert"]', { hasText: "AI 服务暂不可用" })
@@ -170,23 +143,22 @@ test.describe("第四幕:问题定义 Artifact", () => {
       });
     });
 
-    await completeThreeActs(page);
-    await page.locator("[data-artifact-entry]").click();
-    for (let round = 0; round < 3; round += 1) {
-      await expect(
-        page.getByRole("heading", { name: coachDemoArtifactActs[round].question })
-      ).toBeVisible({ timeout: 15_000 });
-      await page.locator("#coach-answer").fill(DEEPENING_ANSWERS[round]);
-      await page.getByRole("button", { name: "提交这一问的回答" }).click();
-    }
-    await expect(page.locator("[data-artifact-card]")).toBeVisible({ timeout: 15_000 });
+    await completeArtifact(page);
 
-    /* 卡片有入场凝结动效,等透明度落定再扫描(§25 教训) */
+    /* 卡片有入场凝结动效,等透明度落定再扫描(§25 教训);
+       J-5 揭示拍内层槽位还有 0–700ms 错峰动画,一并等齐 */
     await expect
       .poll(() =>
         page.locator("[data-artifact-card]").evaluate((el) => getComputedStyle(el).opacity)
       )
       .toBe("1");
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-artifact-card] .motion-slot-in")
+          .evaluateAll((els) => els.every((el) => getComputedStyle(el).opacity === "1"))
+      )
+      .toBe(true);
     await expectNoAxeViolations(page);
   });
 });

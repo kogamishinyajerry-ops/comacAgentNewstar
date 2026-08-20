@@ -6,6 +6,8 @@ import {
   activity,
   activityFact,
   arrivalSteps,
+  journeyNodes,
+  journeyNodeStatusLabel,
   platformBoundaries,
   journeySteps,
   PENDING_LABEL,
@@ -78,34 +80,66 @@ export default function GuidePage() {
       </header>
 
       <Reveal>
-        <section aria-labelledby="guide-arrival" className="hub-card p-7 sm:p-8" data-guide-arrival-section>
-          <h2 id="guide-arrival" className="text-[18px] font-bold">到场三件套</h2>
+        <section aria-labelledby="guide-journey" className="hub-card p-7 sm:p-8" data-guide-journey>
+          <h2 id="guide-journey" className="text-[18px] font-bold">四周旅程:现在走到哪一步</h2>
           <p className="hub-body mt-2 max-w-[560px]">
-            开始之前先完成三步:下载 WorkBuddy、加入项目群、进入本站。链接与二维码待活动配置确认,确认后在此更新,我们不预先编造。
+            活动分四周、四个节点。当前只有 N1 问答初筛开放;其余节点结构可见、开放时间待活动配置确认,我们不预支未开放的能力。
           </p>
-          <ol className="mt-6 grid gap-4 sm:grid-cols-3">
-            {arrivalSteps.map((step) => (
+
+          {/* G0 到场三件套(P0-2):链接未确认一律 pending */}
+          <div className="mt-7">
+            <p className="seed-slot-label">G0 · 到场三件套</p>
+            <ol className="mt-4 grid gap-4 sm:grid-cols-3">
+              {arrivalSteps.map((step) => (
+                <li
+                  key={step.key}
+                  className="rounded-xl border border-[var(--border-subtle)] p-4"
+                  data-guide-arrival={step.key}
+                >
+                  <p className="text-[14.5px] font-bold text-[var(--text-primary)]">
+                    {step.index}. {step.title}
+                    {step.current && (
+                      <span className="ml-2 text-[12px] font-semibold text-[var(--text-tertiary)]">（你在这里）</span>
+                    )}
+                  </p>
+                  <p className="hub-caption mt-1.5">{step.detail}</p>
+                  <p className="mt-2 text-[13px]">
+                    {step.href ? (
+                      <a href={step.href} target="_blank" rel="noreferrer" className="hub-quiet-link">
+                        打开链接<span className="sr-only">（在新窗口打开）</span>
+                      </a>
+                    ) : step.current ? (
+                      <Link href="/start" className="hub-quiet-link">进入问题探索</Link>
+                    ) : (
+                      <span className="text-[var(--text-tertiary)]">{PENDING_LABEL}</span>
+                    )}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* 四节点:结构可见、日期 pending;只有 N1 可进入 */}
+          <ol className="mt-8 flex flex-col">
+            {journeyNodes.map((node) => (
               <li
-                key={step.key}
-                className="rounded-xl border border-[var(--border-subtle)] p-4"
-                data-guide-arrival={step.key}
+                key={node.key}
+                className="flex flex-col gap-1.5 border-b border-[var(--border-subtle)] py-5 first:pt-0 last:border-none sm:flex-row sm:items-baseline sm:gap-6"
+                data-guide-node={node.key}
+                data-guide-node-status={node.status}
               >
-                <p className="text-[14.5px] font-bold text-[var(--text-primary)]">
-                  {step.index}. {step.title}
-                  {step.current && (
-                    <span className="ml-2 text-[12px] font-semibold text-[var(--text-tertiary)]">（你在这里）</span>
-                  )}
+                <p className="w-[220px] flex-none text-[15px] font-bold text-[var(--text-primary)]">
+                  {node.node} {node.name}
+                  <span className="ml-2 text-[12.5px] font-semibold text-[var(--text-tertiary)]">{node.week}</span>
                 </p>
-                <p className="hub-caption mt-1.5">{step.detail}</p>
-                <p className="mt-2 text-[13px]">
-                  {step.href ? (
-                    <a href={step.href} target="_blank" rel="noreferrer" className="hub-quiet-link">
-                      打开链接<span className="sr-only">（在新窗口打开）</span>
-                    </a>
-                  ) : step.current ? (
-                    <Link href="/start" className="hub-quiet-link">进入问题探索</Link>
+                <p className="hub-body flex-1">产出:{node.outcome}</p>
+                <p className="flex-none text-[13.5px]">
+                  {node.href ? (
+                    <Link href={node.href} className="hub-quiet-link">
+                      {journeyNodeStatusLabel(node)} · 进入
+                    </Link>
                   ) : (
-                    <span className="text-[var(--text-tertiary)]">{PENDING_LABEL}</span>
+                    <span className="text-[var(--text-tertiary)]">{journeyNodeStatusLabel(node)}</span>
                   )}
                 </p>
               </li>
@@ -146,7 +180,10 @@ export default function GuidePage() {
 
       <Reveal className="mt-14">
         <section aria-labelledby="guide-path">
-          <h2 id="guide-path" className="hub-title text-[26px]">参与路径:五段,不是十个步骤</h2>
+          <h2 id="guide-path" className="hub-title text-[26px]">方法论:五段实践路径,不是十个步骤</h2>
+          <p className="hub-body mt-3 max-w-[640px]">
+            四节点旅程是操作层;这五段是贯穿每个节点的做事方法——从真实问题出发,以证据收尾。
+          </p>
           <ol className="mt-8 flex flex-col">
             {journeySteps.map((step) => (
               <li key={step.key} className="flex gap-5 border-b border-[var(--border-subtle)] py-6 first:pt-0 last:border-none">

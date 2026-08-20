@@ -8,6 +8,10 @@
  * 第四幕(§22 阶段1):种子之后可选进入"问题定义 Artifact"三轮深化,
  * 与三幕同构(一问一答、末轮不发请求、客户端确定性凝结),
  * 但与 ACT_COUNT 语义正交,不影响既有幕计数与断言。
+ *
+ * 旅程叙事轮(§31):intro 建立拍是第一幕之前的前置相位(尚无回答时),
+ * 由 beginCoach 进入第一幕;导出可追述(P0-1)以纯函数组装,
+ * 随机卡号与本地时钟由调用方注入,状态机本身不碰随机源。
  */
 
 import {
@@ -21,6 +25,7 @@ import {
 } from "@/fixtures/coach-demo";
 
 export type CoachPhase =
+  | "intro"
   | "question"
   | "transition"
   | "seed"
@@ -55,12 +60,21 @@ export function createCoachState(entry: CoachEntry): CoachState {
   return {
     entry,
     actIndex: 0,
-    phase: "question",
+    phase: "intro",
     answers: [],
     error: null,
     artifactRound: 0,
     artifactAnswers: [],
   };
+}
+
+/**
+ * 旅程叙事轮(§31 H2,J-1):建立拍是流程的前置相位。
+ * 仅在建立拍有效——进入第一幕;其余相位调用不生效。
+ */
+export function beginCoach(state: CoachState): CoachState {
+  if (state.phase !== "intro") return state;
+  return { ...state, phase: "question" };
 }
 
 /** 空白输入的最小判定:去掉空白后至少要有内容 */
@@ -75,7 +89,9 @@ export function isSubmittableAnswer(raw: string): boolean {
  *   由 advance 决定是下一幕、种子、下一轮还是问题定义卡。
  */
 export function submitAnswer(state: CoachState, raw: string): CoachState {
-  if (state.phase === "seed" || state.phase === "artifact-done") return state;
+  if (state.phase === "intro" || state.phase === "seed" || state.phase === "artifact-done") {
+    return state;
+  }
   if (!isSubmittableAnswer(raw)) {
     return { ...state, error: currentAct(state).emptyHint };
   }
@@ -161,6 +177,8 @@ export function currentAct(state: CoachState): CoachAct {
 /** 依据 phase 派生视觉状态;listening 由组件层叠加(聚焦/输入中) */
 export function visualStateFor(state: CoachState): CoachVisualState {
   switch (state.phase) {
+    case "intro":
+      return "idle";
     case "question":
       return "idle";
     case "transition":

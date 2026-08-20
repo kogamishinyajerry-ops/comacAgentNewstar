@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACT_COUNT,
   advance,
+  beginCoach,
   clearError,
   composeReviewRounds,
   composeSeed,
@@ -21,10 +22,42 @@ import {
 } from "../lib/hub/coach-machine";
 import { coachDemoActs, exportTraceabilityCopy } from "../fixtures/coach-demo";
 
+/** J-1 后:流程从建立拍开始,先 begin 才进入第一幕 */
+function begunState(entry: "problem" | "idea" = "problem") {
+  return beginCoach(createCoachState(entry));
+}
+
 const META: ExportMeta = {
   generatedAt: new Date(2026, 7, 20, 9, 5),
   cardId: "QD-T3ST5",
 };
+
+describe("coach-machine:建立拍(旅程叙事轮 J-1)", () => {
+  it("初始相位是 intro;begin 进入第一幕,非 intro 相位调用不生效", () => {
+    const intro = createCoachState("problem");
+    expect(intro.phase).toBe("intro");
+    expect(visualStateFor(intro)).toBe("idle");
+
+    const begun = beginCoach(intro);
+    expect(begun.phase).toBe("question");
+    expect(begun.actIndex).toBe(0);
+    /* 幂等防线:已离开建立拍后 begin 不再改变状态 */
+    expect(beginCoach(begun)).toBe(begun);
+  });
+
+  it("建立拍不接受提交与推进,保持原状态", () => {
+    const intro = createCoachState("idea");
+    expect(submitAnswer(intro, "抢先回答")).toBe(intro);
+    expect(advance(intro)).toBe(intro);
+    expect(intro.answers).toHaveLength(0);
+  });
+
+  it("miniSlots 在建立拍即给出三格幽灵槽(与第一幕问题态同构)", () => {
+    const slots = miniSlots(createCoachState("problem"));
+    expect(slots).toHaveLength(3);
+    expect(slots.every((slot) => !slot.filled && slot.text === null)).toBe(true);
+  });
+});
 
 describe("coach-machine:三幕推进", () => {
   it("两条入口各三幕,幕数一致", () => {
@@ -34,7 +67,7 @@ describe("coach-machine:三幕推进", () => {
   });
 
   it("空白提交不推进,给出当前幕的行内提示", () => {
-    let s = createCoachState("problem");
+    let s = begunState("problem");
     s = submitAnswer(s, "   ");
     expect(s.phase).toBe("question");
     expect(s.actIndex).toBe(0);
@@ -46,7 +79,7 @@ describe("coach-machine:三幕推进", () => {
   });
 
   it("每次有效提交推进一幕;第三幕后凝结为种子", () => {
-    let s = createCoachState("problem");
+    let s = begunState("problem");
     expect(s.phase).toBe("question");
 
     s = submitAnswer(s, "试验异常记录分散在三处");
@@ -67,14 +100,14 @@ describe("coach-machine:三幕推进", () => {
   });
 
   it("transition 之外调用 advance 不改变状态", () => {
-    const s = createCoachState("idea");
+    const s = begunState("idea");
     expect(advance(s)).toBe(s);
   });
 });
 
 describe("coach-machine:视觉状态派生", () => {
   it("question → idle;非末幕 transition → challenging;末幕 transition → condensing;seed → confirmed", () => {
-    let s = createCoachState("problem");
+    let s = begunState("problem");
     expect(visualStateFor(s)).toBe("idle");
 
     s = submitAnswer(s, "回答一");
@@ -92,7 +125,7 @@ describe("coach-machine:视觉状态派生", () => {
 
 describe("coach-machine:问题种子合成", () => {
   it("种子由三段回答摘录组成,并固定标注两类缺口", () => {
-    let s = createCoachState("idea");
+    let s = begunState("idea");
     for (const a of ["现象一", "影响二", "必要性三"]) {
       s = advance(submitAnswer(s, a));
     }
@@ -137,35 +170,6 @@ describe("coach-machine:问题种子合成", () => {
     expect(text).toContain("不是项目创建成功");
     expect(text).not.toContain("项目已创建");
     expect(text).not.toContain("已提交");
-  });
-});
-
-describe("coach-machine:导出可追述过渡解(§31 P0-1,⚑D3)", () => {
-  it("createSessionCardId:QD- 前缀 + 5 位无歧义字符;随机源可注入", () => {
-    expect(createSessionCardId()).toMatch(/^QD-[A-HJ-KMNP-Z2-9]{5}$/);
-    /* 注入确定性随机源:0 → 字母表首字符,0.999 → 末字符(31 字符表) */
-    expect(createSessionCardId(() => 0)).toBe("QD-AAAAA");
-    expect(createSessionCardId(() => 0.999)).toBe("QD-99999");
-    /* 同一字符集不含易混淆的 0/O、1/I/L(0.5 → 索引 15 = S) */
-    expect(createSessionCardId(() => 0.5)).toBe("QD-SSSSS");
-  });
-
-  it("formatLocalTimestamp:本地时钟 YYYY-MM-DD HH:mm,单位数补零", () => {
-    expect(formatLocalTimestamp(new Date(2026, 0, 5, 9, 7))).toBe("2026-01-05 09:07");
-    expect(formatLocalTimestamp(new Date(2026, 11, 31, 23, 59))).toBe("2026-12-31 23:59");
-  });
-
-  it("种子导出头部:时间/卡号/版本/映射四行齐全且先于三字段,不含深化映射", () => {
-    const text = composeSeedText(
-      { moment: "瞬间", impact: "影响", necessity: "必要性", gaps: ["缺口一"] },
-      META,
-    );
-    const head = text.split("\n").slice(0, 7).join("\n");
-    expect(head).toContain("生成时间:2026-08-20 09:05(本地时钟)");
-    expect(head).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
-    expect(head).toContain("格式版本:v1");
-    expect(head).toContain("问答映射:主张←第1·3幕;影响←第2幕");
-    expect(text.indexOf("格式版本")).toBeLessThan(text.indexOf("【主张】"));
   });
 });
 
@@ -218,7 +222,7 @@ describe("coach-machine:打磨轮⑥ 常驻问题卡与回看(§29)", () => {
   });
 
   it("miniSlots:按幕序点亮,摘录与轨迹同档(20 字),深化槽随回答追加", () => {
-    let s = createCoachState("problem");
+    let s = begunState("problem");
     s = submitAnswer(s, "试验异常记录、依据和处理结果分散在三处,对账要来回翻找");
     let slots = miniSlots(s);
     expect(slots.filter((slot) => slot.filled)).toHaveLength(1);
@@ -247,7 +251,7 @@ describe("coach-machine:打磨轮⑥ 常驻问题卡与回看(§29)", () => {
     const artifactQuestions = ["深化一?", "深化二?", "深化三?"];
     expect(composeReviewRounds(createCoachState("problem"), actQuestions, artifactQuestions)).toEqual([]);
 
-    let s = createCoachState("problem");
+    let s = begunState("problem");
     s = submitAnswer(s, "答一");
     s = advance(s);
     /* 第二幕问题态:第一轮已答;当前位置由抽屉「当前」行表达,不在轮次上标记 */
@@ -271,5 +275,34 @@ describe("coach-machine:打磨轮⑥ 常驻问题卡与回看(§29)", () => {
     expect(rounds.map((round) => round.kind)).toEqual(["act", "act", "act", "deepening", "deepening"]);
     /* 回答保留全文(抽屉默认关闭承接压缩原则) */
     expect(rounds[3].answer).toBe("深答一");
+  });
+});
+
+describe("coach-machine:导出可追述过渡解(§31 P0-1,⚑D3)", () => {
+  it("createSessionCardId:QD- 前缀 + 5 位无歧义字符;随机源可注入", () => {
+    expect(createSessionCardId()).toMatch(/^QD-[A-HJ-KMNP-Z2-9]{5}$/);
+    /* 注入确定性随机源:0 → 字母表首字符,0.999 → 末字符 */
+    expect(createSessionCardId(() => 0)).toBe("QD-AAAAA");
+    expect(createSessionCardId(() => 0.999)).toBe("QD-99999");
+    /* 同一字符集不含易混淆的 0/O、1/I/L(31 字符表,0.5 → 索引 15 = S) */
+    expect(createSessionCardId(() => 0.5)).toBe("QD-SSSSS");
+  });
+
+  it("formatLocalTimestamp:本地时钟 YYYY-MM-DD HH:mm,单位数补零", () => {
+    expect(formatLocalTimestamp(new Date(2026, 0, 5, 9, 7))).toBe("2026-01-05 09:07");
+    expect(formatLocalTimestamp(new Date(2026, 11, 31, 23, 59))).toBe("2026-12-31 23:59");
+  });
+
+  it("种子导出头部:时间/卡号/版本/映射四行齐全且先于三字段,不含深化映射", () => {
+    const text = composeSeedText(
+      { moment: "瞬间", impact: "影响", necessity: "必要性", gaps: ["缺口一"] },
+      META,
+    );
+    const head = text.split("\n").slice(0, 7).join("\n");
+    expect(head).toContain("生成时间:2026-08-20 09:05(本地时钟)");
+    expect(head).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(head).toContain("格式版本:v1");
+    expect(head).toContain("问答映射:主张←第1·3幕;影响←第2幕");
+    expect(text.indexOf("格式版本")).toBeLessThan(text.indexOf("【主张】"));
   });
 });

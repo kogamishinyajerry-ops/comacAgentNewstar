@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CoachOrb, COACH_STATE_LABELS } from "@/components/hub/coach-orb";
 import { SeedCard } from "@/components/hub/seed-card";
-import { composeSeed, createCoachState, submitAnswer, advance } from "@/lib/hub/coach-machine";
+import { composeSeed, createCoachState, beginCoach, submitAnswer, advance } from "@/lib/hub/coach-machine";
 import { journeySteps } from "@/config/activity";
 import { seedCopy } from "@/fixtures/coach-demo";
 
@@ -66,9 +66,9 @@ export default function DevScenariosPage() {
   const [inputValue, setInputValue] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
 
-  /* 由状态机直接构造一个已完成的种子样例 */
+  /* 由状态机直接构造一个已完成的种子样例(先经建立拍 begin 进入第一幕) */
   const seedSample = (() => {
-    let s = createCoachState("problem");
+    let s = beginCoach(createCoachState("problem"));
     for (const answer of [
       "试验异常发生后,记录、依据和处理结果分散在三处,人工对账要来回翻找",
       "影响试验工程师与复核人;每次对账约多花两小时,口径不一致还会返工",

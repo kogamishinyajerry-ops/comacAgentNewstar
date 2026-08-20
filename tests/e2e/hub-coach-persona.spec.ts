@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { beginCoach } from "./helpers";
 
 /**
  * K3 本轮:Coach 人格与三幕减法的行为验收(任务书§四状态 A–D、§七)。
@@ -50,6 +51,7 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
 
   test("种子前不存在完整左右栏,只保留单一主问题场景", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
 
     // 失败模式:完整左侧工作台栏与右侧 insight 栏仍存在
     // 幽灵断言清理(§21):rail/insight/stage-list 类已随源码删除,不再保留永绿断言;
@@ -59,7 +61,8 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
     // 保留的七个元素:极弱返回、幕号、Coach 状态提示、主问题、回答器、附件按钮、主提交
     await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
     await expect(page.getByText("01 / 03")).toBeVisible();
-    await expect(page.getByText(/AI Coach · 静候/)).toBeVisible();
+    // begin 后焦点接续到回答器(§31 J-1),状态提示由"静候"转为"倾听",均为合法首幕态
+    await expect(page.getByText(/AI Coach · (静候|倾听)/)).toBeVisible();
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     await expect(page.locator("#coach-answer")).toHaveCount(1);
     await expect(page.getByRole("button", { name: /添加文本附件/ })).toHaveCount(1);
@@ -89,6 +92,7 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
 
   test("隐私披露时序:第1、2幕问题态常驻,过渡期与第3幕不出现", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
 
     // 第1幕问题态:披露在场(该幕提交将发送至 AI 服务)
@@ -115,6 +119,7 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
 
   test("判断与风险依次单独出现,不与下一问长期并列", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     await page.locator("#coach-answer").fill(ANSWERS[0]);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
@@ -144,6 +149,7 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
 
   test("aria-live 不与焦点元素重复朗读同一内容", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await answerUntilQuestion(page, 1);
 
     const liveText = (await page.locator('p[aria-live="polite"]').textContent()) ?? "";
@@ -156,6 +162,7 @@ test.describe("状态 B:提交后的判断→风险→下一问时序", () => {
   test("reduced-motion 下时序与焦点结果一致,直接切换无动画", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/start");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     await page.locator("#coach-answer").fill(ANSWERS[0]);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
@@ -192,6 +199,7 @@ test.describe("状态 C:后续幕的历史压缩轨迹", () => {
 
   test("第二幕起完整历史问答默认不可见,只保留一行结论轨迹", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await answerUntilQuestion(page, 1);
 
     // 失败模式:第一幕完整问答气泡仍可见
@@ -228,6 +236,7 @@ test.describe("状态 D:问题种子与工作空间长出", () => {
 
   test("种子后才长出 Artifacts 与 主张—证据—缺口,焦点留在可视区域", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     // 种子前:Artifacts 不存在
     await expect(page.locator(".coach-artifact-rail")).toHaveCount(0);
     await answerUntilQuestion(page, 2);
@@ -283,6 +292,15 @@ test.describe("移动端 375×812 与桌面 1280×800 视口", () => {
   test("375×812:单一主焦点、无横向溢出、主提交热区达标", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
+    // 建立拍同样满足固定视口宪法:零横向溢出且一屏放得下
+    const introMetrics = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      documentHeight: document.documentElement.scrollHeight,
+      viewportHeight: window.innerHeight,
+    }));
+    expect(introMetrics.overflow).toBeLessThanOrEqual(0);
+    expect(introMetrics.documentHeight).toBeLessThanOrEqual(introMetrics.viewportHeight + 1);
+    await beginCoach(page);
 
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
@@ -309,6 +327,7 @@ test.describe("移动端 375×812 与桌面 1280×800 视口", () => {
   test("375×812:幕间时序后仍无溢出,轨迹不挤压当前问题", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
+    await beginCoach(page);
     await answerUntilQuestion(page, 1);
     await expect(page.locator('[data-coach-slot="moment"]')).toHaveAttribute(
       "data-coach-slot-filled",
@@ -327,6 +346,7 @@ test.describe("移动端 375×812 与桌面 1280×800 视口", () => {
   test("1280×800:减法布局无溢出且回答器可见", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     const metrics = await page.evaluate(() => {
       const composer = document.querySelector(".coach-composer");
@@ -349,6 +369,7 @@ test.describe("移动端 390×844 四状态截图证据", () => {
 
   test("状态 B/C/D 移动端形态与时序一致", async ({ page }) => {
     await page.goto("/");
+    await beginCoach(page);
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     await page.locator("#coach-answer").fill(ANSWERS[0]);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
