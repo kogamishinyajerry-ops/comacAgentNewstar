@@ -2,9 +2,9 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { beginCoach } from "./helpers";
 
 const fixtureQuestions = [
-  "你最想改变的具体工作瞬间是什么?",
-  "这个问题对谁造成了什么具体损失?",
-  "为什么普通大模型聊天不足以解决它?",
+  "你最想改变的具体工作瞬间是什么？",
+  "这个问题对谁造成了什么具体损失？",
+  "为什么普通大模型聊天不足以解决它？",
 ] as const;
 
 const fallbackNotice = "AI 服务暂不可用，本幕已按确定性追问继续。";

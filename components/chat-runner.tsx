@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Check, ChevronRight, Flame, Lightbulb } from "lucide-react";
 import { getStepConfig } from "@/lib/steps";
 import { TEAM_MODE_LABELS, TEST_TYPE_LABELS } from "@/lib/constants";
-import { Badge, Button, ProgressBar, ProgressRing, StatusBadge, cn } from "./ui";
+import { Badge, Button, ProgressBar, ProgressRing, StatusBadge } from "./ui";
 import { Seal } from "./seal";
 import { MissionBar } from "./charts";
 import { LevelBadge, XpBar } from "./achievements";
@@ -107,7 +108,7 @@ export function ChatRunner({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast({ tone: "error", icon: "⚠️", title: "发送失败", desc: json.error ?? "请重试" });
+        showToast({ tone: "error", title: "发送失败", desc: json.error ?? "请重试" });
         setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
         setInput(text);
         return;
@@ -119,7 +120,6 @@ export function ChatRunner({
       if (upd.length) {
         showToast({
           tone: "success",
-          icon: "✓",
           title: `已记录 ${upd.length} 项材料`,
           desc: upd.map((u: { step: number; key: string; value: unknown }) => fieldLabel(u.step, u.key, u.value)).join("、"),
           durationMs: 2800,
@@ -150,7 +150,7 @@ export function ChatRunner({
             <StatusBadge status={boot.status} />
             <Link
               href={`/projects/${boot.projectId}?step=${progress.currentStep}`}
-              className="rounded border border-ink-900/15 px-2 py-1 text-[11px] font-medium text-ink-600 hover:border-ink-900/35"
+              className="rounded-md border border-ink-900/15 px-2 py-1 text-[11px] font-medium text-ink-600 transition-[border-color,color,background-color] duration-150 hover:border-brand-400 hover:bg-brand-50/60 hover:text-brand-700"
               title="查看/编辑结构化材料"
             >
               结构视图
@@ -204,24 +204,34 @@ export function ChatRunner({
                     </div>
                     {m.meta.grill && (
                       <div className="mt-2 rounded border-l-2 border-brand-500 bg-brand-50/60 px-2.5 py-1.5">
-                        <p className="text-[12px] font-medium leading-5 text-brand-800">🔥 {m.meta.grill.q}</p>
-                        {m.meta.grill.why && <p className="mt-0.5 text-[10px] leading-4 text-brand-600/80">💡 {m.meta.grill.why}</p>}
+                        <p className="flex items-start gap-1.5 text-[12px] font-medium leading-5 text-brand-800">
+                          <Flame size={13} strokeWidth={2.2} className="mt-0.5 shrink-0" aria-hidden />
+                          {m.meta.grill.q}
+                        </p>
+                        {m.meta.grill.why && (
+                          <p className="mt-1 flex items-start gap-1.5 text-[10px] leading-4 text-brand-600/80">
+                            <Lightbulb size={11} strokeWidth={2.2} className="mt-0.5 shrink-0" aria-hidden />
+                            {m.meta.grill.why}
+                          </p>
+                        )}
                       </div>
                     )}
                     {m.meta.action === "open-structure-8" && (
                       <Link
                         href={`/projects/${boot.projectId}?step=8`}
-                        className="mt-2 inline-flex items-center gap-1 rounded border border-ink-900/15 px-2 py-1 text-[11px] font-medium text-ink-700 hover:border-ink-900/40"
+                        className="mt-2 inline-flex items-center gap-1 rounded-md border border-ink-900/15 px-2 py-1 text-[11px] font-medium text-ink-700 transition-[border-color,color,background-color] duration-150 hover:border-brand-400 hover:bg-brand-50/60 hover:text-brand-700"
                       >
-                        去第8步填测试案例 →
+                        去第8步填测试案例
+                        <ChevronRight size={12} strokeWidth={2.2} aria-hidden />
                       </Link>
                     )}
                     {m.meta.action === "run-precheck" && (
                       <Link
                         href={`/projects/${boot.projectId}?step=9`}
-                        className="mt-2 inline-flex items-center gap-1 rounded border border-brand-400 bg-brand-50/60 px-2 py-1 text-[11px] font-medium text-brand-700 hover:border-brand-600"
+                        className="mt-2 inline-flex items-center gap-1 rounded-md border border-brand-400 bg-brand-50/60 px-2 py-1 text-[11px] font-medium text-brand-700 transition-[border-color,background-color] duration-150 hover:border-brand-600 hover:bg-brand-50"
                       >
-                        去第9步跑提交预检 →
+                        去第9步跑提交预检
+                        <ChevronRight size={12} strokeWidth={2.2} aria-hidden />
                       </Link>
                     )}
                   </div>
@@ -235,7 +245,8 @@ export function ChatRunner({
                             title={typeof u.value === "string" ? u.value : tc ? `${tc.input} → ${tc.expected}` : "已确认"}
                             className="anim-pop-in inline-flex max-w-[240px] items-center gap-1 rounded-full border border-emerald-600/25 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-medium text-emerald-800"
                           >
-                            ✓ {fieldLabel(u.step, u.key, u.value)}
+                            <Check size={10} strokeWidth={3} className="shrink-0" aria-hidden />
+                            {fieldLabel(u.step, u.key, u.value)}
                             {pillSuffix(u)}
                           </span>
                         );
@@ -247,11 +258,11 @@ export function ChatRunner({
             )
           )}
           {busy && (
-            <div className="flex items-center gap-2 pl-1">
+            <div className="flex items-center gap-2 pl-1" role="status" aria-label="Agent 正在思考">
               <Seal size={18} char="问" className="anim-glow-pulse" />
               <span className="flex gap-1">
                 {[0, 1, 2].map((i) => (
-                  <span key={i} className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-300" style={{ animationDelay: `${i * 120}ms` }} />
+                  <span key={i} className="h-1.5 w-1.5 rounded-full bg-ink-300 motion-safe:animate-bounce" style={{ animationDelay: `${i * 120}ms` }} />
                 ))}
               </span>
             </div>
@@ -285,7 +296,7 @@ export function ChatRunner({
               <span className="font-display">答</span>
             </Button>
           </div>
-          <p className="mt-1.5 pl-1 text-[10px] text-ink-300">Enter 发送 · Shift+Enter 换行 · 每句话都会被整理成材料字段</p>
+          <p className="mt-1.5 pl-1 text-[10px] text-ink-500">Enter 发送 · Shift+Enter 换行 · 每句话都会被整理成材料字段</p>
         </div>
       </div>
 
@@ -297,7 +308,7 @@ export function ChatRunner({
             <div className="min-w-0 flex-1">
               <p className="text-[11px] text-ink-400">整体进度</p>
               <p className="tnum font-display text-xl font-bold text-ink-900">{progress.overallPct}%</p>
-              <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-ink-400">{progress.nextHint}</p>
+              <p className="mt-0.5 text-[10px] leading-4 text-ink-400">{progress.nextHint}</p>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-1">
@@ -330,9 +341,13 @@ export function ChatRunner({
             [`/projects/${boot.projectId}/card`, "小实验卡 · 三件套"],
             [`/projects/${boot.projectId}?step=10`, "状态与插画图鉴"],
           ].map(([href, label]) => (
-            <Link key={href} href={href} className="flex items-center justify-between rounded px-2 py-1.5 text-ink-600 hover:bg-ink-50 hover:text-ink-900">
+            <Link
+              key={href}
+              href={href}
+              className="group flex items-center justify-between rounded-md px-2 py-1.5 text-ink-600 transition-[background-color,color] duration-150 hover:bg-ink-50 hover:text-ink-900"
+            >
               {label}
-              <span className="text-ink-300">→</span>
+              <ChevronRight size={13} strokeWidth={2.2} className="text-ink-300 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-brand-500" aria-hidden />
             </Link>
           ))}
         </div>

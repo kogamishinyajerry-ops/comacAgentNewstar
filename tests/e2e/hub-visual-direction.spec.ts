@@ -31,12 +31,40 @@ test.describe("Hub 单屏 Coach 工作台视觉方向", () => {
     await page.screenshot({ path: `${VISUAL_SHOTS}/home-1440.png`, fullPage: false });
   });
 
-  test("五种 Coach 状态使用高分辨率平面资产且没有媒体旁白", async ({ page }) => {
-    await page.goto("/");
+  test("五种 Coach 状态由纯代码 orb 表达、视觉可区分且没有媒体旁白", async ({ page }) => {
+    // 纯代码视觉方向(2026-08-20 授权):不依赖插入的美术素材,orb 五态由
+    // 光晕/conic 弧环/刻线/核心/勾选逐层绘制,.coach-orb 内零 svg 零 img。
+    await page.goto("/dev/scenarios");
 
-    const activeArt = page.locator('img[data-coach-art="flat"]').first();
-    await expect(activeArt).toBeVisible();
-    expect(await activeArt.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThanOrEqual(1024);
+    const orb = page.locator('.coach-orb[data-coach-mark="scenarios-orb"]');
+    await expect(orb).toBeVisible();
+    await expect(orb.locator("svg")).toHaveCount(0);
+    await expect(orb.locator("img")).toHaveCount(0);
+
+    const readSignature = () =>
+      orb.evaluate((el) =>
+        Array.from(el.querySelectorAll("span"))
+          .map((span) => {
+            const style = getComputedStyle(span);
+            return `${style.opacity}|${style.transform}|${style.backgroundImage}|${style.borderColor}`;
+          })
+          .join(";"),
+      );
+
+    const states = ["idle", "listening", "challenging", "condensing", "confirmed"] as const;
+    const signatures = new Map<string, string>();
+    for (const state of states) {
+      await page.locator(`input[name="orb-state"][value="${state}"]`).check();
+      await expect(orb).toHaveAttribute("data-state", state);
+      // 态间过渡 540ms,等过渡落定再读静态画面签名
+      await page.waitForTimeout(700);
+      signatures.set(state, await readSignature());
+    }
+    // 五态视觉两两可区分
+    expect(new Set(signatures.values()).size).toBe(states.length);
+
+    await page.goto("/");
+    await expect(page.locator(".coach-orb").first()).toBeVisible();
     await expect(page.locator(".coach-orb svg")).toHaveCount(0);
     await expect(page.locator("audio, video")).toHaveCount(0);
   });

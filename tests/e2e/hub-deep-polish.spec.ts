@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { site } from "../../config/site";
 import { beginCoach } from "./helpers";
 
-const FIRST_QUESTION = "你最想改变的具体工作瞬间是什么?";
-const SECOND_QUESTION = "这个问题对谁造成了什么具体损失?";
+const FIRST_QUESTION = "你最想改变的具体工作瞬间是什么？";
+const SECOND_QUESTION = "这个问题对谁造成了什么具体损失？";
 
 /**
  * 深度优化回归：根入口先说明活动与路径，但不把用户挡在营销页；
@@ -112,14 +112,18 @@ test("390×844：定向层压缩后无横向或页面级纵向溢出", async ({ 
   expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
 });
 
-test("1024×768：第一问仍是 68px 种子轨，回答后才展开问题卡", async ({ page }) => {
+test("1024×768：0/3 种子轨退为顶部横条，回答后仍在顶栏沉淀", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/");
   await beginCoach(page);
 
+  /* 走查修复轮:种子轨竖栏断点 768→1101px(coach-workbench.module.css);
+     768–1100px 档走 tokens.css 折行规则——0/3 种子轨不再是 ≤90px 竖轨,
+     而是顶栏下方一行横向进度条,避免竖栏裁切与首答后布局跳变。 */
   const progress = page.locator("[data-coach-progress]");
   const initialBox = await progress.boundingBox();
-  expect(initialBox?.width).toBeLessThanOrEqual(90);
+  expect(initialBox?.width).toBeGreaterThan(600);
+  expect(initialBox?.height).toBeLessThan(90);
   await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
   await expect(page.locator("#coach-answer")).toBeVisible();
 

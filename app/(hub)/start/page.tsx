@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { CoachWorkbench } from "@/components/hub/coach-workbench";
-import { CoachArtPrefetch } from "@/components/hub/coach-art-prefetch";
 import type { CoachEntry } from "@/fixtures/coach-demo";
 import { site } from "@/config/site";
 
@@ -16,10 +15,5 @@ export default function StartPage({
 }) {
   const entry: CoachEntry = searchParams?.entry === "idea" ? "idea" : "problem";
 
-  return (
-    <>
-      <CoachWorkbench entry={entry} entryBasePath="/start" />
-      <CoachArtPrefetch />
-    </>
-  );
+  return <CoachWorkbench entry={entry} entryBasePath="/start" />;
 }

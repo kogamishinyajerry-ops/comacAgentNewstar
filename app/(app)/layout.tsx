@@ -14,9 +14,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <Nav />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
-      <footer className="no-print border-t border-slate-200/80 bg-white py-3.5">
-        <p className="mx-auto max-w-7xl px-4 text-center text-xs text-slate-400">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <footer className="no-print border-t border-ink-900/10 py-5">
+        <p className="mx-auto max-w-7xl px-4 text-center text-xs tracking-wide text-ink-500">
           {site.brand.shortName} · 从真实问题出发，用证据完成作品。
         </p>
       </footer>

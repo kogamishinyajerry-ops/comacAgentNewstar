@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { PRECHECK_NOTE } from "@/lib/constants";
-import { Alert, Badge, Button, Card, Input, cn } from "./ui";
-import { CeremonyOverlay, CountUp, ArtSlot, fireConfetti, showToast } from "./fx";
+import { Alert, Badge, Button, Card, Input, Spinner } from "./ui";
+import { CeremonyOverlay, CountUp, ArtSlot, SuccessMark, fireConfetti, showToast } from "./fx";
 import { Radar } from "./charts";
 import type { AttachmentItem, FeedbackItem, HardRuleView, WizardData } from "./wizard-types";
 
@@ -20,11 +21,11 @@ interface PrecheckResponse {
 }
 
 const PRECHECK_PHASES = [
-  "📋 逐条核对硬规则:组队、披露、必填…",
-  "🛡️ 检查求证闭环五要素与敏感信息…",
-  "🧪 清点测试案例与覆盖…",
-  "⚖️ Agent 四维预检评分中…",
-  "📦 组装小实验卡与90秒Demo脚本…",
+  "逐条核对硬规则:组队、披露、必填…",
+  "检查求证闭环五要素与敏感信息…",
+  "清点测试案例与覆盖…",
+  "Agent 四维预检评分中…",
+  "组装小实验卡与90秒Demo脚本…",
 ];
 
 export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus: (s: string) => void }) {
@@ -61,8 +62,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
       passCelebrated.current = true;
       fireConfetti({ count: 130, spread: 8 });
       showToast({ tone: "achievement", icon: "🏁", title: "预检通关!", desc: "硬规则全部通过,可以提交了。去确认提交,生成不可变快照。", durationMs: 5600 });
-    } else if (!json.canSubmit) {
-      passCelebrated.current = false;
+    } else if (!json.canSubmit) {      passCelebrated.current = false;
     }
   }
 
@@ -94,7 +94,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Button onClick={run} disabled={busy || data.readOnly}>
+        <Button onClick={run} loading={busy} disabled={data.readOnly}>
           {busy ? "预检中…" : result ? "重新预检" : "运行提交预检"}
         </Button>
         {submitted && !data.readOnly && (
@@ -103,20 +103,22 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
         <a
           href={`/projects/${data.projectId}/card`}
           target="_blank"
-          className="inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+          className="inline-flex h-9 items-center rounded-md border border-ink-900/20 bg-[#fffdf8] px-4 text-sm font-medium text-ink-700 shadow-[0_1px_2px_rgba(28,25,23,0.05)] transition-[background-color,border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:border-ink-900/45 hover:bg-ink-50"
         >
           打开小实验卡与Demo脚本 →
         </a>
       </div>
 
       {busy && (
-        <div className="space-y-1.5 rounded-lg border border-brand-200/70 bg-brand-50/50 p-3.5">
+        <div className="space-y-2 rounded-lg border border-brand-200/70 bg-brand-50/50 p-4" role="status" aria-live="polite">
           <div className="anim-shimmer h-1.5 rounded-full" />
-          <p className="flex items-center gap-1.5 text-[13px] font-medium text-brand-800">
-            <span className="anim-float">{["📋", "🛡️", "🧪", "⚖️", "📦"][phase]}</span>
-            {PRECHECK_PHASES[phase]}
+          <p className="flex items-center gap-2 text-[13px] font-medium text-brand-800">
+            <Spinner size={13} />
+            <span className="animate-fade-in" key={phase}>{PRECHECK_PHASES[phase]}</span>
           </p>
-          <p className="text-[11px] text-brand-600/80">Agent 四维预检通常需要30—75秒,期间可继续查看本页材料</p>
+          <p className="text-[11px] leading-4 text-brand-600/80">
+            Agent 四维预检通常需要30—75秒,期间可继续查看本页材料
+          </p>
         </div>
       )}
 
@@ -126,15 +128,15 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
         {attachments.length > 0 ? (
           <ul className="space-y-1.5">
             {attachments.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-2 rounded border border-slate-100 px-2 py-1.5 text-sm">
-                <a href={a.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-medium text-brand-600 hover:underline">
+              <li key={a.id} className="flex items-center justify-between gap-2 rounded-lg border border-ink-900/10 bg-white px-3 py-2 text-sm transition-colors hover:border-ink-900/20">
+                <a href={a.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-medium text-brand-600 underline-offset-2 hover:underline">
                   {a.title}
                 </a>
-                <span className="flex shrink-0 items-center gap-2 text-xs text-slate-400">
+                <span className="flex shrink-0 items-center gap-2 text-xs text-ink-400">
                   <Badge tone={a.kind === "FILE" ? "blue" : "gray"}>{a.kind === "FILE" ? `文件 ${a.sizeKb ?? "?"}KB` : "链接"}</Badge>
                   {!data.readOnly && (
                     <button
-                      className="text-red-500 hover:underline"
+                      className="font-medium text-red-500 underline-offset-2 transition-colors hover:text-red-700 hover:underline"
                       onClick={async () => {
                         if (!confirm(`删除「${a.title}」?`)) return;
                         const res = await fetch(`/api/projects/${data.projectId}/attachments?attId=${a.id}`, { method: "DELETE" });
@@ -149,7 +151,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-400">还没有材料。可添加在线链接或上传截图/提示词/流程图等文件。</p>
+          <p className="text-sm text-ink-400">还没有材料。可添加在线链接或上传截图/提示词/流程图等文件。</p>
         )}
         {!data.readOnly && (
           <div className="mt-3 space-y-2">
@@ -207,10 +209,10 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
                   setAttachments((prev) => [...prev, json.attachment]);
                 }}
               />
-              <Button size="sm" variant="secondary" disabled={uploading} onClick={() => fileInput.current?.click()}>
+              <Button size="sm" variant="secondary" loading={uploading} onClick={() => fileInput.current?.click()}>
                 {uploading ? "上传中…" : "上传文件(≤10MB)"}
               </Button>
-              {attMsg && <span className="text-xs text-red-600">{attMsg}</span>}
+              {attMsg && <span role="alert" className="text-xs font-medium text-red-600">{attMsg}</span>}
             </div>
           </div>
         )}
@@ -227,12 +229,14 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
                   {failed.length > 0 ? (
                     <ul className="space-y-2">
                       {failed.map((r) => (
-                        <li key={r.code} className="rounded-lg border border-red-200 bg-red-50/70 p-3">
+                        <li key={r.code} className="rounded-lg border border-red-200 bg-red-50/70 p-3.5">
                           <p className="flex items-center gap-2 text-[13px] font-semibold text-red-800">
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-xs">✗</span>
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600" aria-hidden>
+                              <X size={11} strokeWidth={3} />
+                            </span>
                             {r.label}
                           </p>
-                          <p className="mt-1 line-clamp-2 pl-7 text-xs leading-5 text-red-700/90" title={r.message}>{r.message}</p>
+                          <p className="mt-1 pl-7 text-xs leading-5 text-red-700/90">{r.message}</p>
                           <p className="mt-1 pl-7 text-xs leading-5 text-red-900">
                             <span className="font-medium">怎么解除:</span>
                             {r.fix}
@@ -241,22 +245,22 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
                       ))}
                     </ul>
                   ) : (
-                    <p className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 px-3 py-2.5 text-[13px] font-medium text-emerald-800">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs">✓</span>
+                    <p className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-[13px] font-medium text-emerald-800">
+                      <SuccessMark size={36} label="全部硬规则通过" />
                       全部 {passed.length} 项硬规则通过
                     </p>
                   )}
                   {failed.length > 0 && passed.length > 0 && (
                     <details>
-                      <summary className="cursor-pointer text-xs text-slate-400 hover:text-brand-600">
-                        ✓ 已通过 {passed.length} 项:{passed.map((r) => r.label).join("、")}
+                      <summary className="cursor-pointer text-xs text-ink-400 transition-colors hover:text-brand-600">
+                        已通过 {passed.length} 项:{passed.map((r) => r.label).join("、")}
                       </summary>
                     </details>
                   )}
                   {!data.readOnly && (
                     <div className="pt-1">
                       {canSubmit ? (
-                        <Button onClick={submit} disabled={submitting}>
+                        <Button onClick={submit} loading={submitting}>
                           {submitting ? "提交中…" : "确认提交(生成不可变快照)"}
                         </Button>
                       ) : (
@@ -308,25 +312,28 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
           )}
 
           <Card title="可见结果清单(三件套之二)">
-            <ul className="space-y-1.5 text-sm text-slate-600">
+            <ul className="space-y-2 text-sm text-ink-600">
               {result.deliverables.visibleResultChecklist.map((c) => (
-                <li key={c.key} className="flex gap-2">
-                  <span className="text-slate-400">☐</span>
+                <li key={c.key} className="flex gap-2.5">
+                  <span className="mt-1 inline-block h-3 w-3 shrink-0 rounded-[3px] border border-ink-300 bg-white" aria-hidden />
                   <span>
-                    <span className="font-medium">{c.label}</span> — {c.desc}
+                    <span className="font-medium text-ink-800">{c.label}</span>
+                    <span className="text-ink-500"> — {c.desc}</span>
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-slate-400">链接、截图、提示词、流程图、工作流、前后对比或可运行原型,准备其中适用的即可。</p>
+            <p className="mt-2.5 text-xs text-ink-400">链接、截图、提示词、流程图、工作流、前后对比或可运行原型,准备其中适用的即可。</p>
           </Card>
 
           <Card title="90秒Demo脚本(三件套之三)">
-            <ol className="space-y-2 text-sm">
+            <ol className="space-y-2.5 text-sm">
               {result.deliverables.demoScript.map((seg) => (
-                <li key={seg.time} className="rounded border border-slate-100 p-2">
-                  <p className="text-xs font-semibold text-brand-700">{seg.time} {seg.title}</p>
-                  <ul className="mt-1 space-y-0.5 text-slate-600">
+                <li key={seg.time} className="rounded-lg border border-ink-900/10 bg-white p-3">
+                  <p className="text-xs font-semibold text-brand-700">
+                    <span className="tnum">{seg.time}</span> {seg.title}
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-ink-600">
                     {seg.lines.map((l, i) => (
                       <li key={i}>{l}</li>
                     ))}
@@ -336,7 +343,7 @@ export function PrecheckStep({ data, setStatus }: { data: WizardData; setStatus:
             </ol>
           </Card>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-ink-400">
             Agent来源:{result.agent.provider}({result.agent.status})
             {result.agent.feedback.raw_feedback && " · 已降级为可读反馈"}
           </p>

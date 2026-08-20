@@ -44,16 +44,24 @@ export function CoachIntroScene({
           <span className="coach-state-hint-label">AI Coach · {COACH_STATE_LABELS.idle}</span>
         </div>
 
-        <div className="coach-intro motion-step-in" data-coach-intro>
-          {/* 任一时刻只有一个语义主标题;眉行补活动身份(§33 K3:头部已移除) */}
-          <p className="hub-eyebrow" data-coach-intro-brand>
-            {site.brand.name}
-          </p>
-          <h1 className="coach-question" id="coach-intro-title">
-            {coachIntroCopy.title}
-          </h1>
+        <div className="coach-intro" data-coach-intro>
+          {/* 入场编排(≤3 拍,总时长 ≤1.2s):标题 → 到场 → 流程与隐私;
+              animate-rise 自带 opacity,reduced-motion 下全部直接可见 */}
+          <div className="flex animate-rise flex-col gap-3">
+            {/* 任一时刻只有一个语义主标题;眉行补活动身份(§33 K3:头部已移除) */}
+            <p className="hub-eyebrow" data-coach-intro-brand>
+              {site.brand.name}
+            </p>
+            <h1 className="hub-title" id="coach-intro-title">
+              {coachIntroCopy.title}
+            </h1>
+          </div>
 
-          <section className="coach-intro-block" aria-label={coachIntroCopy.arrivalTitle}>
+          <section
+            className="coach-intro-block animate-rise"
+            aria-label={coachIntroCopy.arrivalTitle}
+            style={{ animationDelay: "90ms" }}
+          >
             <p className="seed-slot-label">{coachIntroCopy.arrivalTitle}</p>
             <ol className="coach-intro-steps mt-3">
               {arrivalSteps.map((step) => (
@@ -89,7 +97,11 @@ export function CoachIntroScene({
             </ol>
           </section>
 
-          <section className="coach-intro-block" aria-label={coachIntroCopy.flowTitle}>
+          <section
+            className="coach-intro-block animate-rise"
+            aria-label={coachIntroCopy.flowTitle}
+            style={{ animationDelay: "180ms" }}
+          >
             <p className="seed-slot-label">{coachIntroCopy.flowTitle}</p>
             <ul className="coach-intro-flow mt-3">
               {coachIntroCopy.flowItems.map((item) => (
@@ -99,7 +111,11 @@ export function CoachIntroScene({
           </section>
 
           {/* 隐私披露前置:告知必须先于输入(§18 时序原则,建立拍同构) */}
-          <p className="coach-privacy-note" data-coach-privacy-note>
+          <p
+            className="coach-privacy-note animate-rise"
+            data-coach-privacy-note
+            style={{ animationDelay: "250ms" }}
+          >
             {coachPrivacyNotice}
           </p>
         </div>
@@ -109,9 +125,10 @@ export function CoachIntroScene({
       <div className="coach-composer coach-composer--intro">
         <button
           type="button"
-          className="hub-btn hub-btn--primary coach-intro-begin"
+          className="hub-btn hub-btn--primary coach-intro-begin animate-fade-in"
           aria-label={coachIntroCopy.beginAriaLabel}
           data-coach-begin
+          style={{ animationDelay: "320ms" }}
           onClick={onBegin}
         >
           {coachIntroCopy.beginLabel}

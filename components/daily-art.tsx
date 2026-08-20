@@ -3,6 +3,7 @@
 // 每日灵感卡:MiniMax 按日即兴创作的全站共用插画 + 轮换语录
 
 import { useEffect, useState } from "react";
+import { Lightbulb, Sparkles } from "lucide-react";
 import { DAILY_QUOTES, dailyScene } from "@/lib/art-scenes";
 
 export function DailyInspiration() {
@@ -33,23 +34,28 @@ export function DailyInspiration() {
 
   return (
     <div className="surface-card relative overflow-hidden">
-      <div className="relative h-32 w-full bg-gradient-to-br from-brand-100 via-white to-amber-50">
-        {url ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="今日灵感插画" className="anim-blur-reveal h-full w-full object-cover" />
-            <span className="anim-sparkle absolute right-2 top-2 text-base">✨</span>
-          </>
-        ) : failed ? (
-          <div className="flex h-full items-center justify-center text-2xl opacity-50">💡</div>
-        ) : (
-          <div className="anim-shimmer h-full w-full" />
-        )}
-        <span className="absolute bottom-2 left-3 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-medium text-slate-600 backdrop-blur">
-          今日灵感 · MiniMax 即兴创作
-        </span>
+      <div className="p-2.5 pb-0">
+        <div className="relative h-24 w-full overflow-hidden rounded-lg bg-gradient-to-br from-brand-50 via-[#fffdf8] to-amber-50 ring-1 ring-inset ring-ink-900/10">
+          {url ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="今日灵感插画" className="anim-blur-reveal h-full w-full object-cover" />
+              <Sparkles className="anim-sparkle absolute right-2.5 top-2.5 h-4 w-4 text-amber-300 drop-shadow-[0_1px_2px_rgba(28,25,23,0.35)]" aria-hidden />
+            </>
+          ) : failed ? (
+            <div className="flex h-full flex-col items-center justify-center gap-1.5 text-ink-300">
+              <Lightbulb className="h-6 w-6" strokeWidth={1.5} aria-hidden />
+              <span className="text-[10px] font-medium tracking-wide text-ink-400">今日插画暂缺,灵感照常</span>
+            </div>
+          ) : (
+            <div aria-hidden className="skeleton h-full w-full rounded-none" />
+          )}
+          <span className="absolute bottom-2 left-2.5 rounded-full bg-[#fffdf8]/85 px-2 py-0.5 text-[10px] font-medium text-ink-600 ring-1 ring-inset ring-ink-900/10 backdrop-blur">
+            今日灵感 · MiniMax 即兴创作
+          </span>
+        </div>
       </div>
-      <p className="text-balance px-4 py-3 text-[13px] font-medium leading-6 text-slate-700">「{quote}」</p>
+      <p className="text-balance px-4 py-3 font-display text-[13.5px] font-medium leading-6 tracking-[0.01em] text-ink-800">「{quote}」</p>
     </div>
   );
 }

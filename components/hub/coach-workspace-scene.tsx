@@ -146,6 +146,14 @@ export function CoachWorkspaceScene({
   /* 过渡期计数器先对齐到正在进入的一幕,不再滞后显示旧幕号 */
   const displayActIndex = transitioning ? Math.min(actIndex + 1, actCount - 1) : actIndex;
 
+  /* 390px 顶栏三件套不折行:返回/计数不换行(white-space:nowrap),
+     <400px 时「换一条入口」只留主词,说明后缀收进 max-[400px]:hidden */
+  const switchEntryLead = switchEntryLabel?.split(":")[0] ?? null;
+  const switchEntrySuffix =
+    switchEntryLabel && switchEntryLead && switchEntryLabel.length > switchEntryLead.length
+      ? switchEntryLabel.slice(switchEntryLead.length)
+      : null;
+
   /* 提交后回答器折叠,焦点会掉到 body;时序各拍显式落在对应步骤文本上,
      每拍自播报,不再依赖 aria-live 复述,避免同一内容重复朗读。
      回看抽屉(模态)开着时不得抢焦点——焦点陷阱不破(ref 镜像读开态,
@@ -190,7 +198,7 @@ export function CoachWorkspaceScene({
         {/* 打磨轮⑥:黄金位让给流程上下文——尚无回答的第一幕保留唯一出口,
             此后左槽是"回看";指南链接在抽屉页脚常驻可达 */}
         {flowBackHref ? (
-          <Link href={flowBackHref} className="coach-topbar-back hub-quiet-link">
+          <Link href={flowBackHref} className="coach-topbar-back hub-quiet-link whitespace-nowrap">
             ← 返回活动指南
           </Link>
         ) : (
@@ -221,7 +229,7 @@ export function CoachWorkspaceScene({
         {returnAction ? (
           <button
             type="button"
-            className="coach-entry-quiet hub-quiet-link"
+            className="coach-entry-quiet hub-quiet-link whitespace-nowrap"
             onClick={returnAction.onClick}
             disabled={transitioning}
           >
@@ -230,11 +238,38 @@ export function CoachWorkspaceScene({
         ) : (
           switchEntryHref &&
           switchEntryLabel && (
-            <Link href={switchEntryHref} className="coach-entry-quiet hub-quiet-link">
-              {switchEntryLabel}
+            <Link
+              href={switchEntryHref}
+              className="coach-entry-quiet hub-quiet-link whitespace-nowrap"
+            >
+              {switchEntrySuffix ? (
+                <>
+                  {switchEntryLead}
+                  <span className="max-[400px]:hidden">{switchEntrySuffix}</span>
+                </>
+              ) : (
+                switchEntryLabel
+              )}
             </Link>
           )
         )}
+      </div>
+
+      {/* 幕/轮进度轨:已完成(实色)→ 当前(全亮)→ 未开始(发线)的空间叙事;
+          位置语义由上方 coach-workspace-count 的 aria-label 承担,这里纯视觉 */}
+      <div className="flex flex-none items-center gap-[3px] px-4 pb-1 pt-2" aria-hidden="true">
+        {Array.from({ length: actCount }, (_, segment) => (
+          <span
+            key={segment}
+            className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ease-soft ${
+              segment < displayActIndex
+                ? "bg-cobalt-600/55"
+                : segment === displayActIndex
+                  ? "bg-cobalt-600"
+                  : "bg-navy-200/70"
+            }`}
+          />
+        ))}
       </div>
 
       <div
@@ -258,6 +293,17 @@ export function CoachWorkspaceScene({
                   {condensing
                     ? "正在把三幕回答凝结成问题种子……"
                     : "Coach 正在收拢这一幕的回答……"}
+                </span>
+                {/* 思考反馈:收拢/凝结进行中的三点指示(真实在途才出现此拍,
+                    不伪造阶段;reduced-motion 下退化为静止三点) */}
+                <span className="mt-4 flex items-center justify-center gap-1.5" aria-hidden="true">
+                  {[0, 1, 2].map((dot) => (
+                    <span
+                      key={dot}
+                      className="h-[5px] w-[5px] animate-pulse-soft rounded-full bg-cobalt-600/70"
+                      style={{ animationDelay: `${dot * 220}ms` }}
+                    />
+                  ))}
                 </span>
                 {/* 打磨轮⑥:等待计时只报已等待时长,不伪造推理阶段 */}
                 {pending && (
@@ -359,7 +405,7 @@ export function CoachWorkspaceScene({
                 <>
                   <button
                     type="button"
-                    className="coach-composer-attach"
+                    className="coach-composer-attach transition-[background-color,color,transform] duration-150 ease-soft active:scale-[0.88] disabled:transform-none"
                     aria-label="添加文本附件（.txt/.md/.csv/.json，≤1MB）"
                     disabled={pending || attachmentReading}
                     onClick={() => fileInputRef.current?.click()}
@@ -409,7 +455,7 @@ export function CoachWorkspaceScene({
               />
               <button
                 type="submit"
-                className="coach-composer-send"
+                className="coach-composer-send transition-[background-color,transform] duration-150 ease-soft hover:-translate-y-px active:translate-y-0 active:scale-[0.88] disabled:transform-none"
                 aria-label="提交这一问的回答"
                 disabled={pending || attachmentReading}
               >

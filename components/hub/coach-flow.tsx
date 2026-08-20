@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Bot, ClipboardCheck, FileText, Users2, type LucideIcon } from "lucide-react";
 import { COACH_STATE_LABELS } from "./coach-orb";
 import { CoachWorkspaceScene, type CoachTransitionStep } from "./coach-workspace-scene";
 import { CoachIntroScene } from "./coach-intro-scene";
@@ -45,6 +46,7 @@ import {
   type CoachState,
   type ExportMeta,
 } from "@/lib/hub/coach-machine";
+import styles from "./coach-workbench.module.css";
 
 type Action =
   | { type: "begin" }
@@ -86,13 +88,19 @@ const CLIENT_FALLBACK_NOTICE = "AI 服务暂不可用，本幕已按确定性追
 const CLIENT_REQUEST_TIMEOUT_MS = 100_000;
 
 /** 种子长出后 Artifacts 栏:第一格真实开放,其余为完整流程能力预告。
-    打磨轮⑦(§32 I2):名称/说明/状态徽标全部可见,图标不再是唯一信息 */
-const ARTIFACT_SLOTS = [
-  { label: "问题定义", icon: "▤", description: "三幕种子再答 3 问深化而成,可复制带走", open: true },
-  { label: "用户与场景", icon: "◍", description: "完整流程中逐份沉淀", open: false },
-  { label: "Agent 方案", icon: "⧉", description: "完整流程中逐份沉淀", open: false },
-  { label: "验证计划", icon: "◇", description: "完整流程中逐份沉淀", open: false },
-] as const;
+    打磨轮⑦(§32 I2):名称/说明/状态徽标全部可见,图标不再是唯一信息;
+    2026-08-20 视觉升级:文字符号(▤◍⧉◇)替换为 lucide 线条图标 */
+const ARTIFACT_SLOTS: readonly {
+  label: string;
+  icon: LucideIcon;
+  description: string;
+  open: boolean;
+}[] = [
+  { label: "问题定义", icon: FileText, description: "三幕种子再答 3 问深化而成,可复制带走", open: true },
+  { label: "用户与场景", icon: Users2, description: "完整流程中逐份沉淀", open: false },
+  { label: "Agent 方案", icon: Bot, description: "完整流程中逐份沉淀", open: false },
+  { label: "验证计划", icon: ClipboardCheck, description: "完整流程中逐份沉淀", open: false },
+];
 
 /** transition 期满时长:默认与场景切换动效一致;减弱动态时缩短 */
 function transitionMs(): number {
@@ -631,7 +639,7 @@ export function CoachFlow({
                           onClick={() => dispatch({ type: "startArtifact" })}
                         >
                           <span className="coach-artifact-icon" aria-hidden="true">
-                            {slot.icon}
+                            <slot.icon size={15} strokeWidth={1.8} focusable={false} />
                           </span>
                           <span className="coach-artifact-entry-text">
                             <span className="coach-artifact-name">{artifactCopy.startLabel}</span>
@@ -642,7 +650,7 @@ export function CoachFlow({
                       ) : (
                         <span className="coach-artifact-entry coach-artifact-entry--lit" data-artifact-lit>
                           <span className="coach-artifact-icon" aria-hidden="true">
-                            {slot.icon}
+                            <slot.icon size={15} strokeWidth={1.8} focusable={false} />
                           </span>
                           <span className="coach-artifact-entry-text">
                             <span className="coach-artifact-name">{artifactCopy.litLabel}</span>
@@ -655,7 +663,7 @@ export function CoachFlow({
                   ) : (
                     <li key={slot.label} data-coach-artifact className="coach-artifact-slot--pending">
                       <span className="coach-artifact-icon" aria-hidden="true">
-                        {slot.icon}
+                        <slot.icon size={15} strokeWidth={1.8} focusable={false} />
                       </span>
                       <span className="coach-artifact-entry-text">
                         <span className="coach-artifact-name">{slot.label}</span>
@@ -668,39 +676,45 @@ export function CoachFlow({
               </ul>
               <p className="coach-artifact-note">{artifactCopy.railNote}</p>
             </aside>
-            <div className="coach-workspace-dialog coach-workspace-dialog--seed">
+            {/* 凝结时刻:种子/问题定义第一次长出时,整卡做一次"凝结"入场
+                (540ms 与 orb condensing 态同曲线;reduced-motion 下直接呈现) */}
+            <div className="coach-workspace-dialog coach-workspace-dialog--seed motion-condense">
               <div
                 ref={seedScrollRef}
                 className="coach-conversation-scroll"
                 data-coach-conversation-scroll
                 tabIndex={0}
               >
-                {seed ? (
-                  <SeedCard
-                    seed={seed}
-                    meta={seedMeta}
-                    headingRef={seedHeadingRef}
-                    headingId={`${orbIdPrefix}-seed-title`}
-                    onStartArtifact={() => dispatch({ type: "startArtifact" })}
-                  />
-                ) : (
-                  <ArtifactCard
-                    artifact={artifactDone!}
-                    meta={artifactMeta}
-                    headingRef={artifactHeadingRef}
-                    headingId={`${orbIdPrefix}-artifact-title`}
-                    onReturnToSeed={() => dispatch({ type: "returnToSeed" })}
-                    onRestart={resetFlow}
-                  />
-                )}
-              </div>
-              {seed && (
-                <div className="coach-workspace-seed-actions">
-                  <button type="button" className="coach-restart" onClick={resetFlow}>
-                    重新开始
-                  </button>
+                {/* 内容块在滚动区内垂直居中,改善下半屏空置;
+                    「重新开始」收进卡尾安静动作行(样式见 coach-workbench.module.css) */}
+                <div className={styles.grownSceneBody}>
+                  {seed ? (
+                    <SeedCard
+                      seed={seed}
+                      meta={seedMeta}
+                      headingRef={seedHeadingRef}
+                      headingId={`${orbIdPrefix}-seed-title`}
+                      onStartArtifact={() => dispatch({ type: "startArtifact" })}
+                    />
+                  ) : (
+                    <ArtifactCard
+                      artifact={artifactDone!}
+                      meta={artifactMeta}
+                      headingRef={artifactHeadingRef}
+                      headingId={`${orbIdPrefix}-artifact-title`}
+                      onReturnToSeed={() => dispatch({ type: "returnToSeed" })}
+                      onRestart={resetFlow}
+                    />
+                  )}
+                  {seed && (
+                    <div className={styles.seedTailActions}>
+                      <button type="button" className="coach-restart" onClick={resetFlow}>
+                        重新开始
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

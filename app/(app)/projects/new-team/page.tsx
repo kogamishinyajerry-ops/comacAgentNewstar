@@ -31,8 +31,15 @@ export default function NewTeamPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md py-10">
-      <Card title="创建队伍">
+    <div className="mx-auto max-w-md py-10 sm:py-14">
+      <header className="mb-6 text-center">
+        <p className="kicker">组队 · Team</p>
+        <h1 className="font-display text-display-lg mt-2 text-ink-900">创建队伍</h1>
+        <p className="text-caption mt-2.5 text-ink-500">
+          一个人也能出发；找到搭档，再把它变成双人互补。
+        </p>
+      </header>
+      <Card className="animate-rise">
         <form onSubmit={submit} className="space-y-4">
           {error && <Alert tone="error">{error}</Alert>}
           <Field label="队伍名称" required>
@@ -44,10 +51,12 @@ export default function NewTeamPage() {
               <option value="DUO">双人互补(稍后邀请搭档)</option>
             </Select>
           </Field>
-          <Button type="submit" disabled={busy} className="w-full">
-            {busy ? "创建中…" : "创建队伍"}
+          <Button type="submit" loading={busy} className="w-full">
+            创建队伍
           </Button>
-          <p className="text-center text-xs text-slate-500">每队最多2人;不允许通过顾问、外围成员等变相扩编。</p>
+          <p className="text-center text-xs leading-5 text-ink-400">
+            每队最多2人;不允许通过顾问、外围成员等变相扩编。
+          </p>
         </form>
       </Card>
     </div>

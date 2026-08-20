@@ -9,11 +9,11 @@
 | `flat-coach-field.png` | 未接线备用（原登记“Hero 与五状态复用”，实际代码零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
 | `evidence-target.png` | 未接线备用（原“发现真实问题”章节的引用组件已于 §21 死代码清理中删除，现零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
 | `problem-seed.png` | 未接线备用（原“终局 CTA”的引用组件已于 §21 死代码清理中删除，现零引用；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA |
-| `coach-state-idle.webp` | Coach 静候：开放但安静的蓝色等高线场 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
-| `coach-state-listening.webp` | Coach 倾听：向中心汇聚的证据轨迹 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
-| `coach-state-challenging.webp` | Coach 质询：明确暴露白色缺口的断裂结构 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
-| `coach-state-condensing.webp` | Coach 凝结：散片收束为单一问题种子 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
-| `coach-state-confirmed.webp` | Coach 已确认：纸艺种子与稳定轨道 | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-idle.webp` | Coach 静候（2026-08-20 起代码零引用，orb 已改纯代码五态；保留文件不删除） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-listening.webp` | Coach 倾听（同上，零引用保留） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-challenging.webp` | Coach 质询（同上，零引用保留） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-condensing.webp` | Coach 凝结（同上，零引用保留） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
+| `coach-state-confirmed.webp` | Coach 已确认（同上，零引用保留） | 2026-08-17 由 OpenAI ImageGen 生成，透明 RGBA，1254 × 1254；同日转 WebP q85 |
 
 ## 2026-08-17 体积优化记录(K3 第二阶段）
 
@@ -29,7 +29,7 @@
 | 五图合计 | | 8,000,205 B | 2,376,322 B | -70.3% | |
 | `paper-atlas-texture.png`（同名原地优化） | 1254²→627² + 256 色 MEDIANCUT 量化 + Floyd–Steinberg 抖动，仍为 PNG，CSS 引用零改动 | 2,478,412 B | 368,055 B | -85.2% | 37.67 dB（升回 1254² 后对比） |
 
-说明：五张状态图引用已同步至 `components/hub/coach-orb.tsx` 的 `COACH_STATE_ART`，原 PNG 已删除（生成原件见下述 .codex 路径）。
+说明：2026-08-20 视觉升级后，Coach 状态标记改为纯代码五态（光晕/弧环/刻线/核心/勾选，`components/hub/coach-orb.tsx`),`COACH_STATE_ART` 与预取组件 `coach-art-prefetch.tsx` 已删除，五张状态图代码零引用但保留文件不删除（原 PNG 早已删除，生成原件见下述 .codex 路径）。
 
 ## 2026-08-19 纹理 WebP 转换（打磨轮② B3）
 

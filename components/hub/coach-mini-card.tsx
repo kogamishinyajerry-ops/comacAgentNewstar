@@ -2,6 +2,7 @@
 
 import { artifactCopy, coachProgressCopy } from "@/fixtures/coach-demo";
 import type { MiniSlot } from "@/lib/hub/coach-machine";
+import styles from "./coach-workbench.module.css";
 
 /**
  * 打磨轮⑥(§29):常驻问题卡——"对话逐格填写"的可视模板。
@@ -30,7 +31,7 @@ export function CoachMiniCard({
 
   return (
     <aside
-      className="coach-progress"
+      className={`coach-progress ${styles.progress}`}
       data-coach-progress
       data-coach-progress-waiting={waiting ? "true" : "false"}
       aria-label={`问题卡（已沉淀 ${filledCount}/3）`}
@@ -88,7 +89,7 @@ export function CoachMiniCard({
       )}
 
       <p className="coach-progress-gaps">
-        <span aria-hidden="true">◇</span>
+        <span className={styles.gapMark} aria-hidden="true" />
         {coachProgressCopy.gapsSummary}
       </p>
       <p className="coach-progress-note">{coachProgressCopy.cardNote}</p>

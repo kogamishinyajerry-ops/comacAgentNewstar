@@ -1,10 +1,21 @@
 "use client";
 
-/* 仪式感特效层:彩带(canvas-confetti,社区标准,原生reduced-motion支持)、Toast栈、数字滚动、庆典遮罩。 */
+/* 仪式感特效层:彩带(canvas-confetti,社区标准,原生reduced-motion支持)、Toast栈、数字滚动、庆典遮罩。
+   v2(2026-08-20 Act 5)新增:Reveal 滚动显现、Magnetic 磁吸、Lift 微浮起、
+   SuccessMark 盖章勾选、Modal/Drawer 交互壳——全部 reduced-motion 感知。 */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import confetti from "canvas-confetti";
-import { cn } from "./ui";
+import { cn, ModalShell, DrawerShell } from "./ui";
+
+/** 当前是否偏好减弱动态(每次调用读取,响应系统设置切换) */
+export function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 /* ---------------- 彩带(canvas-confetti) ---------------- */
 
@@ -101,29 +112,60 @@ export function ToastHost() {
     error: "border-red-200/80 bg-red-50 text-red-800",
   };
 
+  /* 默认图标:纯 SVG 绘制,不用 emoji 当图标(调用方显式传入的 icon 仍原样渲染) */
+  const toneIcon: Record<NonNullable<ToastPayload["tone"]>, ReactNode> = {
+    achievement: (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+        <circle cx="8" cy="6" r="3.4" />
+        <path d="m5.6 8.6-1.1 5 3.5-1.8 3.5 1.8-1.1-5" strokeLinejoin="round" />
+      </svg>
+    ),
+    success: (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+        <circle cx="8" cy="8" r="6" />
+        <path d="m5.4 8.2 1.8 1.8 3.4-4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    info: (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+        <circle cx="8" cy="8" r="6" />
+        <path d="M8 7.4v3.4M8 4.9v.2" strokeLinecap="round" />
+      </svg>
+    ),
+    error: (
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+        <circle cx="8" cy="8" r="6" />
+        <path d="M8 4.9v3.8M8 10.9v.2" strokeLinecap="round" />
+      </svg>
+    ),
+  };
+
   return (
     <div className="no-print pointer-events-none fixed right-4 top-16 z-[10000] flex w-[340px] flex-col gap-2">
       {items.map((t) => (
         <div
           key={t.id}
+          role="status"
           className={cn(
             "anim-slide-in-right pointer-events-auto flex items-start gap-3 rounded-xl border p-3.5 shadow-[0_8px_24px_rgba(15,23,42,0.12)] backdrop-blur",
             toneCls[t.tone ?? "info"]
           )}
         >
-          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg", t.tone === "achievement" ? "bg-amber-100 anim-pop-in" : "bg-slate-100")}>
-            {t.icon ?? (t.tone === "achievement" ? "🏅" : t.tone === "error" ? "⚠️" : "✨")}
+          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", t.tone === "achievement" ? "bg-amber-100 anim-pop-in" : "bg-ink-100")}>
+            {t.icon ?? toneIcon[t.tone ?? "info"]}
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold leading-5">{t.title}</p>
             {t.desc && <p className="mt-0.5 text-xs leading-4 opacity-80">{t.desc}</p>}
           </div>
           <button
-            className="shrink-0 rounded p-0.5 text-xs opacity-40 hover:opacity-80"
+            className="shrink-0 rounded p-1 opacity-40 transition-opacity hover:opacity-80"
             onClick={() => setItems((prev) => prev.filter((x) => x.id !== t.id))}
             aria-label="关闭"
           >
-            ✕
+            <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden>
+              <path d="m2.5 2.5 7 7m0-7-7 7" />
+            </svg>
           </button>
         </div>
       ))}
@@ -131,7 +173,7 @@ export function ToastHost() {
   );
 }
 
-/* ---------------- 数字滚动 ---------------- */
+/* ---------------- 数字滚动(reduced-motion 下直接落定) ---------------- */
 
 export function CountUp({ value, durationMs = 800, className }: { value: number; durationMs?: number; className?: string }) {
   const [display, setDisplay] = useState(0);
@@ -140,7 +182,7 @@ export function CountUp({ value, durationMs = 800, className }: { value: number;
     const from = prev.current;
     const to = value;
     prev.current = value;
-    if (from === to) {
+    if (from === to || prefersReducedMotion()) {
       setDisplay(to);
       return;
     }
@@ -468,6 +510,212 @@ export function ArtSlot({ request, className }: { request: ArtRequest; className
           <div className="anim-shimmer h-1.5 w-24 rounded-full" />
         </div>
       )}
+    </div>
+  );
+}
+
+/* ============================================================
+   设计系统 v2 动效原语(2026-08-20 Act 5)
+   约定:所有位移/进场仅在 prefers-reduced-motion: no-preference 时生效;
+   SSR 与无 JS 场景内容始终可见;焦点绝不落入尚未显现的内容。
+   ============================================================ */
+
+/* ---------------- 滚动显现(IntersectionObserver) ---------------- */
+
+export function Reveal({
+  children,
+  className,
+  delayMs = 0,
+  threshold = 0.12,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** 错峰延迟(ms),仅 0–200 之间的小值;同屏最多 3 拍 */
+  delayMs?: number;
+  threshold?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [armed, setArmed] = useState(false);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    // reduced-motion / 无 IO:不加 fx-reveal 类,内容直接可见
+    if (!el || prefersReducedMotion() || typeof IntersectionObserver === "undefined") return;
+    setArmed(true);
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setInView(true);
+            io.disconnect();
+          }
+        }
+      },
+      { threshold, rootMargin: "0px 0px -8% 0px" }
+    );
+    io.observe(el);
+    // 挂载时已在视口内的元素立即显现,避免首屏闪烁
+    return () => io.disconnect();
+  }, [threshold]);
+  return (
+    <div
+      ref={ref}
+      className={cn(armed && "fx-reveal", inView && "is-in", className)}
+      style={delayMs > 0 ? { transitionDelay: `${delayMs}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* ---------------- hover 磁吸(鼠标微调位移,触屏/减弱动态自动停用) ---------------- */
+
+export function Magnetic({
+  children,
+  className,
+  maxPx = 4,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** 最大吸附位移(px),克制区间 2–6 */
+  maxPx?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const onMove = (e: React.PointerEvent) => {
+    const el = ref.current;
+    if (!el || e.pointerType !== "mouse" || prefersReducedMotion()) return;
+    const r = el.getBoundingClientRect();
+    const dx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+    const dy = ((e.clientY - r.top) / r.height - 0.5) * 2;
+    el.style.transform = `translate(${(dx * maxPx).toFixed(1)}px, ${(dy * maxPx).toFixed(1)}px)`;
+  };
+  const onLeave = () => {
+    if (ref.current) ref.current.style.transform = "";
+  };
+  return (
+    <div ref={ref} onPointerMove={onMove} onPointerLeave={onLeave} className={cn("fx-magnet inline-block", className)}>
+      {children}
+    </div>
+  );
+}
+
+/* ---------------- 微浮起(纯 CSS hover,-2px + 层叠阴影) ---------------- */
+
+export function Lift({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("fx-lift", className)}>{children}</div>;
+}
+
+/* ---------------- 成功仪式:盖章 + 勾选绘制(精致版) ----------------
+   animate-scale-in / animate-check-draw 来自 tailwind.config 的共享动画,
+   两个路由组都可用;reduced-motion 下直接呈现完成态。 */
+
+export function SuccessMark({
+  size = 56,
+  label,
+  className,
+}: {
+  size?: number;
+  /** 提供可读名时会作为 img 角色暴露;纯装饰则省略 */
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn("relative inline-flex items-center justify-center", className)}
+      style={{ width: size, height: size }}
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
+      <span className="animate-scale-in absolute inset-0 rounded-full bg-emerald-50 ring-1 ring-emerald-200/80 shadow-[0_4px_14px_-4px_rgba(15,117,100,0.35)]" />
+      <svg className="relative" width={size * 0.52} height={size * 0.52} viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="m5 12.5 4.5 4.5L19 7.5"
+          stroke="#0f7564"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={24}
+          className="animate-check-draw"
+        />
+      </svg>
+    </span>
+  );
+}
+
+/* ---------------- Modal / Drawer 交互壳(Esc 关闭 + 焦点管理) ----------------
+   结构与外观复用 ui.tsx 的 ModalShell/DrawerShell;
+   打开时焦点进入面板,关闭后归还触发元素。 */
+
+function useDialogA11y(open: boolean, onClose: (() => void) | undefined, containerRef: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = containerRef.current?.querySelector<HTMLElement>('[role="dialog"]');
+    if (panel) {
+      panel.setAttribute("tabindex", "-1");
+      panel.focus({ preventScroll: true });
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose?.();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previous?.focus({ preventScroll: true });
+    };
+  }, [open, onClose, containerRef]);
+}
+
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+}: {
+  open: boolean;
+  onClose?: () => void;
+  title?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(open, onClose, containerRef);
+  return (
+    <div ref={containerRef} className="contents">
+      <ModalShell open={open} onClose={onClose} title={title} className={cn("animate-scale-in", className)}>
+        {children}
+      </ModalShell>
+    </div>
+  );
+}
+
+export function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+  side = "right",
+}: {
+  open: boolean;
+  onClose?: () => void;
+  title?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  side?: "left" | "right";
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(open, onClose, containerRef);
+  return (
+    <div ref={containerRef} className="contents">
+      <DrawerShell open={open} onClose={onClose} title={title} side={side} className={cn("animate-fade-in", className)}>
+        {children}
+      </DrawerShell>
     </div>
   );
 }

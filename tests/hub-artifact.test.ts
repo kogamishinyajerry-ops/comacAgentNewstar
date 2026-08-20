@@ -148,7 +148,7 @@ describe("第四幕:确定性合成与导出", () => {
     expect(text).not.toContain("验证完成");
     /* P0-1 可追述头部:生成时间/会话卡号/格式版本/六轮问答映射 */
     expect(text).toContain("生成时间:2026-08-20 09:05(本地时钟)");
-    expect(text).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(text).toContain("卡号:QD-T3ST5(本会话生成，未落库)");
     expect(text).toContain(`格式版本:${exportTraceabilityCopy.formatVersion}`);
     expect(text).toContain(`问答映射:${exportTraceabilityCopy.mappingArtifact}`);
     expect(text).toContain("深化←第4–6轮");
@@ -161,7 +161,7 @@ describe("第四幕:确定性合成与导出", () => {
       expect(act.judgment.length).toBeLessThanOrEqual(72);
       expect(act.risk.length).toBeGreaterThanOrEqual(8);
       expect(act.risk.length).toBeLessThanOrEqual(72);
-      expect(act.question.endsWith("?")).toBe(true);
+      expect(act.question.endsWith("？")).toBe(true);
       expect(act.question.match(/[?？]/g)?.length).toBe(1);
       expect(act.judgment).not.toMatch(/[?？]/);
       expect(act.risk).not.toMatch(/[?？]/);

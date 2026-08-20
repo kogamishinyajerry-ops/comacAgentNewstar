@@ -25,8 +25,8 @@ import {
  * - J-5 揭示拍溯源编排(槽位错峰落位,reduce-motion 全降级)。
  */
 
-const FIRST_QUESTION = "你最想改变的具体工作瞬间是什么?";
-const SECOND_QUESTION = "这个问题对谁造成了什么具体损失?";
+const FIRST_QUESTION = "你最想改变的具体工作瞬间是什么？";
+const SECOND_QUESTION = "这个问题对谁造成了什么具体损失？";
 const PRIVACY_NOTICE =
   "回答不会保存为项目，但可能发送至 AI 服务；请勿输入保密、个人或未公开信息。";
 
@@ -275,7 +275,7 @@ test.describe("P0-1 导出可追述", () => {
 
   const TRACE_PATTERNS = [
     /生成时间:\d{4}-\d{2}-\d{2} \d{2}:\d{2}\(本地时钟\)/,
-    /卡号:QD-[A-Z0-9]{5}\(本会话生成,未落库\)/,
+    /卡号:QD-[A-Z0-9]{5}\(本会话生成，未落库\)/,
     /格式版本:v1/,
   ] as const;
 
@@ -290,7 +290,7 @@ test.describe("P0-1 导出可追述", () => {
     for (const pattern of TRACE_PATTERNS) {
       expect(text).toMatch(pattern);
     }
-    expect(text).toContain("问答映射:主张←第1·3幕;影响←第2幕");
+    expect(text).toContain("问答映射:主张←第1·3幕；影响←第2幕");
   });
 
   test("问题定义复制文本含同一头部,问答映射另含深化轮", async ({ page }) => {
@@ -304,7 +304,7 @@ test.describe("P0-1 导出可追述", () => {
     for (const pattern of TRACE_PATTERNS) {
       expect(text).toMatch(pattern);
     }
-    expect(text).toContain("问答映射:主张←第1·3幕;影响←第2幕;深化←第4–6轮");
+    expect(text).toContain("问答映射:主张←第1·3幕；影响←第2幕；深化←第4–6轮");
   });
 });
 
@@ -341,7 +341,7 @@ test.describe("J-5 揭示拍", () => {
 
     /* 诚实注记:摘录不等于已验证的证据 */
     await expect(page.locator("[data-artifact-card]")).toContainText(
-      "来自本次会话回答的摘录,不构成已验证的证据",
+      "来自本次会话回答的摘录，不构成已验证的证据",
     );
 
     /* reduce-motion:.motion-slot-in 关键帧只在 no-preference 定义,切换后计算样式无动画 */

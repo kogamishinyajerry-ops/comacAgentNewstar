@@ -5,7 +5,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "./ui";
+import { Play } from "lucide-react";
+import { Button, cn } from "./ui";
+import { SuccessMark } from "./fx";
 
 /* ---------------- 引擎 ---------------- */
 
@@ -454,22 +456,27 @@ export function DemoPlayer() {
 
       {/* 解说HUD */}
       {active && (
-        <div className="no-print fixed bottom-4 left-1/2 z-[10051] flex -translate-x-1/2 items-center gap-3 rounded-full border border-slate-700/40 bg-slate-900/90 px-4 py-2 text-white shadow-2xl backdrop-blur">
-          <span className="flex h-6 w-6 shrink-0 animate-pulse items-center justify-center rounded-full bg-brand-500 text-[10px] font-bold">▶</span>
-          <p className="max-w-[420px] truncate text-xs font-medium">{narration}</p>
+        <div className="no-print anim-rise-in fixed bottom-4 left-1/2 z-[10051] flex w-[calc(100vw-2rem)] max-w-[560px] -translate-x-1/2 items-center gap-3 rounded-full border border-white/10 bg-ink-900/90 px-4 py-2 text-paper shadow-[0_8px_24px_rgba(28,25,23,0.3),0_24px_56px_-12px_rgba(28,25,23,0.4)] backdrop-blur">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-500 text-paper motion-safe:animate-pulse-soft">
+            <Play className="ml-px h-3 w-3 fill-current" aria-hidden />
+          </span>
+          <p className="min-w-0 flex-1 truncate text-xs font-medium">{narration}</p>
           {progress[1] > 0 && (
-            <span className="tnum shrink-0 text-[10px] text-slate-400">
+            <span className="tnum shrink-0 text-[10px] text-paper/60">
               {progress[0]}/{progress[1]}
             </span>
           )}
           <button
-            className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold hover:bg-white/20"
+            className="tnum shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold transition-[background-color,transform] duration-150 hover:bg-white/20 active:scale-95"
             onClick={() => setSpeed((s) => (s === 1 ? 2 : s === 2 ? 3 : 1))}
             title="演示速度"
           >
             {speed}x
           </button>
-          <button className="shrink-0 rounded-full bg-red-500/80 px-2 py-0.5 text-[10px] font-semibold hover:bg-red-500" onClick={stop}>
+          <button
+            className="shrink-0 rounded-full bg-red-500/80 px-2 py-0.5 text-[10px] font-semibold transition-[background-color,transform] duration-150 hover:bg-red-500 active:scale-95"
+            onClick={stop}
+          >
             停止
           </button>
         </div>
@@ -477,17 +484,16 @@ export function DemoPlayer() {
 
       {/* 演示完毕 */}
       {done && (
-        <div className="fixed inset-0 z-[10052] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-          <div className="anim-pop-in w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
-            <div className="anim-float mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 text-4xl ring-1 ring-brand-200">🎬</div>
-            <h2 className="mt-4 text-lg font-bold text-slate-900">演示完毕</h2>
-            <p className="mt-2 text-[13px] leading-6 text-slate-500">
+        <div className="fixed inset-0 z-[10052] flex items-center justify-center bg-ink-900/55 p-4 backdrop-blur-sm">
+          <div className="anim-pop-in w-full max-w-sm rounded-2xl bg-[#fffdf8] p-8 text-center shadow-[0_8px_24px_rgba(28,25,23,0.1),0_32px_72px_-16px_rgba(28,25,23,0.22)] ring-1 ring-ink-900/10">
+            <SuccessMark size={64} label="演示完成" className="mx-auto" />
+            <h2 className="mt-4 font-display text-lg font-bold tracking-tight text-ink-900">演示完毕</h2>
+            <p className="mt-2 text-[13px] leading-6 text-ink-500">
               虚拟鼠标完成了注册、组队、建想法到第4步的全真实操作。当前登录的是演示账号,
               你可以直接继续往下走,也可以退出后注册自己的账号。
             </p>
             <div className="mt-5 flex justify-center gap-2">
-              <button
-                className="inline-flex h-9 items-center rounded-md bg-brand-600 px-5 text-[13px] font-medium text-white hover:bg-brand-700"
+              <Button
                 onClick={() => {
                   setDone(false);
                   setActive(false);
@@ -498,9 +504,9 @@ export function DemoPlayer() {
                 }}
               >
                 我来接着操作
-              </button>
-              <button
-                className="inline-flex h-9 items-center rounded-md border border-slate-300 bg-white px-4 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+              </Button>
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setDone(false);
                   setActive(false);
@@ -508,7 +514,7 @@ export function DemoPlayer() {
                 }}
               >
                 回到首页
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -527,12 +533,15 @@ export function DemoLauncher() {
   }, []);
   if (!show) return null;
   return (
+    /* 小屏收缩为 44px 图标钮,避免长胶囊遮挡页脚;≥sm 恢复完整胶囊 */
     <button
       onClick={startDemo}
-      className="no-print anim-glow-pulse fixed bottom-5 right-5 z-[10048] inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-brand-600 to-brand-700 px-5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(79,70,229,0.45)] transition-transform hover:scale-105 active:scale-95"
+      aria-label="观看虚拟鼠标实机演示"
+      className="no-print anim-glow-pulse fixed bottom-5 right-5 z-[10048] inline-flex h-11 items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 px-5 text-sm font-semibold text-paper shadow-[0_2px_4px_rgba(124,47,24,0.3),0_12px_28px_-6px_rgba(124,47,24,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] transition-transform duration-150 ease-spring hover:scale-[1.04] active:scale-95 max-sm:w-11 max-sm:justify-center max-sm:px-0"
       title="观看虚拟鼠标实机演示"
     >
-      <span className="text-base">▶</span> 实机演示
+      <Play className="h-3.5 w-3.5 fill-current" aria-hidden />
+      <span className="max-sm:hidden">实机演示</span>
     </button>
   );
 }

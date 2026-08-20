@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { X } from "lucide-react";
 import { coachProgressCopy } from "@/fixtures/coach-demo";
 import type { ReviewRound } from "@/lib/hub/coach-machine";
+import styles from "./coach-workbench.module.css";
 
 /**
  * 打磨轮⑥(§29):回看抽屉——完整的逐轮问答与当前位置。
@@ -63,7 +65,7 @@ export function CoachReviewDrawer({
     <div className="coach-review-layer" data-coach-review-layer>
       <button
         type="button"
-        className="coach-review-backdrop"
+        className={`coach-review-backdrop ${styles.backdrop}`}
         aria-label="关闭回看"
         onClick={onClose}
         tabIndex={-1}
@@ -73,7 +75,7 @@ export function CoachReviewDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={coachProgressCopy.reviewTitle}
-        className="coach-review-panel"
+        className={`coach-review-panel ${styles.panel}`}
         data-coach-review
         tabIndex={-1}
         onKeyDown={handleKeyDown}
@@ -82,18 +84,18 @@ export function CoachReviewDrawer({
           <p className="coach-review-title">{coachProgressCopy.reviewTitle}</p>
           <button
             type="button"
-            className="coach-review-close"
+            className={`coach-review-close ${styles.closeBtn}`}
             aria-label="关闭回看"
             onClick={onClose}
           >
-            ✕
+            <X size={15} strokeWidth={2.2} aria-hidden="true" />
           </button>
         </div>
 
         {rounds.length === 0 ? (
           <p className="coach-review-empty">{coachProgressCopy.reviewEmpty}</p>
         ) : (
-          <ol className="coach-review-list">
+          <ol className={`coach-review-list ${styles.reviewList}`}>
             {rounds.map((round, index) => {
               const actNumber = rounds
                 .slice(0, index)
@@ -104,7 +106,7 @@ export function CoachReviewDrawer({
               return (
                 <li
                   key={`${round.kind}-${index}`}
-                  className="coach-review-item"
+                  className={`coach-review-item ${styles.reviewItem}`}
                   data-coach-review-item
                 >
                   <p className="coach-review-item-label">
@@ -129,7 +131,7 @@ export function CoachReviewDrawer({
         )}
 
         {currentLabel && (
-          <p className="coach-review-current" data-coach-review-current-label>
+          <p className={`coach-review-current ${styles.currentChip}`} data-coach-review-current-label>
             当前:{currentLabel}
           </p>
         )}

@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth";
 import { isMockEnabled } from "@/lib/llm/provider";
 import { PageHeader, LinkButton, Badge } from "@/components/ui";
+import { Reveal } from "@/components/fx";
 import { ControlRail, WorkBuddyConsole } from "@/components/workbuddy-console";
 
 export const metadata = { title: "WorkBuddy 总控 · 青年AI轻创导航站" };
@@ -22,9 +23,13 @@ export default async function WorkBuddyPage() {
           </>
         }
       />
-      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <WorkBuddyConsole mockMode={isMockEnabled()} />
-        <ControlRail />
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <Reveal>
+          <WorkBuddyConsole mockMode={isMockEnabled()} />
+        </Reveal>
+        <Reveal delayMs={90}>
+          <ControlRail />
+        </Reveal>
       </div>
     </div>
   );

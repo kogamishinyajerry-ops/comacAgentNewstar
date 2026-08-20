@@ -8,27 +8,51 @@
    仅由 app/(hub)/layout.tsx 引入,与旧应用 globals.css 互斥加载。
    ============================================================ */
 
+/* ============================================================
+   设计系统 v2 token(2026-08-20 Act 5)
+   分层:表面 / 文字(海军蓝墨阶) / 边界(hairline) / 强调(单一钴蓝)
+   排版尺度 / 间距节奏 / 形态 / 层叠阴影 / 动效 / 装饰原语。
+   既有 token 名全部保留,值只做精度提炼;新增 token 见
+   docs/design-system-v2.md。
+   ============================================================ */
 :root {
-  /* 表面 */
+  /* ---------- 表面:暖白纸张 ---------- */
   --surface-canvas: #f4f1e9;
   --surface-primary: #fffefb;
   --surface-focus: #f7f4ec;
   --surface-muted: #ece9e1;
+  --surface-elevated: #ffffff;
+  --surface-scrim: rgba(23, 34, 56, 0.28);
 
-  /* 文字 */
+  /* ---------- 文字:海军蓝墨阶(WCAG AA,500 起在纸面上 ≥ 4.5:1) ---------- */
   --text-primary: #172238;
   --text-secondary: #596477;
   --text-tertiary: #5b687c;
+  --navy-50: #f2f4f8;
+  --navy-100: #e3e7ee;
+  --navy-200: #c6cdd9;
+  --navy-300: #9aa5b8;
+  --navy-400: #77839a;
+  --navy-500: #596477;
+  --navy-600: #45526b;
+  --navy-700: #2e3b55;
+  --navy-800: #1f2c47;
+  --navy-900: #172238;
+  --navy-950: #0f1729;
 
-  /* 边界 */
+  /* ---------- 边界:hairline 三档 ---------- */
   --border-subtle: #d9d8d2;
   --border-strong: #b9bdc6;
   --border-control: #7b8799;
+  --hairline: rgba(23, 34, 56, 0.08);
+  --hairline-strong: rgba(23, 34, 56, 0.14);
+  --hairline-cobalt: rgba(43, 85, 201, 0.18);
 
-  /* 强调 */
+  /* ---------- 强调:单一钴蓝动作色 + 极少量状态信号 ---------- */
   --accent-coach: #2b55c9;
   --accent-coach-strong: #2147b3;
   --accent-coach-soft: rgba(43, 85, 201, 0.14);
+  --accent-coach-halo: rgba(43, 85, 201, 0.08);
   --accent-purple: #7c62e8;
   --accent-purple-soft: rgba(124, 98, 232, 0.12);
   --accent-evidence: #0f7564;
@@ -36,26 +60,75 @@
   --accent-gap: #7a4700;
   --accent-gap-soft: rgba(157, 92, 0, 0.12);
   --state-danger: #b54747;
+  --state-danger-soft: rgba(181, 71, 71, 0.1);
 
-  /* 动效 */
+  /* ---------- 动效:丝绸感 easing + 分档时长 ---------- */
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
   --dur-micro: 180ms;
   --dur-rise: 300ms;
   --dur-scene: 540ms;
+  --dur-slow: 760ms;
 
-  /* 形态 */
+  /* ---------- 排版尺度(display 宋体 / 正文无衬线 / 数字 tabular) ---------- */
+  --fs-micro: 11px;
+  --fs-caption: 13px;
+  --fs-body: 15.5px;
+  --fs-lead: clamp(16px, 1.35vw, 18px);
+  --fs-display-md: clamp(22px, 2.4vw, 30px);
+  --fs-display-lg: clamp(28px, 3vw, 38px);
+  --fs-display-xl: clamp(40px, 4.7vw, 66px);
+  --ls-tight: -0.025em;
+  --ls-snug: -0.01em;
+  --ls-wide: 0.12em;
+  --ls-wider: 0.2em;
+
+  /* ---------- 间距节奏(4px 基网) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---------- 形态 ---------- */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --shadow-card: 0 2px 3px rgba(23, 34, 56, 0.04), 0 14px 36px rgba(23, 34, 56, 0.07);
-  --shadow-lift: 0 3px 5px rgba(23, 34, 56, 0.06), 0 18px 46px rgba(23, 34, 56, 0.11);
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 999px;
 
-  /* 字体 */
+  /* ---------- 层叠阴影:近处 hairline + 远处软阴影 ---------- */
+  --shadow-xs: 0 1px 2px rgba(23, 34, 56, 0.05);
+  --shadow-card: 0 1px 2px rgba(23, 34, 56, 0.05), 0 16px 40px -10px rgba(23, 34, 56, 0.08);
+  --shadow-lift: 0 2px 4px rgba(23, 34, 56, 0.06), 0 24px 56px -12px rgba(23, 34, 56, 0.13);
+  --shadow-overlay: 0 8px 24px rgba(23, 34, 56, 0.1), 0 32px 80px -16px rgba(23, 34, 56, 0.18);
+  --shadow-btn: 0 1px 2px rgba(23, 34, 56, 0.12), 0 10px 24px -6px rgba(43, 85, 201, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --shadow-btn-hover: 0 2px 3px rgba(23, 34, 56, 0.12), 0 14px 32px -6px rgba(43, 85, 201, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+
+  /* ---------- 字体 ---------- */
   --font-hub: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-hub-display: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
 
   --focus-ring: 0 0 0 3px rgba(53, 104, 232, 0.3);
+  --focus-halo: 0 0 0 5px rgba(43, 85, 201, 0.1);
+
+  /* ---------- 装饰原语:细颗粒 noise / 制图细线 / 极淡光晕 ---------- */
+  --noise-grain: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  --atlas-line: rgba(43, 85, 201, 0.045);
+  --glow-cobalt: radial-gradient(
+    720px 420px at 72% -8%,
+    rgba(43, 85, 201, 0.07),
+    transparent 62%
+  );
 }
 
 @layer base {
@@ -73,13 +146,41 @@
   }
   ::selection {
     background: var(--accent-coach-soft);
+    color: var(--navy-900);
   }
+  /* 焦点态:2px 钴蓝描边,offset 保证任何底色上可见;
+     组件级 focus 规则再自行叠加 halo(避免全局覆盖层叠阴影) */
   :focus-visible {
     outline: 2px solid var(--accent-coach);
     outline-offset: 2px;
   }
   section[id] {
     scroll-margin-top: 88px;
+  }
+  /* 数字默认等宽,避免计数/编号抖动 */
+  .tnum,
+  .hub-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  /* 细滚动条:退到内容之后,hover 才显现 */
+  .hub-root * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(23, 34, 56, 0.22) transparent;
+  }
+  .hub-root *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .hub-root *::-webkit-scrollbar-thumb {
+    background: rgba(23, 34, 56, 0.16);
+    border-radius: 8px;
+  }
+  .hub-root *::-webkit-scrollbar-thumb:hover {
+    background: rgba(23, 34, 56, 0.28);
+  }
+  .hub-root *::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 
@@ -205,6 +306,7 @@
     font-size: 15px;
     font-weight: 600;
     line-height: 1.4;
+    letter-spacing: 0.01em;
     cursor: pointer;
     transition: transform var(--dur-micro) var(--ease-soft),
       box-shadow var(--dur-micro) var(--ease-soft),
@@ -213,25 +315,45 @@
       color var(--dur-micro) var(--ease-soft);
   }
   .hub-btn:active {
-    transform: translateY(1px);
+    transform: translateY(1px) scale(0.985);
+    transition-duration: var(--dur-fast);
+    transition-timing-function: var(--ease-spring);
+  }
+  .hub-btn:focus-visible {
+    outline: 2px solid var(--accent-coach);
+    outline-offset: 2px;
+  }
+  .hub-btn:disabled,
+  .hub-btn[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
   }
   .hub-btn--primary {
     background: var(--accent-coach);
     color: #fff;
-    box-shadow: 0 1px 2px rgba(23, 34, 56, 0.1), 0 8px 20px rgba(53, 104, 232, 0.22);
+    box-shadow: var(--shadow-btn);
   }
   .hub-btn--primary:hover {
     background: var(--accent-coach-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-btn-hover);
+  }
+  .hub-btn--primary:active {
+    transform: translateY(1px) scale(0.985);
+    box-shadow: var(--shadow-xs);
   }
   .hub-btn--secondary {
     background: var(--surface-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-control);
-    box-shadow: 0 1px 2px rgba(23, 34, 56, 0.04);
+    box-shadow: var(--shadow-xs);
   }
   .hub-btn--secondary:hover {
     border-color: var(--accent-coach);
     color: var(--accent-coach-strong);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
   }
   .hub-btn--ghost {
     background: transparent;
@@ -414,20 +536,6 @@
   .hub-drawer[data-open="true"] {
     transition: opacity var(--dur-rise) var(--ease-soft);
   }
-  .hub-drawer-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    align-self: flex-start;
-    min-height: 44px;
-    padding: 8px 12px;
-    border: 1px solid var(--border-control);
-    border-radius: var(--radius-sm);
-    background: var(--surface-primary);
-    color: var(--text-primary);
-    font-size: 14.5px;
-    font-weight: 600;
-  }
   .hub-drawer-link {
     display: flex;
     align-items: center;
@@ -440,37 +548,13 @@
     border-bottom: 1px solid var(--border-subtle);
   }
 
-  /* ---------- Coach 平面状态标记(真实插画资产 + 套色错位) ---------- */
+  /* ---------- Coach 状态标记(纯代码五态:光晕/弧环/刻线/核心/勾选) ---------- */
   .coach-orb {
     position: relative;
     display: block;
     overflow: visible;
     flex: none;
   }
-  .coach-orb-layer {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    user-select: none;
-    transition: transform var(--dur-scene) var(--ease-soft),
-      opacity var(--dur-scene) var(--ease-soft), filter var(--dur-scene) var(--ease-soft);
-  }
-  /* idle:安静收束 */
-  .coach-orb[data-state="idle"] .coach-orb-layer--main { transform: scale(0.96) rotate(-1deg); opacity: 0.96; }
-
-  /* listening:向回答器轻微展开 */
-  .coach-orb[data-state="listening"] .coach-orb-layer--main { transform: scale(1.02) rotate(1deg); opacity: 1; }
-
-  /* challenging:轮廓集中，缺口变得明确 */
-  .coach-orb[data-state="challenging"] .coach-orb-layer--main { transform: scale(1) rotate(2deg); filter: contrast(1.08) saturate(1.08); }
-
-  /* condensing:图形向问题种子收拢 */
-  .coach-orb[data-state="condensing"] .coach-orb-layer--main { transform: scale(0.94) rotate(-2deg); opacity: 0.9; }
-
-  /* confirmed:短暂脉冲后静止 */
-  .coach-orb[data-state="confirmed"] .coach-orb-layer--main { transform: scale(0.96); filter: saturate(0.88) contrast(1.06); }
 
   /* ---------- Coach 场景 ---------- */
   .coach-stage {
@@ -651,6 +735,11 @@
   }
   .coach-workspace-grid--duo > .coach-progress {
     grid-area: progress;
+  }
+  /* 建立拍(intro)独占整宽居中:此拍不渲染常驻问题卡,单焦点场景跨满两列;
+     选择器限定 data-phase="intro",问答/过渡拍的 coach-solo 仍归 scene 区与问题卡并列 */
+  .coach-workspace-grid--duo > .coach-solo[data-phase="intro"] {
+    grid-column: 1 / -1;
   }
   /* 常驻问题卡:由对话逐格沉淀的可视模板;只读,不抢主问题的决策焦点 */
   .coach-progress {
@@ -1017,7 +1106,11 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
-    padding: 22px 26px;
+    /* 底部留出余量 + 渐隐遮罩:最末文本行滚到底也完整可读,
+       不被容器边缘切成半行(矮视口走查 P0) */
+    padding: 22px 26px 56px;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 44px), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 44px), transparent 100%);
     background-image: linear-gradient(rgba(53, 104, 232, 0.025) 1px, transparent 1px),
       linear-gradient(90deg, rgba(53, 104, 232, 0.025) 1px, transparent 1px);
     background-size: 24px 24px;
@@ -1555,6 +1648,160 @@
     background: var(--surface-primary);
     padding-block: 40px;
   }
+
+  /* ============================================================
+     设计系统 v2 新增原语(2026-08-20 Act 5)
+     既有类零删除;以下类名以 hub- / texture- / atlas- / glow- 开头,
+     供页面改造直接取用,详见 docs/design-system-v2.md。
+     ============================================================ */
+
+  /* ---------- 卡片层级与 hover 浮起 ---------- */
+  .hub-card--hover {
+    transition: transform var(--dur-micro) var(--ease-soft),
+      box-shadow var(--dur-micro) var(--ease-soft),
+      border-color var(--dur-micro) var(--ease-soft);
+  }
+  .hub-card--hover:hover {
+    transform: translateY(-2px);
+    border-color: var(--hairline-strong);
+    box-shadow: var(--shadow-lift);
+  }
+  .hub-card--flat {
+    box-shadow: none;
+    border-color: var(--hairline);
+  }
+
+  /* ---------- 骨架屏:极淡钴蓝 shimmer,不发灰 ---------- */
+  .hub-skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--navy-50);
+  }
+  .hub-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(43, 85, 201, 0.06) 45%,
+      rgba(43, 85, 201, 0.12) 50%,
+      rgba(43, 85, 201, 0.06) 55%,
+      transparent 100%
+    );
+    background-size: 400px 100%;
+    animation: hub-shimmer 1.6s linear infinite;
+  }
+
+  /* ---------- 装饰母题(纯 CSS,零素材) ---------- */
+  /* 细颗粒 noise:纸面材质,几乎不可见但消除"塑料感" */
+  .texture-grain {
+    position: relative;
+  }
+  .texture-grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: var(--noise-grain);
+    opacity: 0.5;
+  }
+  .texture-grain > * {
+    position: relative;
+    z-index: 1;
+  }
+  /* 航空制图细线:网格 + 十字刻线,退到信息之后 */
+  .atlas-hairlines {
+    background-image: linear-gradient(var(--atlas-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--atlas-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  /* 极淡钴蓝光晕:页面顶部环境光,不可当作主视觉 */
+  .glow-cobalt {
+    background-image: var(--glow-cobalt);
+    background-repeat: no-repeat;
+  }
+  /* 角标刻线:L 形制图标记(hub 版,钴蓝 1.5px) */
+  .atlas-ticks {
+    position: relative;
+  }
+  .atlas-ticks::before,
+  .atlas-ticks::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    opacity: 0.55;
+  }
+  .atlas-ticks::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1.5px solid var(--accent-coach);
+    border-left: 1.5px solid var(--accent-coach);
+  }
+  .atlas-ticks::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1.5px solid var(--accent-coach);
+    border-right: 1.5px solid var(--accent-coach);
+  }
+
+  /* ---------- 细分隔线 / 键盘提示 / 状态点 ---------- */
+  .hub-divider {
+    border: 0;
+    height: 1px;
+    background: var(--hairline);
+  }
+  .hub-kbd {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 1px 6px;
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-primary);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-secondary);
+  }
+  .hub-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 999px;
+    background: currentColor;
+  }
+
+  /* ---------- 字段壳:浮层质感输入区(focus-within 整壳点亮) ---------- */
+  .hub-field-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--radius-lg);
+    background: var(--surface-primary);
+    box-shadow: var(--shadow-xs);
+    transition: border-color var(--dur-micro) var(--ease-soft),
+      box-shadow var(--dur-micro) var(--ease-soft);
+  }
+  .hub-field-shell:focus-within {
+    border-color: var(--accent-coach);
+    box-shadow: var(--shadow-xs), var(--focus-ring);
+  }
+  .hub-field-shell[data-invalid="true"] {
+    border-color: var(--state-danger);
+  }
+  .hub-field-shell[data-invalid="true"]:focus-within {
+    box-shadow: var(--shadow-xs), 0 0 0 3px var(--state-danger-soft);
+  }
 }
 
 @layer utilities {
@@ -1607,6 +1854,11 @@
     @keyframes hub-drawer-in {
       from { transform: translateX(-40px); opacity: 0.4; }
       to { transform: none; opacity: 1; }
+    }
+    /* v2:骨架屏 shimmer(发钴蓝微光,不发灰) */
+    @keyframes hub-shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
     }
 
     /* 端上来:内容自下浮现 */
@@ -1665,6 +1917,32 @@
     /* Hero 三拍编排:标题 → 平面标记 → 入口(总时长 ≤ 1.2s) */
   }
 
+  /* v2:跨组件滚动显现(fx.tsx Reveal 挂载后才加 .fx-reveal,
+     SSR/无 JS 时内容始终可见;reduced-motion 下无位移) */
+  @media (prefers-reduced-motion: no-preference) {
+    .fx-reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 480ms var(--ease-soft), transform 480ms var(--ease-soft);
+    }
+    .fx-reveal.is-in {
+      opacity: 1;
+      transform: none;
+    }
+    /* hover 磁吸/微浮起的过渡曲线(位移由 fx.tsx JS 驱动) */
+    .fx-magnet {
+      transition: transform var(--dur-rise) var(--ease-spring);
+    }
+    .fx-lift {
+      transition: transform var(--dur-micro) var(--ease-soft),
+        box-shadow var(--dur-micro) var(--ease-soft);
+    }
+    .fx-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift);
+    }
+  }
+
   /* 减弱动态:位移/缩放/滤镜动画取消,信息顺序不变 */
   @media (prefers-reduced-motion: reduce) {
     html {
@@ -1693,6 +1971,79 @@
     }
   }
 
+  /* 矮视口紧凑档(视觉走查 P0):固定 100dvh 壳在 ≤860px 高度下,
+     建立拍缩小 orb、压缩间距与标题 clamp 下限,隐私披露保持首屏可见 */
+  @media (max-height: 860px) {
+    .coach-state-hint {
+      gap: 8px;
+    }
+    .coach-state-hint .coach-orb {
+      width: 44px !important;
+      height: 44px !important;
+    }
+    .coach-intro {
+      gap: 14px;
+      padding: 4px 0 8px;
+    }
+    .coach-intro .hub-title {
+      font-size: clamp(20px, 2.4vw, 30px);
+    }
+    .coach-intro-steps,
+    .coach-intro-flow {
+      gap: 6px;
+    }
+    .coach-intro-step-detail {
+      line-height: 1.5;
+    }
+    .coach-composer--intro {
+      padding-bottom: 12px;
+    }
+    .coach-intro-begin {
+      min-height: 44px;
+    }
+    .coach-conversation-scroll {
+      padding-top: 14px;
+    }
+  }
+
+  /* ≤720px 高度再加压(走查修复轮收口):860px 档压缩后建立拍内容仍溢出
+     会话滚动区约 42px,隐私披露被回答器遮挡(1440×700 抽验实测)。
+     继续压缩间距/行高,让隐私披露完整落在屏内;本档内容已近无滚动,
+     底部 44px 渐隐遮罩会把披露文本罩虚,故关掉遮罩保文字锐利,
+     44px 底部留白仍承担半行裁切防护 */
+  @media (max-height: 720px) {
+    .coach-conversation-scroll {
+      padding: 10px 26px 44px;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    .coach-state-hint {
+      gap: 6px;
+    }
+    .coach-state-hint .coach-orb {
+      width: 36px !important;
+      height: 36px !important;
+    }
+    .coach-intro {
+      gap: 10px;
+      padding: 2px 0 6px;
+    }
+    .coach-intro .hub-title {
+      font-size: clamp(18px, 2.4vw, 28px);
+    }
+    .coach-intro-step-detail {
+      line-height: 1.4;
+    }
+    .coach-intro-flow li {
+      line-height: 1.45;
+    }
+    .coach-privacy-note {
+      margin-top: 0;
+    }
+  }
+
+  /* 768–1100px 平板档只负责 duo 折行;种子轨(0/3)双栏表达由
+     coach-workbench.module.css 在 ≥1101px 承担,两档互不重叠 */
   @media (max-width: 1100px) and (min-width: 768px) {
     .hub-workspace-screen {
       padding: 10px;
@@ -1772,7 +2123,7 @@
       display: none;
     }
     .coach-conversation-scroll {
-      padding: 18px;
+      padding: 18px 18px 48px;
     }
     .coach-question {
       font-size: clamp(22px, 2.5vw, 30px);
@@ -1804,7 +2155,7 @@
       font-size: 12px;
     }
     .coach-conversation-scroll {
-      padding: 12px;
+      padding: 12px 12px 40px;
       scrollbar-gutter: auto;
     }
     .coach-state-hint .coach-orb {

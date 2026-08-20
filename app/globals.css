@@ -2,12 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   旧 app 路由组 —— 纸墨朱砂身份,设计系统 v2 精致化(2026-08-20)
+   与 hub 路由组 styles/tokens.css 同一视觉语言:
+   层叠柔和阴影、精致 hairline、丝绸感动效、克制焦点态。
+   既有类名全部保留(surface-card / tick-corners / kicker / anim-* …),
+   新增 token 与原语见 docs/design-system-v2.md。
+   ============================================================ */
+
 :root {
   color-scheme: light;
   --paper: #f7f4ec;
   --ink: #1c1917;
   --accent: #b94a26;
+  --accent-strong: #a03e20;
+  --accent-soft: rgba(185, 74, 38, 0.1);
   --hairline: rgba(28, 25, 23, 0.12);
+  --hairline-soft: rgba(28, 25, 23, 0.07);
+
+  /* 层叠阴影:近处细影 + 远处软阴影,拒绝生硬单影 */
+  --shadow-xs-app: 0 1px 2px rgba(28, 25, 23, 0.05);
+  --shadow-card-app: 0 1px 2px rgba(28, 25, 23, 0.05), 0 12px 32px -12px rgba(28, 25, 23, 0.12);
+  --shadow-lift-app: 0 2px 4px rgba(28, 25, 23, 0.06), 0 20px 48px -14px rgba(28, 25, 23, 0.16);
+  --shadow-overlay-app: 0 8px 24px rgba(28, 25, 23, 0.1), 0 32px 72px -16px rgba(28, 25, 23, 0.2);
+
+  /* 丝绸感动效 */
+  --ease-soft-app: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring-app: cubic-bezier(0.34, 1.4, 0.5, 1);
+
+  /* 焦点:2px 朱砂描边 + 极淡外晕 */
+  --focus-ring-app: 0 0 0 3px rgba(185, 74, 38, 0.22);
 }
 
 @layer base {
@@ -33,16 +57,41 @@
     opacity: 0.5;
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
   }
+  /* 环境光:页面顶部一团极淡暖晕,纸面不发闷 */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(900px 480px at 82% -12%, rgba(185, 74, 38, 0.05), transparent 62%),
+      radial-gradient(720px 420px at 8% -8%, rgba(201, 162, 39, 0.04), transparent 60%);
+  }
   main, header, footer { position: relative; z-index: 1; }
   ::selection {
     background: rgba(185, 74, 38, 0.22);
+    color: var(--ink);
   }
+  /* 默认焦点态:任何未显式定义 focus 样式的可交互元素也保持可见优雅。
+     已用 .focus-ring / Tailwind ring 的控件因类优先级更高,不受影响。 */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* 原生控件去浏览器味:勾选/单选跟随品牌色 */
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--accent);
+  }
+  /* 细滚动条:退到内容之后 */
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(107, 100, 87, 0.4) transparent;
   }
   *::-webkit-scrollbar { width: 8px; height: 8px; }
-  *::-webkit-scrollbar-thumb { background: rgba(107, 100, 87, 0.35); border-radius: 8px; }
+  *::-webkit-scrollbar-thumb { background: rgba(107, 100, 87, 0.32); border-radius: 8px; }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(107, 100, 87, 0.5); }
   *::-webkit-scrollbar-track { background: transparent; }
 }
 
@@ -60,12 +109,16 @@
     background-position: right 0.6rem center;
   }
 
-  /* 纸面卡片:细墨线边框,几乎无阴影(编辑风) */
+  /* 纸面卡片:细墨线边框 + 层叠柔影(v2:从近乎无影升级为轻 elevation) */
   .surface-card {
     @apply rounded-md border border-ink-900/10 bg-[#fffdf8];
+    box-shadow: var(--shadow-card-app);
   }
   .surface-card-hover {
-    @apply transition-all duration-150 hover:-translate-y-px hover:border-ink-900/25 hover:shadow-[0_6px_18px_rgba(28,25,23,0.07)];
+    @apply transition-all duration-150 hover:-translate-y-0.5 hover:border-ink-900/25;
+  }
+  .surface-card-hover:hover {
+    box-shadow: var(--shadow-lift-app);
   }
 
   /* 角标刻线:卡片两角的L形制图标记(签名视觉母题) */
@@ -100,6 +153,31 @@
     @apply text-[11px] font-bold uppercase tracking-[0.28em] text-brand-600;
   }
   .hairline { @apply border-ink-900/10; }
+
+  /* ---------- v2 新增原语 ---------- */
+  /* 骨架屏:暖墨 shimmer,不发灰 */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-ink-100;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(185, 74, 38, 0.05) 45%,
+      rgba(185, 74, 38, 0.11) 50%,
+      rgba(185, 74, 38, 0.05) 55%,
+      transparent 100%
+    );
+    background-size: 400px 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+  /* 键盘提示 */
+  .kbd {
+    @apply inline-flex min-h-[20px] items-center rounded border border-ink-900/20 border-b-2 bg-[#fffdf8] px-1.5 text-[11px] font-semibold leading-none text-ink-600;
+  }
 
   /* ---------- 游戏化仪式动效(保留) ---------- */
   @keyframes pop-in {
@@ -198,6 +276,30 @@
   }
   .hover\:wiggle:hover { animation: wiggle 0.45s ease-in-out; }
 
+  /* ---------- v2:跨组件滚动显现 / 磁吸 / 微浮起(fx.tsx 驱动) ---------- */
+  .fx-reveal { opacity: 1; }
+  @media (prefers-reduced-motion: no-preference) {
+    .fx-reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 480ms var(--ease-soft-app), transform 480ms var(--ease-soft-app);
+    }
+    .fx-reveal.is-in {
+      opacity: 1;
+      transform: none;
+    }
+    .fx-magnet {
+      transition: transform 300ms var(--ease-spring-app);
+    }
+    .fx-lift {
+      transition: transform 180ms var(--ease-soft-app), box-shadow 180ms var(--ease-soft-app);
+    }
+    .fx-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lift-app);
+    }
+  }
+
   /* ---------- 实机演示:虚拟鼠标 ---------- */
   .demo-cursor {
     position: fixed;
@@ -245,9 +347,20 @@
   @media (prefers-reduced-motion: reduce) {
     .anim-pop-in, .anim-rise-in, .anim-slide-in-right, .anim-shimmer,
     .anim-float, .anim-glow-pulse, .anim-stamp, .anim-check-path,
-    .anim-blur-reveal, .anim-sparkle, .anim-gradient-pan, .stagger > * {
+    .anim-blur-reveal, .anim-sparkle, .anim-gradient-pan, .stagger > *,
+    .skeleton::after {
       animation-duration: 0.01s !important;
       animation-iteration-count: 1 !important;
+    }
+    /* Tailwind 共享动画类(tailwind.config keyframes)同步停用 */
+    .animate-fade-in, .animate-rise, .animate-scale-in, .animate-stamp,
+    .animate-check-draw, .animate-shimmer, .animate-pulse-soft {
+      animation: none !important;
+    }
+    .fx-reveal {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
     }
   }
 }

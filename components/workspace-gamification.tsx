@@ -43,12 +43,16 @@ export function WorkspaceGamification({
   void title;
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-4">
       <LevelBadge pct={progress.overallPct} submitted={submitted} />
       <XpBar pct={progress.overallPct} submitted={submitted} />
-      <AchievementSummary unlockedIds={unlocked.map((a) => a.id)} />
-      <ArtGallery projectId={projectId} dense />
-      <p className="text-[10px] leading-4 text-slate-400">
+      <div className="border-t border-ink-900/10 pt-3.5">
+        <AchievementSummary unlockedIds={unlocked.map((a) => a.id)} />
+      </div>
+      <div className="border-t border-ink-900/10 pt-3.5">
+        <ArtGallery projectId={projectId} dense />
+      </div>
+      <p className="text-[10px] leading-4 text-ink-400">
         成就与插画由项目真实状态点亮:完成必填、补齐闭环、如实记录失败都会解锁;无排名,只有你自己的进度。
       </p>
     </div>

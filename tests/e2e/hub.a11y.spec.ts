@@ -32,7 +32,7 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await beginCoach(page);
 
     await expect(
-      page.getByRole("heading", { name: "你最想改变的具体工作瞬间是什么?" })
+      page.getByRole("heading", { name: "你最想改变的具体工作瞬间是什么？" })
     ).toBeVisible();
     /* §33 K1:工作台页站点导航不渲染(主导航/burger/品牌图都不在场) */
     await expect(page.getByRole("navigation", { name: "主导航" })).toHaveCount(0);
@@ -73,7 +73,7 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await expect(page.locator("#hub-main")).toBeFocused();
   });
 
-  test("移动端抽屉从具名关闭按钮开始锁焦，并在 Esc 后归还焦点", async ({ page }) => {
+  test("移动端抽屉从首个导航链接开始锁焦，并在 Esc 后归还焦点", async ({ page }) => {
     await page.setViewportSize(mobile);
     // 首页不再渲染头部 CTA(§21:工作台页 CTA 自指且会丢进度),抽屉闭环在 /guide 验证
     await page.goto("/guide");
@@ -83,10 +83,12 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await page.keyboard.press("Enter");
 
     const drawer = page.locator("#hub-drawer");
-    const close = drawer.getByRole("button", { name: "关闭导航菜单" });
+    /* 走查修复轮:抽屉内独立的「关闭导航菜单」按钮已移除,关闭由汉堡 X / Esc 承担;
+       初始焦点落在首个导航链接(hub-header.tsx data-drawer-initial-focus 契约) */
+    const firstLink = drawer.getByRole("link", { name: "问题探索" });
     const drawerCta = drawer.getByRole("link", { name: "开始探索" });
     await expect(drawer).toHaveAttribute("aria-hidden", "false");
-    await expect(close).toBeFocused();
+    await expect(firstLink).toBeFocused();
 
     // 几何断言:抽屉必须相对视口铺到 header 以下全高。
     // 旧断言只查 data-open/aria-hidden 属性与焦点,不含任何布局信息;
@@ -107,17 +109,19 @@ test.describe("Hub 无障碍与响应式深化", () => {
     expect(geometry.height).toBeGreaterThanOrEqual(geometry.viewportHeight - 80);
     expect(geometry.width).toBe(geometry.viewportWidth);
 
-    for (const label of ["问题探索", "活动指南", "参赛者入口", "开始探索"]) {
+    for (const label of ["活动指南", "参赛者入口", "开始探索"]) {
       await page.keyboard.press("Tab");
       await expect(drawer.getByRole("link", { name: label })).toBeFocused();
     }
+    // 末位 CTA 再 Tab:焦点回绕到首个导航链接
     await page.keyboard.press("Tab");
-    await expect(close).toBeFocused();
+    await expect(firstLink).toBeFocused();
 
+    // 首位 Shift+Tab:焦点回绕到末位 CTA,再 Tab 回到首位
     await page.keyboard.press("Shift+Tab");
     await expect(drawerCta).toBeFocused();
     await page.keyboard.press("Tab");
-    await expect(close).toBeFocused();
+    await expect(firstLink).toBeFocused();
 
     await page.keyboard.press("Escape");
     await expect(drawer).toHaveAttribute("aria-hidden", "true");
@@ -183,9 +187,9 @@ for (const axeCase of axeCases) {
 
 /* K3 增补:过渡后问题态与种子态也必须零豁免(任务书§七) */
 const ACT_AXE_QUESTIONS = [
-  "你最想改变的具体工作瞬间是什么?",
-  "这个问题对谁造成了什么具体损失?",
-  "为什么普通大模型聊天不足以解决它?",
+  "你最想改变的具体工作瞬间是什么？",
+  "这个问题对谁造成了什么具体损失？",
+  "为什么普通大模型聊天不足以解决它？",
 ] as const;
 
 const ACT_AXE_ANSWERS = [
@@ -201,7 +205,7 @@ test("Axe: 过渡后问题态(第二幕)无自动化可检测违规", async ({ p
   await page.locator("#coach-answer").fill(ACT_AXE_ANSWERS[0]);
   await page.getByRole("button", { name: "提交这一问的回答" }).click();
   await expect(
-    page.getByRole("heading", { name: "这个问题对谁造成了什么具体损失?" })
+    page.getByRole("heading", { name: "这个问题对谁造成了什么具体损失？" })
   ).toBeVisible({ timeout: 15_000 });
   await expectNoAxeViolations(page);
 });

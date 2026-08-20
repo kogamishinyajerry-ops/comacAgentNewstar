@@ -25,12 +25,32 @@
   align-items: center;
   gap: 20px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent-coach) 18%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--surface-primary) 90%, transparent);
-  box-shadow: 0 12px 34px color-mix(in srgb, var(--text-primary) 5.5%, transparent);
-  padding: 12px 18px;
+  border: 1px solid var(--hairline-cobalt);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-primary) 92%, transparent);
+  box-shadow: var(--shadow-card);
+  padding: 14px 20px;
   isolation: isolate;
+}
+
+/* 制图角标刻线:极淡钴蓝 L 形四角,给定向层一 survey-grade 的精确感 */
+.orientation::after {
+  position: absolute;
+  inset: 5px;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) left 0 top 0 / 13px 1px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) left 0 top 0 / 1px 13px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) right 0 top 0 / 13px 1px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) right 0 top 0 / 1px 13px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) left 0 bottom 0 / 13px 1px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) left 0 bottom 0 / 1px 13px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) right 0 bottom 0 / 13px 1px,
+    linear-gradient(var(--orientation-tick), var(--orientation-tick)) right 0 bottom 0 / 1px 13px;
+  background-repeat: no-repeat;
+  content: "";
+  --orientation-tick: color-mix(in srgb, var(--accent-coach) 38%, transparent);
 }
 
 .orientationArt {
@@ -60,71 +80,97 @@
 }
 
 .orientationCopy {
+  position: relative;
+  z-index: 1;
   min-width: 0;
 }
 
 .orientationEyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   margin: 0;
   color: var(--accent-coach-strong);
   font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.2em;
+}
+
+.orientationEyebrow::before {
+  width: 18px;
+  height: 1.5px;
+  background: var(--accent-coach);
+  content: "";
+  opacity: 0.55;
 }
 
 .orientationTitle {
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   color: var(--text-primary);
   font-family: var(--font-hub-display);
-  font-size: clamp(16px, 1.45vw, 21px);
+  font-size: clamp(16px, 1.5vw, 21px);
   font-weight: 700;
   line-height: 1.35;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
 }
 
 .orientationPromise {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px 16px;
-  margin: 4px 0 0;
+  gap: 3px 18px;
+  margin: 5px 0 0;
   color: var(--text-secondary);
   font-size: 11.5px;
   line-height: 1.4;
+  counter-reset: orientation-step;
 }
 
 .orientationMobileSummary {
   display: none;
 }
 
+/* 三拍承诺用 01/02/03 编号替代圆点:阅读顺序即流程顺序,数字一律 tnum */
 .orientationPromise span {
-  position: relative;
-  padding-left: 10px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
   white-space: nowrap;
+  counter-increment: orientation-step;
 }
 
 .orientationPromise span::before {
-  position: absolute;
-  left: 0;
-  top: 0.58em;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--accent-coach);
-  content: "";
-  opacity: 0.6;
+  color: var(--accent-coach);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  content: "0" counter(orientation-step);
+  opacity: 0.85;
 }
 
 .orientationLink {
+  position: relative;
+  z-index: 1;
   flex: none;
   margin-left: auto;
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-primary) 82%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-coach) 20%, transparent);
-  padding: 8px 13px;
+  padding: 8px 14px;
   color: var(--accent-coach-strong);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: background-color var(--dur-micro) var(--ease-soft), box-shadow var(--dur-micro) var(--ease-soft);
+  transition:
+    background-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft),
+    transform var(--dur-fast) var(--ease-spring);
+}
+
+.orientationLink span {
+  display: inline-block;
+  transition: transform var(--dur-micro) var(--ease-soft);
 }
 
 .orientationLink:hover {
@@ -134,11 +180,21 @@
     0 8px 20px color-mix(in srgb, var(--accent-coach) 8%, transparent);
 }
 
+.orientationLink:hover span {
+  transform: translateX(2px);
+}
+
+.orientationLink:active {
+  transform: scale(0.97);
+}
+
 /*
  * 第一问不提前端出完整问题卡：保留一枚极弱的“种子轨”作为进展暗示，
  * 第一份回答提交后，既有 320px 问题卡才真正长出来。
+ * 只在 >1100px 启用竖栏种子轨：768–1100px 档交给 tokens 的横排折行规则，
+ * 避免与折行规则冲突(竖栏裁切 + 首答后布局跳变)。
  */
-@media (min-width: 768px) {
+@media (min-width: 1101px) {
   .flow :global(.coach-workspace-grid--duo:has(.coach-progress[aria-label="问题卡（已沉淀 0/3）"])) {
     grid-template-columns: minmax(0, 1fr) 68px;
     grid-template-areas: "scene progress";
@@ -196,25 +252,38 @@
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: var(--border-strong);
+    background: color-mix(in srgb, var(--accent-coach) 34%, transparent);
     content: "";
-    opacity: 0.75;
+    opacity: 0.8;
+  }
+
+  /* 种子轨态:槽位状态轨退场,只留三枚进度点 */
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot)::before {
+    content: none;
   }
 
   .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps) {
-    width: 30px;
+    width: auto;
     height: 30px;
     justify-content: center;
     gap: 0;
     overflow: hidden;
-    padding: 0;
+    padding: 0 5px;
+    white-space: nowrap;
     font-size: 0;
   }
 
+  /* 缺口摘要折叠为微型横排标签「缺口 3」,不再是裸数字 */
   .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps::after) {
-    content: "3";
-    font-size: 10px;
+    content: "缺口 3";
+    font-size: 9.5px;
+    letter-spacing: 0.05em;
   }
+}
+
+/* 种子轨态:实体菱形标记同步退场(原 ◇ 字符靠 font-size:0 隐藏) */
+.flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"]) .gapMark {
+  display: none;
 }
 
 @media (max-width: 767px) {
@@ -242,6 +311,10 @@
     font-size: 8.5px;
     letter-spacing: 0.06em;
     line-height: 1.2;
+  }
+
+  .orientationEyebrow::before {
+    display: none;
   }
 
   .orientationTitle {
@@ -360,29 +433,428 @@
     width: 6px;
     height: 6px;
     border-radius: 999px;
-    background: var(--border-strong);
+    background: color-mix(in srgb, var(--accent-coach) 34%, transparent);
     content: "";
-    opacity: 0.75;
+    opacity: 0.8;
+  }
+
+  .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-slot)::before {
+    content: none;
   }
 
   .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps) {
-    width: 26px;
+    width: auto;
     height: 26px;
     justify-content: center;
     gap: 0;
     overflow: hidden;
-    padding: 0;
+    padding: 0 5px;
+    white-space: nowrap;
     font-size: 0;
   }
 
   .flow :global(.coach-progress[aria-label="问题卡（已沉淀 0/3）"] .coach-progress-gaps::after) {
-    content: "3";
+    content: "缺口 3";
     font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  /* 移动端 Artifacts 眉行退场:aside 的 aria-label 已承载名称,
+     宽度全部让给能力预告 chips(原眉行独占约 1/4 行宽) */
+  .flow :global(.coach-artifact-rail .coach-artifact-title) {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Act 5 范围 D:面板精致化(未分层,天然优先于 tokens.css @layer components)
+   ========================================================================== */
+
+/* ---------- 常驻问题卡:层叠材质 + 幽灵→沉淀→高亮的槽位仪式 ---------- */
+
+.progress:global(.coach-progress) {
+  border: 1px solid var(--hairline-cobalt);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-primary) 97%, transparent),
+    color-mix(in srgb, var(--surface-primary) 88%, transparent)
+  );
+  box-shadow: var(--shadow-card);
+  scrollbar-width: thin;
+}
+
+.progress :global(.coach-progress-count) {
+  font-variant-numeric: tabular-nums;
+}
+
+.progress :global(.coach-progress-slot) {
+  position: relative;
+  border: 1px dashed color-mix(in srgb, var(--border-strong) 82%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-primary) 55%, transparent);
+  transition:
+    border-color var(--dur-micro) var(--ease-soft),
+    background-color var(--dur-micro) var(--ease-soft),
+    box-shadow var(--dur-micro) var(--ease-soft);
+}
+
+/* 状态轨:左缘 2px——幽灵=灰细轨,沉淀=钴蓝渐变轨;横排态由媒体查询转到顶缘 */
+.progress :global(.coach-progress-slot)::before {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: -1px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  content: "";
+  opacity: 0.45;
+  transition: background var(--dur-micro) var(--ease-soft), opacity var(--dur-micro) var(--ease-soft);
+}
+
+.progress :global(.coach-progress-slot--filled) {
+  border-style: solid;
+  border-color: var(--hairline-cobalt);
+  background: linear-gradient(
+    180deg,
+    var(--surface-primary),
+    color-mix(in srgb, var(--accent-coach-halo) 55%, var(--surface-primary))
+  );
+  box-shadow: var(--shadow-xs);
+}
+
+.progress :global(.coach-progress-slot--filled)::before {
+  background: linear-gradient(180deg, var(--accent-coach), var(--accent-coach-strong));
+  opacity: 1;
+}
+
+/* 沉淀完成的微型勾选:克制的成就信号,一次到位不循环 */
+.progress :global(.coach-progress-slot--filled .coach-progress-slot-label)::after {
+  display: inline-block;
+  width: 4.5px;
+  height: 8px;
+  margin-left: 6px;
+  border-right: 1.6px solid var(--accent-coach-strong);
+  border-bottom: 1.6px solid var(--accent-coach-strong);
+  content: "";
+  opacity: 0.75;
+  transform: rotate(42deg) translateY(-1px);
+}
+
+/* 刚沉淀槽位的高亮光晕(静止态,动效脉冲由 tokens 的 hub-slot-pulse 承担) */
+.progress :global(.coach-progress-slot--just) {
+  border-color: color-mix(in srgb, var(--accent-coach) 55%, transparent);
+  box-shadow: 0 0 0 3px var(--accent-coach-halo), var(--shadow-xs);
+}
+
+/* 缺口摘要与种子缺口的菱形标记:CSS 绘制,替代字符 ◇ */
+.gapMark {
+  flex: none;
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border: 1.4px solid currentColor;
+  border-radius: 1px;
+  opacity: 0.8;
+  transform: rotate(45deg);
+}
+
+/* ---------- 种子/问题定义卡:制图级内框 + 分区块材质 ---------- */
+
+/* tokens 的虚线草稿框升级为实线 hairline + 四角钴蓝刻线(蓝图感,不伪造纸张) */
+.seedCard::before {
+  inset: 9px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: calc(var(--radius-lg) - 4px);
+  background:
+    linear-gradient(var(--seed-tick), var(--seed-tick)) left 0 top 0 / 14px 1px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) left 0 top 0 / 1px 14px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) right 0 top 0 / 14px 1px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) right 0 top 0 / 1px 14px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) left 0 bottom 0 / 14px 1px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) left 0 bottom 0 / 1px 14px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) right 0 bottom 0 / 14px 1px,
+    linear-gradient(var(--seed-tick), var(--seed-tick)) right 0 bottom 0 / 1px 14px;
+  background-repeat: no-repeat;
+  opacity: 1;
+  --seed-tick: color-mix(in srgb, var(--accent-coach) 42%, transparent);
+}
+
+/* 主张/证据/深化区块:hairline 全边 + 微渐变 + 层叠影,顶缘 2px 渐变条保留色序 */
+.claimBlock:global(.seed-claim-block) {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-top: 0;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, var(--surface-primary), var(--surface-focus));
+  box-shadow: var(--shadow-xs);
+}
+
+.claimBlock::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-coach),
+    color-mix(in srgb, var(--accent-coach) 18%, transparent)
+  );
+  content: "";
+}
+
+.claimBlock[data-seed-evidence]::before,
+.claimBlock[data-artifact-deepening]::before {
+  background: linear-gradient(
+    90deg,
+    var(--accent-evidence),
+    color-mix(in srgb, var(--accent-evidence) 18%, transparent)
+  );
+}
+
+/* 深化记录:左侧证据色引导轨,问答层级靠排版而非颜色噪音 */
+.deepeningItem {
+  position: relative;
+  padding-left: 14px;
+}
+
+.deepeningItem::before {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent-evidence) 65%, transparent),
+    transparent
+  );
+  content: "";
+}
+
+/* 复制成功:盖章级微型勾选(animate-scale-in + animate-check-draw,reduced-motion 下直接落定) */
+.copyStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copyMark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-evidence) 10%, var(--surface-primary));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-evidence) 28%, transparent);
+}
+
+/* ---------- 种子/问题定义场景:内容垂直居中 + 卡尾安静动作行 ---------- */
+
+/* 对话滚动区是 flex 纵列;margin-block:auto 在内容不足一屏时垂直居中,
+   内容超高时自动回退为顶端对齐,不产生裁切 */
+.grownSceneBody {
+  margin-block: auto;
+}
+
+/* 「重新开始」收进卡尾右对齐 quiet 行,不再独占页底横条;
+   视觉权重沿用 tokens 的 .coach-restart(弱于种子主 CTA) */
+.seedTailActions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 10px 0;
+}
+
+/* ---------- N1 交棒步骤:已完成→当前→未开始的空间叙事 ---------- */
+
+.handoffList {
+  position: relative;
+}
+
+/* 步骤间引导细线:视线沿 1→2→3 下行,不迷路 */
+.handoffList::before {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 11.5px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--hairline-strong), var(--hairline));
+  content: "";
+}
+
+.handoff :global(.coach-handoff-mark) {
+  position: relative;
+  z-index: 1;
+  border-color: var(--hairline-strong);
+  background: var(--surface-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.handoff :global(.coach-handoff-step[data-handoff-done="true"] .coach-handoff-mark) {
+  border-color: color-mix(in srgb, var(--accent-evidence) 45%, transparent);
+  background: color-mix(in srgb, var(--accent-evidence) 10%, var(--surface-primary));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-evidence) 12%, transparent);
+}
+
+/* ---------- 回看抽屉:层叠浮层 + 滚动衰减 + 当前位置锚 ---------- */
+
+.backdrop:global(.coach-review-backdrop) {
+  background: var(--surface-scrim);
+}
+
+.panel:global(.coach-review-panel) {
+  width: min(430px, 92vw);
+  border-right: 0;
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-overlay);
+  padding: 20px 20px 14px;
+}
+
+.panel :global(.coach-review-head) {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.closeBtn:global(.coach-review-close) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-soft),
+    color var(--dur-micro) var(--ease-soft),
+    transform var(--dur-fast) var(--ease-spring);
+}
+
+.closeBtn:hover {
+  background: var(--surface-muted);
+  color: var(--text-primary);
+}
+
+.closeBtn:active {
+  transform: scale(0.94);
+}
+
+/* 滚动体验:上下缘衰减暗示可滚,thin 滚动条不抢戏 */
+.reviewList:global(.coach-review-list) {
+  gap: 10px;
+  padding: 6px 2px;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+
+.reviewItem:global(.coach-review-item) {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(
+    180deg,
+    var(--surface-primary),
+    color-mix(in srgb, var(--surface-focus) 72%, var(--surface-primary))
+  );
+  box-shadow: var(--shadow-xs);
+  padding: 12px 14px;
+}
+
+.reviewItem :global(.coach-review-item-label) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.1em;
+}
+
+.reviewItem :global(.coach-review-item-label)::before {
+  width: 12px;
+  height: 1.5px;
+  background: var(--accent-coach);
+  content: "";
+  opacity: 0.6;
+}
+
+.reviewItem :global(.coach-review-item-q) {
+  color: var(--text-secondary);
+}
+
+.reviewItem :global(.coach-review-item-jr) {
+  border-top: 1px dashed var(--hairline-strong);
+}
+
+/* 当前位置:钴蓝锚点 pill——回看历史时永不迷路 */
+.currentChip:global(.coach-review-current) {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 7px;
+  border: 1px solid var(--hairline-cobalt);
+  border-radius: 999px;
+  background: var(--accent-coach-halo);
+  padding: 5px 12px;
+  color: var(--accent-coach-strong);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.currentChip::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-coach);
+  content: "";
+}
+
+/* 窄屏横排进度条(≤1100px tokens 折行;≤767px 模块折行):状态轨同步转到顶缘 */
+@media (max-width: 1100px) {
+  .progress :global(.coach-progress-slot)::before {
+    top: -1px;
+    right: 6px;
+    bottom: auto;
+    left: 6px;
+    width: auto;
+    height: 2px;
+  }
+}
+
+/* 动效只在 no-preference 内定义;reduce 下由 .hub-root 全局兜底 + 下方清单停用 */
+@media (prefers-reduced-motion: no-preference) {
+  /* 抽屉遮罩淡入(面板位移入场由 tokens 的 hub-drawer-in 承担) */
+  .backdrop:global(.coach-review-backdrop) {
+    animation: wb-fade-in 240ms var(--ease-soft) both;
+  }
+
+  /* 等待期:刚沉淀槽位的状态轨呼吸——只表达"请求在途",不伪造进度 */
+  .progress[data-coach-progress-waiting="true"] :global(.coach-progress-slot--just)::before {
+    animation: wb-rail-breathe 1.6s ease-in-out infinite;
+  }
+
+  @keyframes wb-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes wb-rail-breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .orientationLink {
+  .orientationLink,
+  .orientationLink span,
+  .closeBtn,
+  .progress :global(.coach-progress-slot),
+  .progress :global(.coach-progress-slot)::before {
     transition: none;
   }
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { TEST_TYPE_LABELS, VERDICT_LABELS } from "@/lib/constants";
 import { validateTestCases } from "@/lib/validation";
-import { Alert, Badge, Button, Input, Select } from "./ui";
+import { Alert, Badge, Button, Input, Select, Textarea, cn } from "./ui";
 import type { TestCaseRow, WizardData } from "./wizard-types";
 
 const emptyCase = (): TestCaseRow => ({
@@ -16,6 +17,14 @@ const emptyCase = (): TestCaseRow => ({
   manualFix: "",
   failureReason: "",
 });
+
+/** 判定结果对应的左侧色条:通过=青绿,失败=朱红,待填=墨线 */
+const verdictBar: Record<TestCaseRow["verdict"], string> = {
+  PASS: "border-l-emerald-400",
+  FAIL: "border-l-red-400",
+  NA: "border-l-ink-300",
+  PENDING: "border-l-ink-900/15",
+};
 
 export function TestsStep({
   data,
@@ -92,9 +101,17 @@ export function TestsStep({
 
       <div className="space-y-3">
         {cases.map((c, i) => (
-          <div key={i} className="rounded-md border border-slate-200 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-slate-500">案例{i + 1}</span>
+          <div
+            key={i}
+            className={cn(
+              "rounded-lg border border-ink-900/10 border-l-[3px] bg-[#fffdf8] p-3.5 shadow-[0_1px_2px_rgba(28,25,23,0.04)] transition-colors duration-200",
+              verdictBar[c.verdict]
+            )}
+          >
+            <div className="mb-2.5 flex flex-wrap items-center gap-2">
+              <span className="tnum flex h-6 w-6 items-center justify-center rounded-md bg-ink-100 text-[11px] font-bold text-ink-600" aria-hidden>
+                {i + 1}
+              </span>
               <Select
                 className="w-32"
                 disabled={readOnly}
@@ -106,7 +123,7 @@ export function TestsStep({
                 ))}
               </Select>
               <Input
-                className="flex-1"
+                className="min-w-[140px] flex-1"
                 disabled={readOnly}
                 placeholder="案例名称,如:常规单条变更"
                 value={c.name}
@@ -123,56 +140,56 @@ export function TestsStep({
                 ))}
               </Select>
               {!readOnly && (
-                <Button variant="ghost" size="sm" onClick={() => removeCase(i)} title="删除该案例">
-                  ✕
+                <Button variant="ghost" size="sm" onClick={() => removeCase(i)} title="删除该案例" aria-label="删除该案例">
+                  <Trash2 size={14} strokeWidth={2} aria-hidden />
                 </Button>
               )}
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              <label className="text-xs text-slate-500">
+            <div className="grid gap-2.5 md:grid-cols-2">
+              <label className="block text-xs font-medium text-ink-500">
                 输入 *
-                <textarea
-                  className="mt-1 w-full rounded border border-slate-300 p-2 text-sm"
+                <Textarea
+                  className="mt-1 min-h-[64px]"
                   rows={2}
                   disabled={readOnly}
                   value={c.input}
                   onChange={(e) => update(i, { input: e.target.value })}
                 />
               </label>
-              <label className="text-xs text-slate-500">
+              <label className="block text-xs font-medium text-ink-500">
                 预期 *
-                <textarea
-                  className="mt-1 w-full rounded border border-slate-300 p-2 text-sm"
+                <Textarea
+                  className="mt-1 min-h-[64px]"
                   rows={2}
                   disabled={readOnly}
                   value={c.expected}
                   onChange={(e) => update(i, { expected: e.target.value })}
                 />
               </label>
-              <label className="text-xs text-slate-500">
+              <label className="block text-xs font-medium text-ink-500">
                 实际
-                <textarea
-                  className="mt-1 w-full rounded border border-slate-300 p-2 text-sm"
+                <Textarea
+                  className="mt-1 min-h-[64px]"
                   rows={2}
                   disabled={readOnly}
                   value={c.actual}
                   onChange={(e) => update(i, { actual: e.target.value })}
                 />
               </label>
-              <div className="grid gap-2">
-                <label className="text-xs text-slate-500">
+              <div className="grid content-start gap-2.5">
+                <label className="block text-xs font-medium text-ink-500">
                   人工修改
-                  <input
-                    className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                  <Input
+                    className="mt-1"
                     disabled={readOnly}
                     value={c.manualFix}
                     onChange={(e) => update(i, { manualFix: e.target.value })}
                   />
                 </label>
-                <label className="text-xs text-slate-500">
+                <label className="block text-xs font-medium text-ink-500">
                   失败原因(失败/不适用必填更佳)
-                  <input
-                    className="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                  <Input
+                    className="mt-1"
                     disabled={readOnly}
                     value={c.failureReason}
                     onChange={(e) => update(i, { failureReason: e.target.value })}
@@ -184,7 +201,7 @@ export function TestsStep({
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {!readOnly && <Button variant="secondary" size="sm" onClick={addCase}>+ 添加案例</Button>}
         {!readOnly && (
           <Button
@@ -200,7 +217,7 @@ export function TestsStep({
             立即保存
           </Button>
         )}
-        <span className="text-xs text-slate-400">表格自动保存;失败案例鼓励如实展示。</span>
+        <span className="text-xs text-ink-400">表格自动保存;失败案例鼓励如实展示。</span>
       </div>
     </div>
   );

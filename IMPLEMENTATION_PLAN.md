@@ -999,3 +999,178 @@ UI 界面,配上清晰的流程引导。
   键盘进角色页改道 /guide,移动 11 号删 burger 段(抽屉闭环由 a11y 在 /guide 覆盖),死链测试按实际链接集校准;
   J-1 建立拍加品牌眉行与「开始之前 · 到场与流程」位置断言)。
 - 边界复核:指南/角色页头部保留;coach-topbar 交互(回看/换入口/返回指南)零改动;375/390 固定视口与 Axe 防线未破。
+
+## 34. 第五幕(Act 5):商业级视觉语言升级——设计系统基座 v2(2026-08-20 授权)
+
+用户目标(原话压缩):达到 moonshot.ai(kimi.com)级商业网页的 UI 审美与交互质感;
+不依赖插入美术素材,纯粹通过极致网页代码设计实现;消灭一切廉价感;交互反馈必须高质量。
+本批只交付「基座」(token / 全局样式 / 原语组件 / 文档),页面改造由后续并行子代理完成。
+
+### 34.1 实现决定(V 系)
+
+| # | 决定 | 理由 |
+| --- | --- | --- |
+| V1 | **纯代码美术,零素材依赖**:装饰只来自三件套——细颗粒 noise(SVG feTurbulence data-URI)、极淡渐变光晕(radial-gradient)、航空制图 hairline(线性网格 + L 形角标刻线);不引入任何图片/字体文件/npm 包 | 用户硬性约束;三件套足以撑起材质层次且可 token 化复用 |
+| V2 | **token 体系升维,身份不换**:暖白纸面 + 深海军蓝墨 + 单一钴蓝强调全部保留;新增 navy-50…950 墨阶、hairline 三档、层叠阴影五档(xs/card/lift/overlay/btn)、排版尺度(fs-micro…display-xl + 字距档)、间距 4px 基网、动效双 easing(soft 丝绸 / spring 回弹)五档时长 | 商业级 = 精度,不是换皮;既有视觉真值(design-qa.md)不破 |
+| V3 | **向后兼容优先**:`hub-*` / `coach-*` 类名与值语义零删除,只做实现提炼(按钮层叠阴影+按压微缩、卡片柔影、焦点双信号);旧 app 的 `surface-card` / `tick-corners` / `anim-*` 同名保留 | 后续 ~10 个并行子代理基于基座改页面,类名失配 = 大面积回归 |
+| V4 | **ui.tsx server-safe、fx.tsx 客户端**的明确分工:ui.tsx 不加 "use client"(cn 等函数被服务端组件引用),新增 Skeleton/Spinner/Tooltip/ModalShell/DrawerShell 全部无 hook;交互件(Reveal/Magnetic/Lift/SuccessMark/Modal/Drawer)放 fx.tsx | 模块边界即文档;页面侧可安全在 RSC 引用基础原语 |
+| V5 | **可达性与 reduced-motion 是发布门禁**:全局 :focus-visible 描边、checkbox/radio accent-color、ProgressBar/Alert/Toast 补 role;所有新动画进 no-preference 媒体查询或 reduce 停用清单,JS 动效先查 prefersReducedMotion();Reveal 在 SSR/无 JS 下内容直接可见 | AGENTS.md 产品不可妥协项「Motion must explain state change and support prefers-reduced-motion」 |
+| V6 | **去 emoji 化只动默认图标**:ToastHost 默认图标改纯 SVG;成就数据里的 emoji(内容契约)原样保留 | 消灭廉价感 ≠ 破坏数据契约 |
+| V7 | **文档即交付物**:`docs/design-system-v2.md` 含 token 清单、组件清单、动效规范、中文排版规范、十条「禁止廉价感」红线 | 并行子代理必须先读同一本手册,避免十种审美 |
+
+边界:不改任何 app/ 下页面/路由/API/测试;不新增 npm 依赖(lucide-react、canvas-confetti 为既有);
+不改 Coach 三字段合同与任何业务逻辑;旧 app 的纸墨朱砂身份保留并精致化,不与 hub 钴蓝互相污染。
+
+### 34.2 验收记录(2026-08-20)
+
+- `npm run lint`:通过(0 警告 0 错误);`npm run typecheck`:通过。
+- `npm run test`(vitest):**22 files / 231 tests 全部通过**(与 §33 基线持平,零新增零改写)。
+- `npm run build`(含 validate:activity-config「配置有效」+ prisma generate):通过(EXIT=0),
+  Compiled successfully,51 条路由全部生成。
+- e2e 不在本批范围(页面零改动);既有 e2e 防线(.hub-btn 动效断言、reduced-motion 0s 断言、
+  375/390 固定视口、Axe)所依赖的类名与媒体查询语义全部保留,由后续集成轮统一回归。
+
+### 34.3 集成轮验收记录(2026-08-20,并行改造收口)
+
+范围:设计系统基座 + 10 个页面组并行视觉改造完成后的交叉验证与收口。
+
+**各项验证真实最终结果(全部复跑于收口态代码)**
+
+| 验证 | 结果 |
+| --- | --- |
+| `npm run lint` | 通过(0 警告 0 错误) |
+| `npm run typecheck` | 通过 |
+| `npm run test`(vitest) | 22 files / 231 tests 全部通过 |
+| `npm run build` | 通过,Compiled successfully,51 条路由全部生成 |
+| `npm run e2e`(playwright 全量) | **117 passed / 0 failed**(终验一轮全绿,无 flaky 遗留) |
+
+过程说明:e2e 共跑三轮。第一轮 112 通过 5 失败,5 个失败全部以
+`ReferenceError: COACH_STATE_ART is not defined` 为根因——系验证与代码编辑并发进行,
+dev server 热重载了「删除 COACH_STATE_ART 导出、底纹层尚未移除」的中间态所致,
+非真实回归(error-context 快照为证);第二轮 116 通过 1 失败(见修复清单 #1);
+第三轮 117 全通过。
+
+**修复清单**
+
+1. `app/(hub)/guide/page.tsx`:方法论区标题在改造中被拆为眉行「方法论」+ 标题
+   「五段实践路径,不是十个步骤」,heading 可访问名变化导致 hub-journey e2e 失败。
+   按「aria 契约不应变」修代码不改测试:完整可访问名放入 `sr-only` 副本、可见文本
+   `aria-hidden`(浏览器会在内联元素边界插入空格,拆分前缀方案不可行,已实证)。
+2. `tests/e2e/hub-visual-direction.spec.ts`(用户授权的唯一定点改测试):
+   第 34–42 行原断言「五态使用高分辨率 raster 插画(img[data-coach-art="flat"],
+   naturalWidth≥1024)」改写为纯代码 orb 契约——`/dev/scenarios` 驱动五态,
+   断言 `.coach-orb[data-state]` 五态就位、orb 内零 svg 零 img、五态逐层 computed
+   样式签名两两可区分、首页无 audio/video。单 spec 验证通过。
+3. `components/hub/coach-orb.tsx`:删除 12% 不透明度插画底纹层、`COACH_STATE_ART`
+   常量与 `next/image` 依赖;五态表达完全由光晕/外环/conic 弧环/刻线环/核心/勾选
+   六层代码绘制承担(范围 C 已有成果,本轮完成收口)。
+4. `components/hub/coach-art-prefetch.tsx`:整文件删除(引用 grep 确认仅剩
+   `app/(hub)/page.tsx` 与 `app/(hub)/start/page.tsx` 两处,已同步移除);
+   `hub-deep-polish.spec` 引用的 hub-hero webp 不在授权范围,保持不动。
+5. `styles/tokens.css`:清理随底纹层失效的 `.coach-orb-layer(--main)` 死规则
+   (基础定位 + 五态变换共 7 条),`.coach-orb` 壳与 reduced-motion 停用清单保留。
+6. `public/hub/art/README.md`:五张 coach-state webp 改登记为「代码零引用,
+   保留文件不删除」;hub-hero 纹理与纸张肌理引用不变。
+7. 非刻度透明度裸值修复(Tailwind 3.4 默认透明度刻度只含 5 的倍数,`/8`、`/12`
+   不会生成任何 CSS,已用 `.next/static/css` 编译产物证实静默失效):
+   `app/(app)/home/page.tsx` 4 处(`/12`×1、`/8`×3)、
+   `app/(app)/inspirations/page.tsx` 1 处、`app/(app)/office-hours/page.tsx` 1 处,
+   统一改为最接近的合法档 `/10`;修复后已在编译产物中确认类名生效。
+8. Act 5 新增 slate- 色系残留回迁 ink 系(只对并行轮新增行,不动历史存量):
+   `components/ui.tsx` Badge gray/slate 两档、EmptyState 图标、ProgressBar 轨道;
+   `components/fx.tsx` Toast 图标底。
+
+**一致性抽查结论**
+
+- emoji:全库命中均为 Act 5 之前存量(git diff 新增行零命中),含成就数据契约与
+  旧 app Toast 图标,按红线 4「既有数据契约」不新增即合规,本轮不动。
+- line-clamp:新增 7 处全部位于列表/卡片摘要(公告、赛道卡、适合/不适合),
+  属红线 6 允许的「列表摘要截断」,不动。
+- slate- 历史存量:`components/coach-panel.tsx`(17 处)、`components/fx.tsx` 仪式
+  浮层(13 处)、`components/ui.tsx` 历史行(14 处)等共 6 文件约 44 处为旧代码,
+  未在本轮视觉改造触及的文件中扩散;迁 ink 属独立收口批次,列入遗留建议。
+- `app/(app)/projects/page.tsx` 的 `PageHeader is not defined` 为某子代理中间态
+  报告,收口态该文件无 PageHeader 引用,typecheck/build 通过,无需处理。
+
+**遗留建议**
+
+- slate- → ink 存量迁移建议单开一轮(范围:旧 app 侧 6 文件约 44 处),
+  与本轮「只动新增、不回滚存量」的边界保持一致。
+- 五张 coach-state webp 现已零引用,是否物理删除留待用户决策(README 已登记)。
+
+### 34.4 走查修复轮验收记录(2026-08-20,视觉走查 9 路 + 修复 7 路收口)
+
+范围:Act 5 视觉升级后的只读走查发现项(P0–P2)修复收口,以及三处
+「修复轮有意改变行为」导致的存量 e2e 断言对齐(用户授权的定点改测试)。
+
+**P0–P2 修复清单摘要(按代码内登记与走查场景复核)**
+
+- P0 矮视口建立拍:`styles/tokens.css` 新增 ≤860px 紧凑档(缩 orb、压间距、
+  标题 clamp 降档)+ 会话滚动区底部留白与渐隐遮罩(文本行滚到底完整可读,
+  不被容器边缘切成半行);本轮收口再补 ≤720px 加压档(见下方「残留修复」)。
+- P0 移动端导航:旧 app 新增 `components/nav-mobile.tsx` 汉堡按钮(≥44px
+  触控目标)+ fx.tsx Drawer(Esc 关闭、焦点管理与归还、路由变化自动收起,
+  portal 到 body 规避 header backdrop-filter 包含块塌陷)。
+- P0 种子轨裁切:0/3 种子轨竖栏断点 768→1101px
+  (`coach-workbench.module.css`),768–1100px 档移交 tokens.css 横排折行
+  规则,消除竖栏裁切与首答后布局跳变。
+- P1/P2:三角色页交接 CTA 统一 `hub-btn--primary`(`role-page.tsx`);
+  Hub 移动抽屉内独立「关闭导航菜单」按钮移除,初始焦点落首个导航链接,
+  关闭由汉堡 X / Esc 承担(`hub-header.tsx`);旧 app 未登录态抽屉补
+  「登录 / 注册参与」入口(nav-mobile.tsx,P2⑥);fixtures 中文标点全角化
+  及配套断言同步。
+
+**三处断言对齐说明(授权定点改测试,均先读源码确认新行为再改)**
+
+1. `tests/e2e/hub-roles.spec.ts:40–43`:参赛者交接 CTA 断言
+   `hub-btn--secondary` → `hub-btn--primary`。新行为见
+   `components/hub/role-page.tsx:228`,三角色页交接 CTA 统一主按钮,
+   WorkBuddy 入口保持 ghost 不变。
+2. `tests/e2e/hub.a11y.spec.ts:76–129`:整例重写为「移动端抽屉从首个导航
+   链接开始锁焦」。新焦点序:初始焦点 = 首个导航链接「问题探索」
+   (`hub-header.tsx` `data-drawer-initial-focus`),Tab 依次过
+   活动指南 → 参赛者入口 → 开始探索 CTA,末位 Tab 回绕首位、首位
+   Shift+Tab 回绕末位,Esc 关闭且焦点归还汉堡;抽屉几何断言(铺满
+   header 以下全高)原样保留。
+3. `tests/e2e/hub-deep-polish.spec.ts:115–141`:1024×768 用例由
+   「68px 竖向种子轨」改为「0/3 种子轨退为顶部横条」——实测 1024px 下
+   种子轨宽 820px、高约 60px(tokens.css 768–1100px 折行规则),断言
+   宽度 >600 且高度 <90;回答后仍断言 ≥280px 沉淀不变。
+
+**残留修复(抽验中发现、本轮一并收口)**
+
+- ① 号 P0 场景复核发现未修透:1440×700 下建立拍内容溢出会话滚动区
+  约 42px,隐私披露被回答器遮挡(elementFromPoint 实测命中 CTA),
+  860px 紧凑档力度不足。`styles/tokens.css` 追加 ≤720px 加压档:
+  滚动区 padding 10/44、orb 36px、intro 间距 10px、标题 clamp 降档、
+  步骤/流程行高 1.4/1.45;同时关掉该档底部渐隐遮罩(披露文本会落在
+  渐隐区被罩虚),44px 底部留白仍承担半行裁切防护。修复后披露
+  607.7–625.9 完整落在回答器顶缘(629)之上且命中自身。
+  全量 e2e 视口最小高度 768,该档不触碰任何既有用例。
+
+**各项验证真实最终结果(全部复跑于收口态代码)**
+
+| 验证 | 结果 |
+| --- | --- |
+| `npm run lint` | 通过(0 警告 0 错误) |
+| `npm run typecheck` | 通过 |
+| `npm run test`(vitest) | 22 files / 231 tests 全部通过 |
+| `npm run build` | 通过(EXIT=0,Compiled successfully) |
+| `npm run e2e`(playwright 全量) | **117 passed / 0 failed**(EXIT=0) |
+
+过程说明:e2e 首跑 89 通过 28 失败,根因为验证操作失误——抽验用的
+3200 dev server 与 e2e 的 3000 dev server 并发共享同一 `.next` 目录,
+编译产物互相污染(表现为 /guide 404、执行上下文销毁等);停掉 3200 后
+干净重跑 117 全绿,CSS 修复后终验再跑 117 全绿。非真实回归。
+
+**视觉抽验(截图存 `test-results/audit/final/`,几何断言 5/5 通过)**
+
+| 场景 | 截图 | 结论 |
+| --- | --- | --- |
+| ① 1440×700 `/` intro | `01-intro-1440x700.png` | 隐私披露 607.7–625.9 完整可见于 CTA(629)之上,无半行裁切,零溢出 |
+| ② 916×800 `/start` 0/3 种子轨 | `02-seed-rail-916x800.png` | 顶部横条 820×60,左右上下全在屏内,无裁切 |
+| ② 1024×800 `/start` 0/3 种子轨 | `02-seed-rail-1024x800.png` | 同上(820×60),无裁切 |
+| ③ 390×844 旧 app 登录后(alice) | `03-oldapp-drawer-390x844.png` | 汉堡在场,抽屉可开,导航项完整 |
+| ④ 390×844 `/organizer`(organizer) | `04-organizer-390x844.png` | 横向溢出 0(document 与 body 双测) |
+
+抽验用 3200 临时 dev server 已停;3100 共享生产服务器全程未动。

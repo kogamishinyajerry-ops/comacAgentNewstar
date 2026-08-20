@@ -8,6 +8,7 @@ import {
   type ExportMeta,
   type QuestionDefinition,
 } from "@/lib/hub/coach-machine";
+import styles from "./coach-workbench.module.css";
 
 /** J-5(§31 H3):揭示拍溯源编排——六轮回答摘录按会话时序依次落位(纯 CSS 一次编排);
     关键帧只在 no-preference 媒体查询内定义,reduce-motion 下全部立即可见 */
@@ -54,7 +55,7 @@ export function ArtifactCard({
 
   return (
     <section
-      className="seed-card hub-card motion-condense p-7 sm:p-9"
+      className={`seed-card hub-card motion-condense p-7 sm:p-9 ${styles.seedCard}`}
       aria-labelledby={headingId}
       data-artifact-card
     >
@@ -69,7 +70,7 @@ export function ArtifactCard({
       </h1>
 
       <div className="seed-claim-grid mt-7">
-        <div className="seed-claim-block" data-seed-claim>
+        <div className={`seed-claim-block ${styles.claimBlock}`} data-seed-claim>
           <p className="seed-claim-label">{seedCopy.structure.claim}</p>
           <dl className="mt-3 flex flex-col gap-4">
             <div className="motion-slot-in" data-reveal-slot="moment" style={revealStyle(0)}>
@@ -88,7 +89,7 @@ export function ArtifactCard({
         </div>
 
         <div
-          className="seed-claim-block motion-slot-in"
+          className={`seed-claim-block motion-slot-in ${styles.claimBlock}`}
           data-seed-evidence
           data-reveal-slot="impact"
           style={revealStyle(1)}
@@ -103,7 +104,7 @@ export function ArtifactCard({
           <p className="hub-caption mt-3">{seedCopy.evidenceNote}</p>
         </div>
 
-        <div className="seed-claim-block" data-artifact-deepening>
+        <div className={`seed-claim-block ${styles.claimBlock}`} data-artifact-deepening>
           <p className="seed-claim-label" style={{ color: "var(--accent-evidence)" }}>
             {artifactCopy.deepeningLabel}
           </p>
@@ -111,7 +112,7 @@ export function ArtifactCard({
             {artifact.deepenings.map((item, index) => (
               <li
                 key={item.label}
-                className="motion-slot-in"
+                className={`motion-slot-in ${styles.deepeningItem}`}
                 data-artifact-deepening-item
                 data-reveal-slot={`deepening-${index}`}
                 style={revealStyle(3 + index)}
@@ -143,7 +144,7 @@ export function ArtifactCard({
           <ul className="mt-2.5 flex flex-col gap-2">
             {artifact.gaps.map((gap) => (
               <li className="seed-gap" key={gap}>
-                <span aria-hidden>◇</span>
+                <span className={styles.gapMark} aria-hidden="true" />
                 {gap}
               </li>
             ))}
@@ -165,21 +166,52 @@ export function ArtifactCard({
       </div>
 
       {copyState !== "idle" && (
-        <p role="status" className="hub-caption mt-3" data-artifact-copy-status>
-          {copyState === "done"
-            ? "问题定义已复制为纯文本，可粘贴到你的笔记继续深化。"
-            : "复制失败：当前环境未授权剪贴板，请手动摘录上方关键内容。"}
+        <p role="status" className={`hub-caption mt-3 ${styles.copyStatus}`} data-artifact-copy-status>
+          {copyState === "done" && (
+            <span className={`animate-scale-in ${styles.copyMark}`} aria-hidden="true">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="m5 12.5 4.5 4.5L19 7.5"
+                  stroke="var(--accent-evidence)"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={24}
+                  className="animate-check-draw"
+                />
+              </svg>
+            </span>
+          )}
+          <span>
+            {copyState === "done"
+              ? "问题定义已复制为纯文本，可粘贴到你的笔记继续深化。"
+              : "复制失败：当前环境未授权剪贴板，请手动摘录上方关键内容。"}
+          </span>
         </p>
       )}
 
       {/* J-2:N1 终章交棒——第一步只反映真实复制状态;后续节点与链接一律 pending,
           不预支未开放节点的能力(docs/product/08 §4) */}
-      <section className="coach-handoff mt-8" aria-label="接下来怎么继续" data-coach-handoff>
+      <section className={`coach-handoff mt-8 ${styles.handoff}`} aria-label="接下来怎么继续" data-coach-handoff>
         <h2 className="seed-claim-label">{handoffCopy.title}</h2>
-        <ol className="mt-4 flex flex-col gap-3.5">
+        <ol className={`mt-4 flex flex-col gap-3.5 ${styles.handoffList}`}>
           <li className="coach-handoff-step" data-handoff-step="copied" data-handoff-done={copyState === "done"}>
             <span className="coach-handoff-mark" aria-hidden="true">
-              {copyState === "done" ? "✓" : "1"}
+              {copyState === "done" ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="m5 12.5 4.5 4.5L19 7.5"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray={24}
+                    className="animate-check-draw"
+                  />
+                </svg>
+              ) : (
+                "1"
+              )}
             </span>
             <span>
               {copyState === "done" ? handoffCopy.copiedDone : handoffCopy.copiedStep}

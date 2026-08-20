@@ -8,6 +8,7 @@ import {
   type ExportMeta,
   type QuestionSeed,
 } from "@/lib/hub/coach-machine";
+import styles from "./coach-workbench.module.css";
 
 /** J-5(§31 H3):揭示拍溯源编排——回答摘录按会话时序依次落位,纯 CSS 一次编排;
     关键帧只在 no-preference 媒体查询内定义,reduce-motion 下全部立即可见 */
@@ -51,14 +52,14 @@ export function SeedCard({
     }
   }
   return (
-    <section className="seed-card hub-card motion-condense p-7 sm:p-9" aria-labelledby={headingId}>
+    <section className={`seed-card hub-card motion-condense p-7 sm:p-9 ${styles.seedCard}`} aria-labelledby={headingId}>
       <p className="seed-slot-label">{seedCopy.title}</p>
       <h1 ref={headingRef} id={headingId} tabIndex={-1} className="hub-title mt-2 text-[24px] sm:text-[27px]">
         {seedCopy.subtitle}
       </h1>
 
       <div className="seed-claim-grid mt-7">
-        <div className="seed-claim-block" data-seed-claim>
+        <div className={`seed-claim-block ${styles.claimBlock}`} data-seed-claim>
           <p className="seed-claim-label">{seedCopy.structure.claim}</p>
           <dl className="mt-3 flex flex-col gap-4">
             <div className="motion-slot-in" data-reveal-slot="moment" style={revealStyle(0)}>
@@ -77,7 +78,7 @@ export function SeedCard({
         </div>
 
         <div
-          className="seed-claim-block motion-slot-in"
+          className={`seed-claim-block motion-slot-in ${styles.claimBlock}`}
           data-seed-evidence
           data-reveal-slot="impact"
           style={revealStyle(1)}
@@ -106,7 +107,7 @@ export function SeedCard({
           <ul className="mt-2.5 flex flex-col gap-2">
             {seed.gaps.map((gap) => (
               <li className="seed-gap" key={gap}>
-                <span aria-hidden>◇</span>
+                <span className={styles.gapMark} aria-hidden="true" />
                 {gap}
               </li>
             ))}
@@ -139,10 +140,27 @@ export function SeedCard({
       </div>
 
       {copyState !== "idle" && (
-        <p role="status" className="hub-caption mt-3" data-seed-copy-status>
-          {copyState === "done"
-            ? "问题种子已复制为纯文本，可粘贴到你的笔记继续追问。"
-            : "复制失败：当前环境未授权剪贴板，请手动摘录上方关键内容。"}
+        <p role="status" className={`hub-caption mt-3 ${styles.copyStatus}`} data-seed-copy-status>
+          {copyState === "done" && (
+            <span className={`animate-scale-in ${styles.copyMark}`} aria-hidden="true">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="m5 12.5 4.5 4.5L19 7.5"
+                  stroke="var(--accent-evidence)"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={24}
+                  className="animate-check-draw"
+                />
+              </svg>
+            </span>
+          )}
+          <span>
+            {copyState === "done"
+              ? "问题种子已复制为纯文本，可粘贴到你的笔记继续追问。"
+              : "复制失败：当前环境未授权剪贴板，请手动摘录上方关键内容。"}
+          </span>
         </p>
       )}
     </section>

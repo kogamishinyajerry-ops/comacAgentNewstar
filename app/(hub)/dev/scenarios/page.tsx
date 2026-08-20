@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CoachOrb, COACH_STATE_LABELS } from "@/components/hub/coach-orb";
 import { SeedCard } from "@/components/hub/seed-card";
+import { Reveal } from "@/components/hub/reveal";
 import { composeSeed, createCoachState, beginCoach, submitAnswer, advance } from "@/lib/hub/coach-machine";
 import { journeySteps } from "@/config/activity";
 import { seedCopy } from "@/fixtures/coach-demo";
@@ -29,29 +30,32 @@ const ACCENT_TOKENS = [
 ] as const;
 
 const MOTION_DEMOS = [
-  ["motion-rise", "端上来", "内容自下浮现,260–340ms"],
-  ["motion-grow", "长出来", "从顶部生长,用于列表与轨迹"],
+  ["motion-rise", "端上来", "内容自下浮现，260–340ms"],
+  ["motion-grow", "长出来", "从顶部生长，用于列表与轨迹"],
   ["motion-approach", "取到眼前", "关键物靠近并获得焦点"],
-  ["motion-condense", "凝结", "问题种子出现,带轻微聚焦收束"],
-  ["motion-pulse-once", "吸附脉冲", "confirmed 后的一次脉冲,随后静止"],
+  ["motion-condense", "凝结", "问题种子出现，带轻微聚焦收束"],
+  ["motion-pulse-once", "吸附脉冲", "confirmed 后的一次脉冲，随后静止"],
 ] as const;
 
 function Section({
   id,
+  index,
   title,
   note,
   children,
 }: {
   id: string;
+  index: string;
   title: string;
   note?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="hub-section !pb-12 !pt-4">
-      <h2 className="hub-title text-[24px]">{title}</h2>
-      {note && <p className="hub-body mt-2 max-w-[640px]">{note}</p>}
-      <div className="mt-7">{children}</div>
+    <section id={id} className="hub-section !pb-14 !pt-6">
+      <p className="hub-eyebrow tabular-nums">{index}</p>
+      <h2 className="hub-title mt-3 text-[24px]">{title}</h2>
+      {note && <p className="hub-body mt-3 max-w-[640px]">{note}</p>}
+      <Reveal className="mt-8">{children}</Reveal>
     </section>
   );
 }
@@ -70,15 +74,15 @@ export default function DevScenariosPage() {
   const seedSample = (() => {
     let s = beginCoach(createCoachState("problem"));
     for (const answer of [
-      "试验异常发生后,记录、依据和处理结果分散在三处,人工对账要来回翻找",
-      "影响试验工程师与复核人;每次对账约多花两小时,口径不一致还会返工",
-      "需要记住项目历史口径,并按固定流程调用检索工具逐步核对、留下痕迹",
+      "试验异常发生后，记录、依据和处理结果分散在三处，人工对账要来回翻找",
+      "影响试验工程师与复核人；每次对账约多花两小时，口径不一致还会返工",
+      "需要记住项目历史口径，并按固定流程调用检索工具逐步核对、留下痕迹",
     ]) {
       s = advance(submitAnswer(s, answer));
     }
     return composeSeed(s);
   })();
-  /* 场景演示页的导出元信息只是展示样例,固定值不冒充真实会话 */
+  /* 场景演示页的导出元信息只是展示样例，固定值不冒充真实会话 */
   const seedSampleMeta = {
     generatedAt: new Date(2026, 7, 20, 10, 30),
     cardId: "QD-DEMO1",
@@ -86,16 +90,18 @@ export default function DevScenariosPage() {
 
   return (
     <div className="hub-container pb-24">
-      <header className="hub-section !pb-6">
-        <p className="hub-eyebrow">内部验收</p>
-        <h1 className="hub-title mt-3">/dev/scenarios — 组件、状态与动效验收</h1>
-        <p className="hub-body mt-3 max-w-[680px]">
-          集中呈现 Hub 设计系统的可验收面:色彩与字体 Token、语义组件、Coach 平面标记五种视觉状态、
-          七个空间动词动效与问题种子。系统开启“减弱动态”时,所有位移动效取消,信息顺序不变。
-        </p>
+      <header className="hub-section glow-cobalt !pb-8">
+        <Reveal>
+          <p className="hub-eyebrow">内部验收</p>
+          <h1 className="hub-title mt-4 max-w-[760px]">/dev/scenarios — 组件、状态与动效验收</h1>
+          <p className="hub-lead mt-5 max-w-[680px]">
+            集中呈现 Hub 设计系统的可验收面：色彩与字体 Token、语义组件、Coach 平面标记五种视觉状态、
+            七个空间动词动效与问题种子。系统开启“减弱动态”时，所有位移动效取消，信息顺序不变。
+          </p>
+        </Reveal>
       </header>
 
-      <Section id="tokens" title="1 · 色彩 Token" note="组件不得散落硬编码颜色,一律引用语义变量。">
+      <Section id="tokens" index="01" title="色彩 Token" note="组件不得散落硬编码颜色，一律引用语义变量。">
         <div className="grid gap-8 md:grid-cols-3">
           {[
             { title: "表面", tokens: SURFACE_TOKENS },
@@ -124,21 +130,21 @@ export default function DevScenariosPage() {
         </div>
       </Section>
 
-      <Section id="type" title="2 · 字体层级" note="中文无大写科技感;主标题与正文之间靠字号与留白分层。">
+      <Section id="type" index="02" title="字体层级" note="中文无大写科技感；主标题与正文之间靠字号与留白分层。">
         <div className="hub-card p-6 sm:p-8">
           <p className="hub-eyebrow">Eyebrow 层</p>
-          <p className="hub-display mt-3">把一个真实问题,变成可验证的 AI Agent 作品</p>
-          <p className="hub-title mt-5">模块标题:一次一问,一幕一决策</p>
-          <p className="hub-lead mt-4">导语:AI Coach 不替你写答案,它一次只追问一个关键问题。</p>
+          <p className="hub-display mt-3">把一个真实问题，变成可验证的 AI Agent 作品</p>
+          <p className="hub-title mt-5">模块标题：一次一问，一幕一决策</p>
+          <p className="hub-lead mt-4">导语：AI Coach 不替你写答案，它一次只追问一个关键问题。</p>
           <p className="hub-body mt-3">
-            正文:证据优先于完成率。前台使用“主张—证据—缺口”,不展示健康分、排行榜或完成率。
+            正文：证据优先于完成率。前台使用“主张—证据—缺口”，不展示健康分、排行榜或完成率。
           </p>
-          <p className="hub-caption mt-3">说明文字:活动日期、报名链接等未确认信息一律显示“待活动配置确认”。</p>
+          <p className="hub-caption mt-3">说明文字：活动日期、报名链接等未确认信息一律显示“待活动配置确认”。</p>
           <span className="hub-pending mt-4">待活动配置确认</span>
         </div>
       </Section>
 
-      <Section id="controls" title="3 · 按钮与回答器" note="触达热区 ≥44px;错误显示在输入附近,不只靠 Toast。">
+      <Section id="controls" index="03" title="按钮与回答器" note="触达热区 ≥44px；错误显示在输入附近，不只靠 Toast。">
         <div className="hub-card flex flex-col gap-6 p-6 sm:p-8">
           <div className="flex flex-wrap items-center gap-4">
             <button type="button" className="hub-btn hub-btn--primary">主按钮</button>
@@ -160,7 +166,7 @@ export default function DevScenariosPage() {
               id="demo-answer"
               className="hub-textarea"
               rows={3}
-              placeholder="例如:试验异常记录分散在三处,对账要来回翻找……"
+              placeholder="例如：试验异常记录分散在三处，对账要来回翻找……"
               value={inputValue}
               onChange={(e) => {
                 setInputValue(e.target.value);
@@ -180,8 +186,9 @@ export default function DevScenariosPage() {
 
       <Section
         id="orb"
-        title="4 · Coach 平面标记五状态"
-        note="真实平面插画资产 + CSS 状态变换;不模拟球体、体积光或说话动作。"
+        index="04"
+        title="Coach 平面标记五状态"
+        note="真实平面插画资产 + CSS 状态变换；不模拟球体、体积光或说话动作。"
       >
         <div className="grid items-start gap-10 lg:grid-cols-[300px_1fr]">
           <div className="flex justify-center" aria-hidden="true">
@@ -207,7 +214,7 @@ export default function DevScenariosPage() {
             ))}
             <p className="hub-caption mt-2">
               idle 静候 / listening 倾听(回答器聚焦)/ challenging 质询(提交后)/ condensing 凝结(第三幕后收拢)/
-              confirmed 已确认(种子出现,一次脉冲后静止)
+              confirmed 已确认(种子出现，一次脉冲后静止)
             </p>
           </div>
         </div>
@@ -215,8 +222,9 @@ export default function DevScenariosPage() {
 
       <Section
         id="motion"
-        title="5 · 动效语言:七个空间动词"
-        note="点击重放;“退到背景”为切换态。减弱动态时全部取消位移。"
+        index="05"
+        title="动效语言：七个空间动词"
+        note="点击重放；“退到背景”为切换态。减弱动态时全部取消位移。"
       >
         <div className="grid gap-8 md:grid-cols-2">
           <div className="hub-card p-6">
@@ -256,8 +264,8 @@ export default function DevScenariosPage() {
               </div>
             </div>
             <p className="hub-caption mt-4">
-              当前演示:{MOTION_DEMOS.find(([c]) => c === demoClass)?.[2] ?? "收拢由 Coach 场景转场内置(已回答的一幕让出焦点)"}
-              {receded ? ";当前处于退到背景态" : ""}
+              当前演示：{MOTION_DEMOS.find(([c]) => c === demoClass)?.[2] ?? "收拢由 Coach 场景转场内置(已回答的一幕让出焦点)"}
+              {receded ? "；当前处于退到背景态" : ""}
             </p>
           </div>
           <div className="hub-card p-6">
@@ -280,7 +288,7 @@ export default function DevScenariosPage() {
         </div>
       </Section>
 
-      <Section id="journey" title="6 · 实践路径:滚动点亮" note="桌面横向轨迹,移动端单焦点;非当前阶段退到背景。">
+      <Section id="journey" index="06" title="实践路径：滚动点亮" note="桌面横向轨迹，移动端单焦点；非当前阶段退到背景。">
         <ol className="grid gap-5 md:grid-cols-5">
           {journeySteps.map((step, i) => (
             <li key={step.key} className="journey-step hub-inset p-4" data-current={i === 1 ? "true" : "false"}>
@@ -294,18 +302,18 @@ export default function DevScenariosPage() {
         <p className="hub-caption mt-4">示例中 02 为当前阶段(data-current=&quot;true&quot;)。</p>
       </Section>
 
-      <Section id="seed" title="7 · 问题种子" note="三幕凝结产物:主张摘录 + 诚实缺口,不是“项目创建成功”。">
+      <Section id="seed" index="07" title="问题种子" note="三幕凝结产物：主张摘录 + 诚实缺口，不是“项目创建成功”。">
         <div className="max-w-[720px]">
           <SeedCard seed={seedSample} meta={seedSampleMeta} />
         </div>
       </Section>
 
-      <Section id="a11y" title="8 · 无障碍与降级" note="键盘路径与减弱动态的验收要点。">
+      <Section id="a11y" index="08" title="无障碍与降级" note="键盘路径与减弱动态的验收要点。">
         <ul className="list-disc space-y-2 pl-5 text-[14.5px] text-[var(--text-secondary)]">
-          <li>全部按钮、链接、输入可 Tab 到达;焦点环清晰克制</li>
-          <li>Coach 场景更迭通过 aria-live 播报当前问题,不重复整幕</li>
-          <li>图标按钮均有可访问名称;颜色不是唯一状态编码(缺口同时用 ◇ 与文案)</li>
-          <li>prefers-reduced-motion:位移动效取消、信息顺序不变(本页所有演示可直接验证)</li>
+          <li>全部按钮、链接、输入可 Tab 到达；焦点环清晰克制</li>
+          <li>Coach 场景更迭通过 aria-live 播报当前问题，不重复整幕</li>
+          <li>图标按钮均有可访问名称；颜色不是唯一状态编码(缺口同时用 ◇ 与文案)</li>
+          <li>prefers-reduced-motion：位移动效取消、信息顺序不变(本页所有演示可直接验证)</li>
           <li>FAQ 与页脚在无 JS 时可读可用</li>
         </ul>
       </Section>

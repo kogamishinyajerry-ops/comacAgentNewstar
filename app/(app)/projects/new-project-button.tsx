@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui";
+import { Plus } from "lucide-react";
+import { Button, Input } from "@/components/ui";
 
 export function NewProjectButton({ disabled }: { disabled?: boolean }) {
   const router = useRouter();
@@ -36,18 +37,29 @@ export function NewProjectButton({ disabled }: { disabled?: boolean }) {
     );
   }
   return (
-    <div className="flex items-center gap-2">
-      <input
+    <div className="animate-fade-in flex flex-wrap items-center gap-2">
+      <Input
         autoFocus
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && title.trim().length >= 2 && create()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && title.trim().length >= 2) create();
+          if (e.key === "Escape") setOpen(false);
+        }}
         placeholder="想法名称,如:变更对比说明小助手"
-        className="w-64 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none"
+        className="w-64 max-w-full"
+        aria-label="想法名称"
       />
-      <Button size="sm" disabled={busy || title.trim().length < 2} onClick={create}>创建</Button>
+      <Button size="sm" loading={busy} disabled={title.trim().length < 2} onClick={create}>
+        <Plus size={13} strokeWidth={2.4} aria-hidden />
+        创建
+      </Button>
       <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>取消</Button>
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && (
+        <span role="alert" className="text-xs font-medium text-red-600">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

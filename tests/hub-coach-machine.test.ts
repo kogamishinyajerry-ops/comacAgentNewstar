@@ -161,7 +161,7 @@ describe("coach-machine:问题种子合成", () => {
     expect(text).toContain("◇ 影响面尚未量化");
     /* P0-1 可追述头部:生成时间(本地时钟)/会话卡号/格式版本/问答映射 */
     expect(text).toContain("生成时间:2026-08-20 09:05(本地时钟)");
-    expect(text).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(text).toContain("卡号:QD-T3ST5(本会话生成，未落库)");
     expect(text).toContain(`格式版本:${exportTraceabilityCopy.formatVersion}`);
     expect(text).toContain(`问答映射:${exportTraceabilityCopy.mappingSeed}`);
     expect(text).not.toContain(exportTraceabilityCopy.mappingArtifact);
@@ -183,7 +183,7 @@ describe("coach-machine:输入判定", () => {
 
 describe("coach-machine:两条入口的人格红线", () => {
   it("真实问题入口第一问问具体工作瞬间", () => {
-    expect(coachDemoActs.problem[0].question).toBe("你最想改变的具体工作瞬间是什么?");
+    expect(coachDemoActs.problem[0].question).toBe("你最想改变的具体工作瞬间是什么？");
   });
 
   it("已有想法入口第一问必须挑战方案先行,不直接认可功能设想", () => {
@@ -199,7 +199,7 @@ describe("coach-machine:两条入口的人格红线", () => {
         expect(act.judgment).not.toMatch(/[?？]/);
         expect(act.risk).not.toMatch(/[?？]/);
         expect(act.question.match(/[?？]/g) ?? []).toHaveLength(1);
-        expect(act.question.endsWith("?")).toBe(true);
+        expect(act.question.endsWith("？")).toBe(true);
         expect(act.placeholder.length).toBeGreaterThan(6);
       }
     }
@@ -332,9 +332,9 @@ describe("coach-machine:导出可追述过渡解(§31 P0-1,⚑D3)", () => {
     );
     const head = text.split("\n").slice(0, 7).join("\n");
     expect(head).toContain("生成时间:2026-08-20 09:05(本地时钟)");
-    expect(head).toContain("卡号:QD-T3ST5(本会话生成,未落库)");
+    expect(head).toContain("卡号:QD-T3ST5(本会话生成，未落库)");
     expect(head).toContain("格式版本:v1");
-    expect(head).toContain("问答映射:主张←第1·3幕;影响←第2幕");
+    expect(head).toContain("问答映射:主张←第1·3幕；影响←第2幕");
     expect(text.indexOf("格式版本")).toBeLessThan(text.indexOf("【主张】"));
   });
 });

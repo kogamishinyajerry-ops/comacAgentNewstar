@@ -37,9 +37,10 @@ test.describe("公共 Hub 的角色工作区交接", () => {
       "进入受保护的参赛者工作区",
       "/projects"
     );
+    /* 走查修复轮:三角色页交接 CTA 统一为主按钮(role-page.tsx 有意决策) */
     await expect(
       page.getByRole("link", { name: "进入受保护的参赛者工作区" })
-    ).toHaveClass(/hub-btn--secondary/);
+    ).toHaveClass(/hub-btn--primary/);
     await expect(page.locator('a[href="/workbuddy"]')).toHaveCount(0);
   });
 

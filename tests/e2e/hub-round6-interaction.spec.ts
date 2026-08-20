@@ -12,9 +12,9 @@ import { beginCoach, completeThreeActs, submitCoachAnswer } from "./helpers";
  */
 
 const QUESTIONS = [
-  "你最想改变的具体工作瞬间是什么?",
-  "这个问题对谁造成了什么具体损失?",
-  "为什么普通大模型聊天不足以解决它?",
+  "你最想改变的具体工作瞬间是什么？",
+  "这个问题对谁造成了什么具体损失？",
+  "为什么普通大模型聊天不足以解决它？",
 ] as const;
 
 const ANSWERS = [

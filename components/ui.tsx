@@ -6,6 +6,29 @@ export function cn(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
 
+/* ============================================================
+   设计系统 v2 基础原语(2026-08-20 Act 5)
+   - 本文件不含 "use client":全部导出保持 server-safe,
+     交互增强(Modal/Drawer/Reveal 等)在 components/fx.tsx。
+   - 既有导出与 props 契约不变;新增 prop 全部为可选。
+   - 用法与「禁止廉价感」清单见 docs/design-system-v2.md。
+   ============================================================ */
+
+/* ---------------- 加载圈(全站唯一 spinner 实现) ---------------- */
+
+export function Spinner({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "inline-block shrink-0 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin",
+        className
+      )}
+      style={{ width: size, height: size, opacity: 0.85 }}
+    />
+  );
+}
+
 /* ---------------- Button ---------------- */
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "subtle";
@@ -13,13 +36,13 @@ type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-ink-900 text-paper shadow-none hover:bg-ink-800 active:translate-y-px",
+    "bg-ink-900 text-paper shadow-[0_1px_2px_rgba(28,25,23,0.18),0_6px_16px_-6px_rgba(28,25,23,0.3)] hover:bg-ink-800 hover:shadow-[0_2px_3px_rgba(28,25,23,0.16),0_10px_24px_-6px_rgba(28,25,23,0.34)] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] active:shadow-none",
   secondary:
-    "border border-ink-900/20 bg-transparent text-ink-800 hover:border-ink-900/45 hover:bg-ink-50 active:translate-y-px",
-  ghost: "text-ink-600 hover:bg-ink-100 hover:text-ink-900",
+    "border border-ink-900/20 bg-[#fffdf8] text-ink-800 shadow-[0_1px_2px_rgba(28,25,23,0.05)] hover:border-ink-900/45 hover:bg-ink-50 hover:-translate-y-px hover:shadow-[0_4px_14px_-4px_rgba(28,25,23,0.14)] active:translate-y-0 active:scale-[0.98] active:shadow-none",
+  ghost: "text-ink-600 hover:bg-ink-100 hover:text-ink-900 active:scale-[0.98]",
   danger:
-    "bg-red-700 text-paper hover:bg-red-800 active:translate-y-px",
-  subtle: "bg-brand-50 text-brand-700 hover:bg-brand-100",
+    "bg-red-700 text-paper shadow-[0_1px_2px_rgba(127,29,29,0.3)] hover:bg-red-800 hover:-translate-y-px active:translate-y-0 active:scale-[0.98]",
+  subtle: "bg-brand-50 text-brand-700 hover:bg-brand-100 active:scale-[0.98]",
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -29,22 +52,46 @@ const buttonSizes: Record<ButtonSize, string> = {
   lg: "h-11 gap-2 rounded-md px-5 text-[15px]",
 };
 
+const buttonBase =
+  "inline-flex select-none items-center justify-center whitespace-nowrap font-medium transition-[transform,box-shadow,background-color,border-color,color] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/45 focus-visible:ring-offset-1 focus-visible:ring-offset-paper";
+
+/* 普通禁用:降 50% 不透明度 */
+const buttonDisabled = "disabled:pointer-events-none disabled:opacity-50";
+
+/* loading 态:保持原 variant 底色(墨黑主按钮不得褪成中灰),
+   只叠加 spinner + 轻微降不透明度,并挡住重复点击 */
+const buttonLoading = "pointer-events-none opacity-90";
+
 export function Button({
   variant = "primary",
   size = "md",
+  loading = false,
   className,
+  children,
+  disabled,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** 加载中:禁用点击、显示 spinner、aria-busy(v2 新增,可选) */
+  loading?: boolean;
+}) {
   return (
     <button
       className={cn(
-        "inline-flex select-none items-center justify-center whitespace-nowrap font-medium transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:pointer-events-none disabled:opacity-50",
+        buttonBase,
         buttonVariants[variant],
         buttonSizes[size],
+        loading ? buttonLoading : buttonDisabled,
         className
       )}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading && <Spinner size={size === "xs" || size === "sm" ? 12 : 14} />}
+      {children}
+    </button>
   );
 }
 
@@ -64,12 +111,7 @@ export function LinkButton({
   return (
     <Link
       href={href}
-      className={cn(
-        "inline-flex select-none items-center justify-center whitespace-nowrap font-medium transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40",
-        buttonVariants[variant],
-        buttonSizes[size],
-        className
-      )}
+      className={cn(buttonBase, buttonVariants[variant], buttonSizes[size], className)}
     >
       {children}
     </Link>
@@ -84,15 +126,18 @@ export function Card({
   children,
   className,
   bodyClassName,
+  hover = false,
 }: {
   title?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  /** 可点卡片:整卡 hover 浮起 + 精致阴影(v2 新增,可选) */
+  hover?: boolean;
 }) {
   return (
-    <section className={cn("surface-card flex flex-col", className)}>
+    <section className={cn("surface-card flex flex-col", hover && "surface-card-hover", className)}>
       {(title || actions) && (
         <header className="flex min-h-[46px] items-center justify-between gap-3 border-b border-ink-900/10 px-4 py-2.5">
           <h2 className="font-display text-[13px] font-bold tracking-wide text-ink-900">{title}</h2>
@@ -109,13 +154,13 @@ export function Card({
 type BadgeTone = "gray" | "blue" | "green" | "amber" | "red" | "indigo" | "slate";
 
 const badgeTones: Record<BadgeTone, string> = {
-  gray: "bg-slate-100 text-slate-600 ring-slate-200",
-  slate: "bg-slate-50 text-slate-500 ring-slate-200",
-  blue: "bg-blue-50 text-blue-700 ring-blue-200/70",
-  green: "bg-emerald-50 text-emerald-700 ring-emerald-200/70",
-  amber: "bg-amber-50 text-amber-700 ring-amber-200/70",
-  red: "bg-red-50 text-red-700 ring-red-200/70",
-  indigo: "bg-indigo-50 text-indigo-700 ring-indigo-200/70",
+  gray: "bg-ink-100 text-ink-600 ring-ink-900/10",
+  slate: "bg-ink-50 text-ink-500 ring-ink-900/10",
+  blue: "bg-blue-50 text-blue-700 ring-blue-700/15",
+  green: "bg-emerald-50 text-emerald-700 ring-emerald-700/15",
+  amber: "bg-amber-50 text-amber-700 ring-amber-700/15",
+  red: "bg-red-50 text-red-700 ring-red-700/15",
+  indigo: "bg-indigo-50 text-indigo-700 ring-indigo-700/15",
 };
 
 export function Badge({ tone = "gray", children }: { tone?: BadgeTone; children: ReactNode }) {
@@ -162,7 +207,10 @@ export function StatusBadge({ status }: { status: string }) {
 /* ---------------- 表单 ---------------- */
 
 const inputBase =
-  "w-full rounded-md border border-ink-900/20 bg-[#fffdf8] px-3 text-[13px] text-ink-900 transition-colors placeholder:text-ink-300 hover:border-ink-900/35 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-300";
+  "w-full rounded-md border border-ink-900/20 bg-[#fffdf8] px-3 text-[13px] text-ink-900 shadow-[inset_0_1px_2px_rgba(28,25,23,0.04)] transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-ink-300 hover:border-ink-900/35 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-300";
+
+const inputInvalid =
+  "border-red-400 hover:border-red-500 focus:border-red-500 focus:ring-red-500/20";
 
 export function Field({
   label,
@@ -192,21 +240,58 @@ export function Field({
           {hint}
         </span>
       )}
-      {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
+      {error && (
+        <span role="alert" className="mt-1 flex items-start gap-1 text-xs leading-4 text-red-600">
+          <svg className="mt-0.5 h-3 w-3 shrink-0" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+            <path d="M8 1.5A6.5 6.5 0 1 0 14.5 8 6.5 6.5 0 0 0 8 1.5ZM8 4.6a.7.7 0 0 1 .7.7v3a.7.7 0 0 1-1.4 0v-3a.7.7 0 0 1 .7-.7Zm0 6.4a.85.85 0 1 1 0 1.7.85.85 0 0 1 0-1.7Z" />
+          </svg>
+          {error}
+        </span>
+      )}
     </label>
   );
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cn(inputBase, "h-9", className)} />;
+export function Input({
+  className,
+  invalid = false,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+  return (
+    <input
+      {...props}
+      aria-invalid={invalid || undefined}
+      className={cn(inputBase, "h-9", invalid && inputInvalid, className)}
+    />
+  );
 }
 
-export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={cn(inputBase, "min-h-[84px] leading-relaxed", className)} />;
+export function Textarea({
+  className,
+  invalid = false,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { invalid?: boolean }) {
+  return (
+    <textarea
+      {...props}
+      aria-invalid={invalid || undefined}
+      className={cn(inputBase, "min-h-[84px] leading-relaxed", invalid && inputInvalid, className)}
+    />
+  );
 }
 
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={cn(inputBase, "select-arrow h-9 cursor-pointer pr-8", className)} />;
+export function Select({
+  className,
+  invalid = false,
+  ...props
+}: SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean }) {
+  return (
+    <select
+      {...props}
+      aria-invalid={invalid || undefined}
+      className={cn(inputBase, "select-arrow h-9 cursor-pointer pr-8", invalid && inputInvalid, className)}
+    />
+  );
 }
 
 /* ---------------- Alert ---------------- */
@@ -218,7 +303,7 @@ const alertConfig: Record<AlertTone, { box: string; icon: ReactNode }> = {
     box: "border-blue-200/80 bg-blue-50/70 text-blue-900",
     icon: (
       <>
-        <circle cx="8" cy="8" r="6.2" />
+        <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
         <path d="M8 7.2v4M8 4.8v.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </>
     ),
@@ -227,7 +312,7 @@ const alertConfig: Record<AlertTone, { box: string; icon: ReactNode }> = {
     box: "border-emerald-200/80 bg-emerald-50/70 text-emerald-900",
     icon: (
       <>
-        <circle cx="8" cy="8" r="6.2" />
+        <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
         <path d="m5.5 8.2 1.8 1.8 3.2-3.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </>
     ),
@@ -245,7 +330,7 @@ const alertConfig: Record<AlertTone, { box: string; icon: ReactNode }> = {
     box: "border-red-200/80 bg-red-50/70 text-red-900",
     icon: (
       <>
-        <circle cx="8" cy="8" r="6.2" />
+        <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
         <path d="M8 4.8v4M8 10.8v.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </>
     ),
@@ -255,7 +340,7 @@ const alertConfig: Record<AlertTone, { box: string; icon: ReactNode }> = {
 export function Alert({ tone = "info", title, children }: { tone?: AlertTone; title?: ReactNode; children?: ReactNode }) {
   const c = alertConfig[tone];
   return (
-    <div className={cn("flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13px]", c.box)}>
+    <div role={tone === "error" ? "alert" : "status"} className={cn("flex gap-2.5 rounded-lg border px-3.5 py-2.5 text-[13px] shadow-[0_1px_2px_rgba(28,25,23,0.04)]", c.box)}>
       <svg className="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 16 16" aria-hidden>
         {c.icon}
       </svg>
@@ -282,7 +367,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300/80 bg-slate-50/50 px-6 py-12 text-center">
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-300 ring-1 ring-slate-200">
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-white text-ink-300 shadow-[0_1px_2px_rgba(28,25,23,0.05)] ring-1 ring-ink-200">
         {icon ?? (
           <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
             <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3h9A1.5 1.5 0 0 1 16 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 15.5v-11Zm2 2.7c0 .3.22.5.5.5h7a.5.5 0 0 0 0-1h-7a.5.5 0 0 0-.5.5Zm.5 2.3h7a.5.5 0 0 0 0-1h-7a.5.5 0 0 0 0 1Zm0 2.5h4.5a.5.5 0 0 0 0-1H6.5a.5.5 0 0 0 0 1Z" />
@@ -292,6 +377,144 @@ export function EmptyState({
       <p className="text-[13px] font-medium text-slate-700">{title}</p>
       {desc && <p className="mt-1 max-w-xs text-xs leading-5 text-slate-400">{desc}</p>}
       {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+/* ---------------- 骨架屏(v2 新增) ---------------- */
+
+/** 骨架块:.skeleton 提供 shimmer;按内容形状拼若干块,禁止整页 spinner */
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden className={cn("skeleton", className)} />;
+}
+
+/** 文本骨架组:模拟 N 行文字的占位 */
+export function SkeletonText({ lines = 3, className }: { lines?: number; className?: string }) {
+  return (
+    <div aria-hidden className={cn("flex flex-col gap-2", className)}>
+      {Array.from({ length: lines }, (_, i) => (
+        <div key={i} className="skeleton h-3" style={{ width: i === lines - 1 ? "62%" : "100%" }} />
+      ))}
+    </div>
+  );
+}
+
+/* ---------------- Tooltip(纯 CSS,server-safe;v2 新增) ---------------- */
+
+/** 悬停/聚焦气泡:不要放关键信息,只做补充说明 */
+export function Tooltip({
+  tip,
+  children,
+  side = "top",
+}: {
+  tip: string;
+  children: ReactNode;
+  side?: "top" | "bottom";
+}) {
+  const pos =
+    side === "top"
+      ? "bottom-full mb-2"
+      : "top-full mt-2";
+  return (
+    <span className="group/tip relative inline-flex">
+      {children}
+      <span
+        role="tooltip"
+        className={cn(
+          "pointer-events-none absolute left-1/2 z-50 w-max max-w-[220px] -translate-x-1/2 rounded-md bg-ink-900 px-2.5 py-1.5 text-center text-[11px] font-medium leading-4 text-paper opacity-0 shadow-[0_8px_24px_rgba(28,25,23,0.25)] transition-[opacity,transform] duration-150 ease-out",
+          side === "top" ? "translate-y-1" : "-translate-y-1",
+          "group-hover/tip:translate-y-0 group-hover/tip:opacity-100 group-focus-within/tip:translate-y-0 group-focus-within/tip:opacity-100",
+          pos
+        )}
+      >
+        {tip}
+      </span>
+    </span>
+  );
+}
+
+/* ---------------- Modal / Drawer 壳(server-safe 展示层;v2 新增) ----------------
+   只负责结构与外观:open 控制渲染、backdrop 点击回调、aria 语义。
+   Esc 关闭与焦点管理由 fx.tsx 的 Modal/Drawer(客户端组件)提供,
+   页面侧优先使用 fx.tsx 版本。 */
+
+export function ModalShell({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+}: {
+  open: boolean;
+  onClose?: () => void;
+  title?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  if (!open) return null;
+  return (
+    <div className="no-print fixed inset-0 z-[9990] flex items-center justify-center p-4">
+      <button
+        aria-label="关闭"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default bg-ink-900/45 backdrop-blur-[2px]"
+        tabIndex={-1}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={cn(
+          "relative w-full max-w-md rounded-xl border border-ink-900/10 bg-[#fffdf8] p-5 shadow-[0_8px_24px_rgba(28,25,23,0.10),0_32px_72px_-16px_rgba(28,25,23,0.22)]",
+          className
+        )}
+      >
+        {title && (
+          <h2 className="font-display mb-3 text-[15px] font-bold tracking-wide text-ink-900">{title}</h2>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function DrawerShell({
+  open,
+  onClose,
+  title,
+  children,
+  className,
+  side = "right",
+}: {
+  open: boolean;
+  onClose?: () => void;
+  title?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  side?: "left" | "right";
+}) {
+  if (!open) return null;
+  return (
+    <div className="no-print fixed inset-0 z-[9990] flex">
+      <button
+        aria-label="关闭"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default bg-ink-900/45 backdrop-blur-[2px]"
+        tabIndex={-1}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className={cn(
+          "relative flex h-full w-full max-w-sm flex-col border-ink-900/10 bg-[#fffdf8] p-5 shadow-[0_8px_24px_rgba(28,25,23,0.10),0_32px_72px_-16px_rgba(28,25,23,0.22)]",
+          side === "right" ? "ml-auto border-l" : "mr-auto border-r",
+          className
+        )}
+      >
+        {title && (
+          <h2 className="font-display mb-3 text-[15px] font-bold tracking-wide text-ink-900">{title}</h2>
+        )}
+        {children}
+      </div>
     </div>
   );
 }
@@ -345,7 +568,13 @@ export function ProgressBar({ pct, tone = "brand", height = "h-1.5" }: { pct: nu
   const clamped = Math.min(100, Math.max(0, pct));
   const toneCls = tone === "green" ? "bg-emerald-500" : tone === "amber" ? "bg-amber-500" : "bg-brand-600";
   return (
-    <div className={cn("w-full overflow-hidden rounded-full bg-slate-200/70", height)}>
+    <div
+      role="progressbar"
+      aria-valuenow={Math.round(clamped)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      className={cn("w-full overflow-hidden rounded-full bg-ink-200/70", height)}
+    >
       <div className={cn("h-full rounded-full transition-[width] duration-500 ease-out", toneCls)} style={{ width: `${clamped}%` }} />
     </div>
   );
@@ -399,7 +628,9 @@ export function ProgressRing({
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className="-mx-4 overflow-x-auto px-4">
+    /* min-w-[640px] 的表只在视口 < ~672px 时才会横向溢出,
+       仅在该区间给右缘加渐隐 mask,提示「可继续横滑」(pure CSS affordance) */
+    <div className="-mx-4 overflow-x-auto px-4 max-[672px]:[mask-image:linear-gradient(to_right,#000_calc(100%-1.75rem),transparent)]">
       <table className={cn("w-full min-w-[640px] border-collapse text-[13px]", className)}>{children}</table>
     </div>
   );
@@ -433,7 +664,7 @@ export function AutoSaveIndicator({ state, savedAt }: { state: "idle" | "saving"
   } as const;
   const m = map[state];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-xs", m.cls)}>
+    <span role="status" className={cn("inline-flex items-center gap-1.5 text-xs", m.cls)}>
       <span className={cn("h-1.5 w-1.5 rounded-full", m.dot)} />
       {m.text}
     </span>

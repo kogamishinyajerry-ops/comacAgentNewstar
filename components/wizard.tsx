@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, MessageCircle } from "lucide-react";
 import { STEPS, TEAM_FIELDS, getStepConfig } from "@/lib/steps";
 import { levelOf } from "@/lib/gamification";
 import { StatusBadge, AutoSaveIndicator, Alert, Button, Card, Input, ProgressBar, Textarea, cn, Field } from "./ui";
 import { MissionBar } from "./charts";
 import { burstFromElement, showToast, ArtRevealModal, XpFloat, type ArtRequest } from "./fx";
-import { LevelBadge, XpBar, useAchievementTracker, wizardProgress } from "./achievements";
+import { LevelBadge, useAchievementTracker, wizardProgress } from "./achievements";
 import type { WizardData } from "./wizard-types";
 import { TeamStep } from "./wizard-team";
 import { TrackStep } from "./wizard-track";
@@ -48,6 +49,7 @@ export function Wizard({ data }: { data: WizardData }) {
   const dirtyRef = useRef<Record<string, Record<string, unknown>>>({});
   const nextBtnRef = useRef<HTMLSpanElement | null>(null);
   const lastLevelRef = useRef<number>(0);
+  const stepNavRef = useRef<HTMLElement | null>(null);
 
   // 实时游戏化:段位/成就跟随输入即时点亮
   const liveData = useMemo<WizardData>(() => ({ ...data, stages, track, feedbacks, testCases: testCasesLive }), [data, stages, track, feedbacks, testCasesLive]);
@@ -78,6 +80,12 @@ export function Wizard({ data }: { data: WizardData }) {
   useEffect(() => {
     window.history.replaceState(null, "", `/projects/${data.projectId}?step=${step}`);
   }, [step, data.projectId]);
+
+  // 步骤条横向滚动:当前步胶囊始终保持在可视区中央
+  useEffect(() => {
+    const pill = stepNavRef.current?.querySelector<HTMLElement>('[aria-current="step"]');
+    pill?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [step]);
 
   // XP浮动:总进度上升时冒出 +N%
   const [xpGain, setXpGain] = useState<number | null>(null);
@@ -167,7 +175,7 @@ export function Wizard({ data }: { data: WizardData }) {
       const gate = await gateStep();
       if (!gate.ok) {
         setGateError(gate.errors.map((e) => e.reason));
-        showToast({ tone: "error", icon: "🚧", title: "还差一点", desc: gate.errors[0]?.reason ?? "请补齐必填项", durationMs: 3200 });
+        showToast({ tone: "error", title: "还差一点", desc: gate.errors[0]?.reason ?? "请补齐必填项", durationMs: 3200 });
         return;
       }
       // 过步仪式:小彩带 + 完成提示 + 步骤胶囊弹跳
@@ -178,7 +186,7 @@ export function Wizard({ data }: { data: WizardData }) {
         setTimeout(() => setPopStep(0), 800);
       }
       if (done && step <= 8) {
-        showToast({ tone: "success", icon: "✅", title: `第${step}步完成 · ${getStepConfig(step)?.title}`, desc: "自动保存已生效,继续保持!", durationMs: 3000 });
+        showToast({ tone: "success", title: `第${step}步完成 · ${getStepConfig(step)?.title}`, desc: "自动保存已生效,继续保持!", durationMs: 3000 });
       }
       // 里程碑盲盒:关键步骤首次完成,解锁一张专属AI插画
       if (done && ART_MILESTONES[step]) {
@@ -239,20 +247,22 @@ export function Wizard({ data }: { data: WizardData }) {
         return f.type === "checkbox" ? v === true : typeof v === "string" && v.trim().length > 0;
       }).length
     : 0;
+  const doneSteps = progress.steps.filter((s) => s.status === "done").length;
 
   return (
     <div className="py-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="font-display text-xl font-bold tracking-tight">{data.title}</h1>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-display-md text-ink-900">{data.title}</h1>
           <StatusBadge status={data.status} />
           {!data.readOnly && (
             <a
               href={`/projects/${data.projectId}/chat`}
-              className="inline-flex h-7 items-center gap-1 rounded-full border border-ink-900/15 px-2.5 text-[11px] font-medium text-ink-600 transition-colors hover:border-ink-900/40 hover:text-ink-900"
+              className="inline-flex h-7 items-center gap-1.5 rounded-full border border-ink-900/15 px-2.5 text-[11px] font-medium text-ink-600 transition-[border-color,color,background-color] duration-150 hover:border-brand-400 hover:bg-brand-50/60 hover:text-brand-700"
               title="和Agent对话,说出来我来整理"
             >
-              💬 对话模式
+              <MessageCircle size={12} strokeWidth={2.2} aria-hidden />
+              对话模式
             </a>
           )}
           {data.status === "RETURNED" && data.returnReason && (
@@ -274,11 +284,10 @@ export function Wizard({ data }: { data: WizardData }) {
               />
             </div>
           )}
-          <div className="relative hidden w-44 md:block">
-            <XpBar pct={progress.overallPct} submitted={submittedNow} />
+          <div className="relative">
+            <LevelBadge pct={progress.overallPct} submitted={submittedNow} compact />
             {xpGain != null && <XpFloat gain={xpGain} onDone={() => setXpGain(null)} />}
           </div>
-          <LevelBadge pct={progress.overallPct} submitted={submittedNow} compact />
         </div>
       </div>
 
@@ -302,36 +311,47 @@ export function Wizard({ data }: { data: WizardData }) {
         />
       </div>
 
-      {/* 步骤条 */}
-      <nav className="no-print mb-5 overflow-x-auto" aria-label="步骤导航">
+      {/* 步骤条:已完成(青绿✓)→ 当前(朱砂实色)→ 未开始(纸面)的空间叙事 */}
+      <nav
+        ref={stepNavRef}
+        className="no-print mb-6 overflow-x-auto pb-1 [mask-image:linear-gradient(to_right,transparent,black_20px,black_calc(100%-20px),transparent)]"
+        aria-label="步骤导航"
+      >
         <ol className="flex min-w-max items-center gap-1 text-xs">
           {STEPS.map((s, i) => (
             <li key={s.step} className="flex items-center">
               <button
                 onClick={() => goto(s.step)}
+                aria-current={s.step === step ? "step" : undefined}
                 className={cn(
-                  "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 font-medium transition-all",
+                  "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-soft active:scale-[0.97]",
                   s.step === popStep && "anim-pop-in",
                   s.step === step
-                    ? "border-brand-600 bg-brand-600 text-white shadow-[0_2px_6px_rgba(79,70,229,0.3)]"
+                    ? "border-brand-600 bg-brand-600 text-white shadow-[0_1px_2px_rgba(124,47,24,0.3),0_6px_16px_-4px_rgba(185,74,38,0.45)]"
                     : s.step < step
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-brand-400 hover:text-brand-600"
+                      ? "border-emerald-200/90 bg-emerald-50/80 text-emerald-700 hover:border-emerald-400 hover:bg-emerald-50"
+                      : "border-ink-900/10 bg-[#fffdf8] text-ink-400 hover:border-brand-300 hover:text-brand-600"
                 )}
                 title={s.title}
               >
                 <span
                   className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold",
-                    s.step === step ? "bg-white/20" : s.step < step ? "bg-emerald-500 text-white" : "bg-slate-100 text-slate-500"
+                    "tnum flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold",
+                    s.step === step ? "bg-white/20" : s.step < step ? "bg-emerald-500 text-white" : "bg-ink-100 text-ink-400"
                   )}
                 >
-                  {s.step < step ? "✓" : s.step}
+                  {s.step < step ? <Check size={11} strokeWidth={3.2} aria-hidden /> : s.step}
                 </span>
                 {s.title}
               </button>
               {i < STEPS.length - 1 && (
-                <span className={cn("mx-0.5 h-px w-3", s.step < step ? "bg-emerald-300" : "bg-slate-200")} aria-hidden />
+                <span
+                  className={cn(
+                    "mx-1 h-px w-3.5 transition-colors duration-300",
+                    s.step < step ? "bg-emerald-300" : "bg-ink-900/10"
+                  )}
+                  aria-hidden
+                />
               )}
             </li>
           ))}
@@ -346,11 +366,11 @@ export function Wizard({ data }: { data: WizardData }) {
             title={
               <span>
                 第{step}步:{cfg.title}
-                <span className="ml-2 font-normal text-xs text-slate-400">预计{cfg.minutes}分钟</span>
+                <span className="tnum ml-2 font-sans text-xs font-normal text-ink-400">预计{cfg.minutes}分钟</span>
               </span>
             }
           >
-            <p className="mb-4 line-clamp-2 text-[13px] leading-5 text-slate-500" title={cfg.subtitle}>
+            <p className="text-caption mb-5 text-ink-500">
               {cfg.subtitle}
             </p>
 
@@ -374,25 +394,25 @@ export function Wizard({ data }: { data: WizardData }) {
                     return (
                       <label
                         key={f.key}
-                        className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 bg-slate-50/50 px-3.5 py-3 text-[13px] transition-colors hover:border-brand-300 has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50/60"
+                        className="flex cursor-pointer items-start gap-3 rounded-lg border border-ink-900/10 bg-ink-50/50 px-4 py-3.5 text-[13px] transition-[border-color,background-color,box-shadow] duration-150 hover:border-brand-300 hover:shadow-[0_2px_8px_-2px_rgba(28,25,23,0.08)] has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50/60"
                       >
                         <input
                           type="checkbox"
-                          className="mt-0.5 h-4 w-4 accent-brand-600"
+                          className="mt-0.5 h-4 w-4"
                           disabled={data.readOnly}
                           checked={value === true}
                           onChange={(e) => updateField(step, f.key, e.target.checked)}
                         />
                         <span className="min-w-0">
-                          <span className="font-medium text-slate-800">
+                          <span className="font-medium text-ink-800">
                             {CHECKBOX_SHORT[f.key] ?? f.label}
                             <span className="text-red-500">*</span>
                           </span>
                           <details className="group mt-0.5">
-                            <summary className="cursor-pointer list-none text-xs text-slate-400 transition-colors hover:text-brand-600">
+                            <summary className="cursor-pointer list-none text-xs text-ink-400 transition-colors hover:text-brand-600">
                               查看完整条款
                             </summary>
-                            <p className="mt-1 text-xs leading-5 text-slate-500">{f.label}</p>
+                            <p className="mt-1 text-xs leading-5 text-ink-500">{f.label}</p>
                           </details>
                         </span>
                       </label>
@@ -407,7 +427,7 @@ export function Wizard({ data }: { data: WizardData }) {
                             rows={f.rows ?? 3}
                             disabled={data.readOnly}
                             placeholder={f.placeholder}
-                            className={cn(filled && "border-emerald-300/70 bg-emerald-50/30")}
+                            className={cn(filled && "border-emerald-300/70 bg-emerald-50/30", data.readOnly && "disabled:bg-transparent disabled:text-ink-700")}
                             value={typeof value === "string" ? value : ""}
                             onChange={(e) => updateField(step, f.key, e.target.value)}
                           />
@@ -415,30 +435,31 @@ export function Wizard({ data }: { data: WizardData }) {
                           <Input
                             disabled={data.readOnly}
                             placeholder={f.placeholder}
-                            className={cn(filled && "border-emerald-300/70 bg-emerald-50/30")}
+                            className={cn(filled && "border-emerald-300/70 bg-emerald-50/30", data.readOnly && "disabled:bg-transparent disabled:text-ink-700")}
                             value={typeof value === "string" ? value : ""}
                             onChange={(e) => updateField(step, f.key, e.target.value)}
                           />
                         )}
                       </Field>
-                      <div className="absolute right-0 top-0 flex items-center gap-2">
+                      <div className="absolute right-0 top-0 flex items-center gap-2.5">
                         {!data.readOnly && (
                           <a
                             href={`/projects/${data.projectId}/chat?focus=${step}.${f.key}`}
-                            className="text-[10px] leading-5 text-ink-300 underline decoration-dotted underline-offset-2 transition-colors hover:text-brand-600"
+                            className="inline-flex items-center gap-1 text-[10px] leading-5 text-ink-300 underline decoration-dotted underline-offset-2 transition-colors hover:text-brand-600"
                             title="到对话中重说:讲一句新说法,Agent帮你覆盖这一项"
                           >
-                            💬 重说
+                            <MessageCircle size={10} strokeWidth={2.2} aria-hidden />
+                            重说
                           </a>
                         )}
                         <span
                           className={cn(
-                            "flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300",
-                            filled ? "anim-pop-in bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-300"
+                            "flex h-5 w-5 items-center justify-center rounded-full transition-all duration-300",
+                            filled ? "anim-pop-in bg-emerald-100 text-emerald-600" : "bg-ink-100 text-ink-300"
                           )}
                           aria-hidden
                         >
-                          ✓
+                          <Check size={11} strokeWidth={3} />
                         </span>
                       </div>
                     </div>
@@ -472,12 +493,21 @@ export function Wizard({ data }: { data: WizardData }) {
             {step === 10 && <StatusStep data={data} />}
           </Card>
 
-          <div className="no-print sticky bottom-4 -mx-1 flex items-center justify-between rounded-lg border border-slate-200/80 bg-white/95 px-3 py-2.5 shadow-[0_4px_16px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="no-print sticky bottom-4 -mx-1 flex items-center justify-between rounded-xl border border-ink-900/10 bg-[#fffdf8]/95 px-3 py-2.5 shadow-[0_2px_6px_rgba(28,25,23,0.06),0_16px_40px_-12px_rgba(28,25,23,0.18)] backdrop-blur">
             <Button variant="secondary" disabled={step <= 1} onClick={() => goto(step - 1)}>
               ← 上一步
             </Button>
-            <span className="hidden text-xs text-slate-400 sm:inline">
-              第 {step}/10 步 · {cfg.title} · 总进度 {progress.overallPct}%
+            <span className="hidden text-xs text-ink-400 sm:inline" aria-live="polite">
+              第 <span className="tnum font-semibold text-ink-600">{step}</span>/10 步 · {cfg.title} ·{" "}
+              {fieldStep && cfg.fields.length > 0 ? (
+                <>
+                  已填 <span className="tnum font-semibold text-ink-600">{cfgFieldsFilled}/{cfg.fields.length}</span> 项
+                </>
+              ) : (
+                <>
+                  已完成 <span className="tnum font-semibold text-ink-600">{doneSteps}/10</span> 步
+                </>
+              )}
             </span>
             <span ref={nextBtnRef} className={cn(idle && "anim-glow-pulse rounded-md")}>
               <Button disabled={step >= 10} onClick={() => goto(step + 1)}>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, Bell } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import {
   participantWorkspace,
@@ -10,9 +11,9 @@ import {
   Badge,
   EmptyState,
   LinkButton,
-  PageHeader,
   StatusBadge,
 } from "@/components/ui";
+import { Reveal } from "@/components/fx";
 import { NewProjectButton } from "./new-project-button";
 import { WorkspaceNotices } from "./workspace-notices";
 
@@ -75,68 +76,85 @@ export default async function WorkspacePage() {
   const unreadNotices = data.notices.filter((notice) => !notice.read);
 
   return (
-    <div className="grid gap-5 py-2 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="min-w-0 space-y-5">
-        <PageHeader
-          title={`你好，${user.name}`}
-          desc="这里不展示健康分或伪精确完成率。你只需要看清当前主张、已有流程记录，以及仍待验证的一条缺口。"
-          actions={
-            dl != null ? (
-              <Badge tone={dl < 0 ? "red" : dl <= 7 ? "amber" : "gray"}>
-                <svg
-                  className="h-3 w-3"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  aria-hidden
-                >
-                  <circle cx="8" cy="8" r="6.2" />
-                  <path d="M8 4.8V8l2 1.6" strokeLinecap="round" />
-                </svg>
-                {dl < 0 ? "提交已截止" : dl === 0 ? "今天截止" : `距提交截止 ${dl} 天`}
-              </Badge>
-            ) : undefined
-          }
-        />
+    <div className="grid gap-6 py-2 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="min-w-0 space-y-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="kicker">工作台 · Workspace</p>
+            <h1 className="font-display text-display-lg mt-2 text-ink-900">
+              你好，{user.name}
+            </h1>
+            <p className="text-caption mt-2.5 max-w-xl text-ink-500">
+              这里不展示健康分或伪精确完成率。你只需要看清当前主张、已有流程记录，以及仍待验证的一条缺口。
+            </p>
+          </div>
+          {dl != null && (
+            <Badge tone={dl < 0 ? "red" : dl <= 7 ? "amber" : "gray"}>
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden
+              >
+                <circle cx="8" cy="8" r="6.2" />
+                <path d="M8 4.8V8l2 1.6" strokeLinecap="round" />
+              </svg>
+              {dl < 0 ? "提交已截止" : dl === 0 ? "今天截止" : `距提交截止 ${dl} 天`}
+            </Badge>
+          )}
+        </header>
 
         {unreadNotices.length > 0 && (
-          <div className="flex items-center gap-2.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-3.5 py-2.5 text-[13px] text-blue-900">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[11px]" aria-hidden>
-              铃
+          <div className="flex items-center gap-2.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-3.5 py-2.5 text-[13px] text-blue-900 shadow-[0_1px_2px_rgba(28,25,23,0.04)]">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700" aria-hidden>
+              <Bell size={13} strokeWidth={2} />
             </span>
-            你有 {unreadNotices.length} 条组织者提醒，
-            <Link href="/notices" className="font-semibold underline underline-offset-2">
-              查看
-            </Link>
+            <span>
+              你有 <span className="tnum font-semibold">{unreadNotices.length}</span> 条组织者提醒，
+              <Link href="/notices" className="font-semibold underline underline-offset-2 transition-colors hover:text-blue-700">
+                查看
+              </Link>
+            </span>
           </div>
         )}
 
         {active ? (
+          <Reveal>
           <section className="surface-card relative overflow-hidden" aria-labelledby="active-project-title">
-            <div
-              className="pointer-events-none absolute inset-y-0 right-0 w-[58%] opacity-[0.18]"
-              aria-hidden="true"
-              style={{
-                backgroundImage: "url('/hub/art/hub-hero-cognitive-canvas.webp')",
-                backgroundPosition: "35% center",
-                backgroundRepeat: "no-repeat",
-                backgroundSize: "cover",
-                maskImage: "linear-gradient(90deg, transparent, black 35%)",
-              }}
-            />
-            <div className="relative p-5 sm:p-6">
+            {/* 纯代码装饰:暖晕 + 制图细线网格(无图片素材) */}
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(460px 260px at 84% 8%, rgba(185,74,38,0.07), transparent 64%), radial-gradient(360px 220px at 96% 88%, rgba(201,162,39,0.05), transparent 62%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(rgba(28,25,23,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(28,25,23,0.05) 1px, transparent 1px)",
+                  backgroundSize: "56px 56px",
+                  maskImage: "radial-gradient(560px 320px at 86% 12%, black, transparent 74%)",
+                  WebkitMaskImage: "radial-gradient(560px 320px at 86% 12%, black, transparent 74%)",
+                }}
+              />
+            </div>
+            <div className="relative p-5 sm:p-7">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-600">
+                  <p className="kicker">
                     继续上次的位置
                   </p>
-                  <h2 id="active-project-title" className="mt-1 text-[20px] font-semibold tracking-tight text-slate-900">
+                  <h2 id="active-project-title" className="font-display text-display-md mt-2 text-ink-900">
                     {active.title}
                   </h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center gap-2.5">
                     <StatusBadge status={active.status} />
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-ink-400">
                       {active.progress.staleDays === 0
                         ? "今天有更新"
                         : `${active.progress.staleDays} 天前更新`}
@@ -148,20 +166,20 @@ export default async function WorkspacePage() {
                 </LinkButton>
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1.15fr_1fr]">
-                <div className="rounded-lg border border-slate-200/80 bg-white/75 p-4 backdrop-blur-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              <div className="mt-7 grid gap-3 md:grid-cols-[1fr_1.15fr_1fr]">
+                <div className="rounded-lg border border-ink-900/10 bg-white/80 p-4 shadow-[0_1px_2px_rgba(28,25,23,0.04)] backdrop-blur-sm">
+                  <p className="text-micro font-semibold uppercase text-ink-400">
                     当前主张 · 待你确认
                   </p>
-                  <p className="mt-2 text-[13px] font-medium leading-6 text-slate-700">
+                  <p className="mt-2 text-[13px] font-medium leading-6 text-ink-800">
                     {active.title}
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                  <p className="mt-1.5 text-xs leading-5 text-ink-400">
                     当前沿用项目命名，不代表已经形成或验证正式结论。
                   </p>
                 </div>
                 <div className="rounded-lg border border-emerald-200/70 bg-emerald-50/55 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
+                  <p className="text-micro font-semibold uppercase text-emerald-700">
                     证据状态 · 记录不等于结论
                   </p>
                   <div className="mt-2.5">
@@ -172,7 +190,7 @@ export default async function WorkspacePage() {
                   </p>
                 </div>
                 <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+                  <p className="text-micro font-semibold uppercase text-amber-700">
                     当前最大缺口 · 待你确认
                   </p>
                   <p className="mt-2 text-[13px] font-medium leading-6 text-amber-950">
@@ -181,8 +199,8 @@ export default async function WorkspacePage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-start gap-2 rounded-lg border border-brand-200/70 bg-brand-50/55 px-3.5 py-3 text-[13px] text-brand-900">
-                <span className="mt-px" aria-hidden>→</span>
+              <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-brand-200/70 bg-brand-50/55 px-4 py-3 text-[13px] text-brand-900">
+                <ArrowRight size={15} strokeWidth={2.2} className="mt-0.5 shrink-0 text-brand-600" aria-hidden />
                 <p>
                   <span className="font-semibold">最小下一步：</span>
                   {active.progress.nextHint}
@@ -190,6 +208,7 @@ export default async function WorkspacePage() {
               </div>
             </div>
           </section>
+          </Reveal>
         ) : (
           <EmptyState
             title="从一个真实的小麻烦开始"
@@ -205,13 +224,14 @@ export default async function WorkspacePage() {
         )}
 
         {data.rows.length > 0 && (
-          <section className="space-y-2.5" aria-labelledby="project-list-title">
-            <div className="flex items-center justify-between gap-3">
+          <Reveal delayMs={120}>
+          <section className="space-y-3" aria-labelledby="project-list-title">
+            <div className="flex items-end justify-between gap-3">
               <div>
-                <h2 id="project-list-title" className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">
-                  我的实践 · {data.rows.length}
+                <h2 id="project-list-title" className="text-micro font-semibold uppercase text-ink-500">
+                  我的实践 · <span className="tnum">{data.rows.length}</span>
                 </h2>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-ink-400">
                   不比较百分比，只核对现有记录与仍待验证之处。
                 </p>
               </div>
@@ -226,7 +246,7 @@ export default async function WorkspacePage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
                           href={`/projects/${row.projectId}/chat`}
-                          className="text-[14px] font-semibold text-slate-900 hover:text-brand-600"
+                          className="text-[14px] font-semibold text-ink-900 underline-offset-4 transition-colors hover:text-brand-600 hover:underline"
                         >
                           {row.title}
                         </Link>
@@ -235,8 +255,8 @@ export default async function WorkspacePage() {
                       <div className="mt-2.5">
                         <EvidenceStrip row={row} compact />
                       </div>
-                      <p className="mt-3 text-xs leading-5 text-slate-500">
-                        <span className="font-semibold text-slate-700">候选缺口：</span>
+                      <p className="mt-3 text-xs leading-5 text-ink-500">
+                        <span className="font-semibold text-ink-700">候选缺口：</span>
                         {gapCandidate(row)}
                       </p>
                     </div>
@@ -248,29 +268,28 @@ export default async function WorkspacePage() {
               ))}
             </div>
           </section>
+          </Reveal>
         )}
       </div>
 
       <aside className="space-y-3" aria-label="协作与支持">
         <section className="surface-card p-4" aria-labelledby="team-title">
-          <h2 id="team-title" className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <h2 id="team-title" className="text-micro font-semibold uppercase text-ink-400">
             我的队伍
           </h2>
           {data.team ? (
-            <div className="mt-2 text-[13px]">
-              <p className="font-semibold text-slate-800">{data.team.name}</p>
-              <p className="mt-0.5 text-xs text-slate-500">
+            <div className="mt-2.5 text-[13px]">
+              <p className="font-display text-[15px] font-bold text-ink-900">{data.team.name}</p>
+              <p className="mt-1 text-xs text-ink-500">
                 {TEAM_MODE_LABELS[data.team.mode as keyof typeof TEAM_MODE_LABELS] ?? data.team.mode}
               </p>
-              <p className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500">
+              <p className="mt-3 flex items-center gap-2 text-xs text-ink-500">
                 邀请码
-                <code className="tnum rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] font-bold tracking-[0.15em] text-slate-700">
-                  {data.team.inviteCode}
-                </code>
+                <code className="kbd tnum tracking-[0.18em]">{data.team.inviteCode}</code>
               </p>
             </div>
           ) : (
-            <div className="mt-2 space-y-2.5 text-[13px] text-slate-500">
+            <div className="mt-2.5 space-y-3 text-[13px] text-ink-500">
               <p>还没有队伍，单人可参赛。</p>
               <div className="flex gap-2">
                 <LinkButton href="/projects/new-team" size="sm">创建队伍</LinkButton>
@@ -283,9 +302,9 @@ export default async function WorkspacePage() {
         <WorkspaceNotices notices={data.notices} />
 
         {data.pendingSuggestions > 0 && (
-          <section className="rounded-lg border border-brand-200/80 bg-gradient-to-br from-brand-50 to-white p-4">
+          <section className="rounded-lg border border-brand-200/80 bg-gradient-to-br from-brand-50 to-white p-4 shadow-[0_1px_2px_rgba(28,25,23,0.04)]">
             <p className="text-[13px] font-semibold text-brand-800">
-              Agent 有 {data.pendingSuggestions} 条建议待你判断
+              Agent 有 <span className="tnum">{data.pendingSuggestions}</span> 条建议待你判断
             </p>
             <p className="mt-1 text-xs leading-5 text-brand-600/90">
               建议不是指令。进入项目后逐条标记「采纳 / 忽略 / 已处理」。
@@ -294,34 +313,35 @@ export default async function WorkspacePage() {
         )}
 
         <section className="surface-card p-4" aria-labelledby="announcement-title">
-          <h2 id="announcement-title" className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <h2 id="announcement-title" className="text-micro font-semibold uppercase text-ink-400">
             最新公告
           </h2>
-          <ul className="mt-2 space-y-2.5">
+          <ul className="mt-2.5 space-y-3">
             {data.announcements.map((announcement) => (
-              <li key={announcement.id} className="text-xs">
-                <p className="font-semibold text-slate-700">{announcement.title}</p>
-                <p className="mt-0.5 line-clamp-2 leading-4 text-slate-500">{announcement.body}</p>
+              <li key={announcement.id} className="border-l-2 border-ink-900/10 pl-2.5 text-xs transition-colors hover:border-brand-400">
+                <p className="font-semibold text-ink-800">{announcement.title}</p>
+                <p className="mt-0.5 line-clamp-2 leading-4 text-ink-500">{announcement.body}</p>
               </li>
             ))}
             {data.announcements.length === 0 && (
-              <li className="text-xs text-slate-400">暂无公告</li>
+              <li className="text-xs text-ink-400">暂无公告</li>
             )}
           </ul>
         </section>
 
         {data.officeHour && (
           <section className="rounded-lg border border-emerald-200/80 bg-emerald-50/70 p-4">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Office Hour</h2>
+            <h2 className="text-micro font-semibold uppercase text-emerald-600">Office Hour</h2>
             <p className="mt-1.5 text-[13px] font-semibold text-emerald-900">{data.officeHour.title}</p>
             <p className="mt-0.5 text-xs text-emerald-700/90">
               {data.officeHour.time} · {data.officeHour.host}
             </p>
             <Link
               href="/office-hours"
-              className="mt-2 inline-block text-xs font-medium text-emerald-800 underline underline-offset-2"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-800 underline underline-offset-2 transition-colors hover:text-emerald-900"
             >
-              查看全部场次 →
+              查看全部场次
+              <ArrowRight size={12} strokeWidth={2.2} aria-hidden />
             </Link>
           </section>
         )}

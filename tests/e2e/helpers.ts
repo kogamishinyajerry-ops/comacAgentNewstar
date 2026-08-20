@@ -8,9 +8,9 @@ import { coachDemoArtifactActs } from "../../fixtures/coach-demo";
 
 /** 三幕固定问题(真实问题入口,与 fixtures 确定性文案一致) */
 export const ACT_QUESTIONS = [
-  "你最想改变的具体工作瞬间是什么?",
-  "这个问题对谁造成了什么具体损失?",
-  "为什么普通大模型聊天不足以解决它?",
+  "你最想改变的具体工作瞬间是什么？",
+  "这个问题对谁造成了什么具体损失？",
+  "为什么普通大模型聊天不足以解决它？",
 ] as const;
 
 export const ACT_ANSWERS = [
