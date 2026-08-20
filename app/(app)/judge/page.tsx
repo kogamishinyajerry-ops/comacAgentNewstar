@@ -77,7 +77,7 @@ export default async function JudgePage() {
                         <Badge tone="slate">未开始</Badge>
                       )}
                     </Td>
-                    <Td className="tnum">{total != null ? total : "—"}</Td>
+                    <Td className="tnum">{total != null ? `${total}/40` : "—"}</Td>
                     <Td className="text-right">
                       {assignment.status !== "RECUSED" && review?.status !== "LOCKED" && (
                         <Link

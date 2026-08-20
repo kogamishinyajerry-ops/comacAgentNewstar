@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { site } from "../../config/site";
 
 const FIRST_QUESTION = "你最想改变的具体工作瞬间是什么?";
 const SECOND_QUESTION = "这个问题对谁造成了什么具体损失?";
@@ -16,7 +17,7 @@ test.describe("Hub 冷启动与渐进工作空间", () => {
     const orientation = page.locator("[data-hub-orientation]");
     await expect(orientation).toBeVisible();
     await expect(orientation).toContainText("把一个真实问题，变成可验证的 Agent 作品");
-    await expect(orientation).toContainText("三幕只问三个关键问题");
+    await expect(orientation).toContainText("三幕追问后凝结问题种子");
     await expect(orientation).toContainText("外部构建并带回证据");
     await expect(orientation.getByRole("link", { name: /活动如何进行/ })).toHaveAttribute(
       "href",
@@ -64,7 +65,22 @@ test.describe("Hub 冷启动与渐进工作空间", () => {
 test("390×844：定向层压缩后无横向或页面级纵向溢出", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
-  await expect(page.locator("[data-hub-orientation]")).toBeVisible();
+  const orientation = page.locator("[data-hub-orientation]");
+  await expect(orientation).toBeVisible();
+  await expect(orientation.getByText(site.brand.name, { exact: true })).toBeVisible();
+  await expect(page.locator("[data-hub-orientation-mobile-summary]")).toContainText(
+    "直接回答 → 三幕追问 → 问题种子 → 外部构建与证据",
+  );
+
+  const progress = page.locator("[data-coach-progress]");
+  const scene = page.locator(".coach-workspace-dialog");
+  const progressBox = await progress.boundingBox();
+  const sceneBox = await scene.boundingBox();
+  expect(progressBox?.height).toBeLessThanOrEqual(64);
+  expect(progressBox?.width).toBeGreaterThanOrEqual(350);
+  expect(sceneBox?.width).toBeGreaterThanOrEqual(350);
+  await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
+  await expect(page.locator("#coach-answer")).toBeVisible();
 
   const geometry = await page.evaluate(() => ({
     horizontal: document.documentElement.scrollWidth - window.innerWidth,
@@ -73,4 +89,24 @@ test("390×844：定向层压缩后无横向或页面级纵向溢出", async ({ 
   }));
   expect(geometry.horizontal).toBeLessThanOrEqual(0);
   expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+});
+
+test("1024×768：第一问仍是 68px 种子轨，回答后才展开问题卡", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/");
+
+  const progress = page.locator("[data-coach-progress]");
+  const initialBox = await progress.boundingBox();
+  expect(initialBox?.width).toBeLessThanOrEqual(90);
+  await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
+  await expect(page.locator("#coach-answer")).toBeVisible();
+
+  await page.locator("#coach-answer").fill("试验异常记录分散在三处，对账时需要反复翻找依据。");
+  await page.getByRole("button", { name: "提交这一问的回答" }).click();
+  await expect(page.getByRole("heading", { name: SECOND_QUESTION })).toBeVisible({
+    timeout: 15_000,
+  });
+
+  const expandedBox = await progress.boundingBox();
+  expect(expandedBox?.width).toBeGreaterThanOrEqual(280);
 });

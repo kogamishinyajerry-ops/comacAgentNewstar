@@ -22,25 +22,21 @@ function daysLeft(deadline: string | null): number | null {
   return Math.ceil((d.getTime() - Date.now()) / 86400000);
 }
 
-function evidenceItems(row: ProjectProgressRow) {
-  const problemReady = row.progress.steps.find((step) => step.step === 4)?.status === "done";
+function evidenceSignals(row: ProjectProgressRow) {
+  const hasProblemRecord = row.progress.steps.find((step) => step.step === 4)?.status === "done";
   return [
-    { label: "问题与场景", ready: problemReady },
-    { label: "人机边界", ready: row.progress.closedLoopOk },
-    {
-      label: `验证案例 ${row.progress.tests.count}`,
-      ready: row.progress.tests.passOk && row.progress.tests.coverageOk,
-    },
-    { label: "提交快照", ready: row.hasSnapshot },
+    { label: "问题定义记录", state: hasProblemRecord ? "已有记录" : "待记录" },
+    { label: "验证案例", state: `已记录 ${row.progress.tests.count} 条` },
+    { label: "失败记录", state: row.hasDocumentedFailure ? "已有记录" : "暂无记录" },
+    { label: "提交快照", state: row.hasSnapshot ? "已有快照" : "尚无快照" },
   ];
 }
 
-function primaryGap(row: ProjectProgressRow): string {
-  const blocked = row.progress.steps.find((step) => step.status === "blocked");
-  if (blocked?.missing[0]) return blocked.missing[0];
-  const unfinished = row.progress.steps.find((step) => step.status !== "done");
-  if (unfinished?.missing[0]) return unfinished.missing[0];
-  return row.blocker || row.progress.nextHint;
+function gapCandidate(row: ProjectProgressRow): string {
+  if (["SUBMITTED", "PRELIMINARY", "FINAL"].includes(row.status)) {
+    return "提交后的证据缺口尚待人工复核；平台当前不自动判定。";
+  }
+  return row.blocker || row.progress.nextHint || "尚未形成可核对的缺口记录。";
 }
 
 function EvidenceStrip({
@@ -51,12 +47,14 @@ function EvidenceStrip({
   compact?: boolean;
 }) {
   return (
-    <ul className={`flex flex-wrap ${compact ? "gap-1.5" : "gap-2"}`} aria-label="证据状态">
-      {evidenceItems(row).map((item) => (
+    <ul
+      className={`flex flex-wrap ${compact ? "gap-1.5" : "gap-2"}`}
+      aria-label="证据记录状态，不代表验证结论"
+    >
+      {evidenceSignals(row).map((item) => (
         <li key={item.label}>
-          <Badge tone={item.ready ? "green" : "slate"}>
-            <span aria-hidden>{item.ready ? "✓" : "◇"}</span>
-            {item.label}
+          <Badge tone="slate">
+            {item.label} · {item.state}
           </Badge>
         </li>
       ))}
@@ -78,7 +76,7 @@ export default async function WorkspacePage() {
       <div className="min-w-0 space-y-5">
         <PageHeader
           title={`你好，${user.name}`}
-          desc="这里不展示健康分或伪精确完成率。你只需要看清当前主张、已经拿到的证据，以及最值得补的一条缺口。"
+          desc="这里不展示健康分或伪精确完成率。你只需要看清当前主张、已有流程记录，以及仍待验证的一条缺口。"
           actions={
             dl != null ? (
               <Badge tone={dl < 0 ? "red" : dl <= 7 ? "amber" : "gray"}>
@@ -149,21 +147,33 @@ export default async function WorkspacePage() {
 
               <div className="mt-6 grid gap-3 md:grid-cols-[1fr_1.15fr_1fr]">
                 <div className="rounded-lg border border-slate-200/80 bg-white/75 p-4 backdrop-blur-sm">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">当前主张</p>
-                  <p className="mt-2 text-[13px] leading-6 text-slate-700">
-                    围绕「{active.title}」形成一条可由人确认、可用证据核对的解决路径。
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    当前主张 · 待你确认
+                  </p>
+                  <p className="mt-2 text-[13px] font-medium leading-6 text-slate-700">
+                    {active.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    当前沿用项目命名，不代表已经形成或验证正式结论。
                   </p>
                 </div>
                 <div className="rounded-lg border border-emerald-200/70 bg-emerald-50/55 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">已经拿到的证据</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">
+                    证据状态 · 记录不等于结论
+                  </p>
                   <div className="mt-2.5">
                     <EvidenceStrip row={active} />
                   </div>
+                  <p className="mt-2 text-xs leading-5 text-emerald-900/75">
+                    当前仅汇总已有流程记录；独立证据资产接回仍属后续能力。
+                  </p>
                 </div>
                 <div className="rounded-lg border border-amber-200/80 bg-amber-50/60 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">当前最大缺口</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+                    当前最大缺口 · 待你确认
+                  </p>
                   <p className="mt-2 text-[13px] font-medium leading-6 text-amber-950">
-                    {primaryGap(active)}
+                    {gapCandidate(active)}
                   </p>
                 </div>
               </div>
@@ -198,7 +208,9 @@ export default async function WorkspacePage() {
                 <h2 id="project-list-title" className="text-[13px] font-semibold uppercase tracking-wider text-slate-500">
                   我的实践 · {data.rows.length}
                 </h2>
-                <p className="mt-1 text-xs text-slate-400">不比较百分比，只比较证据是否站得住。</p>
+                <p className="mt-1 text-xs text-slate-400">
+                  不比较百分比，只核对现有记录与仍待验证之处。
+                </p>
               </div>
               {data.team && <NewProjectButton />}
             </div>
@@ -221,7 +233,7 @@ export default async function WorkspacePage() {
                         <EvidenceStrip row={row} compact />
                       </div>
                       <p className="mt-3 text-xs leading-5 text-slate-500">
-                        <span className="font-semibold text-slate-700">下一条缺口：</span>
+                        <span className="font-semibold text-slate-700">候选缺口：</span>
                         {row.progress.nextHint}
                       </p>
                     </div>

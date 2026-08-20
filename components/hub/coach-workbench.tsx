@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CoachEntry } from "@/fixtures/coach-demo";
+import { site } from "@/config/site";
 import { CoachFlow } from "./coach-flow";
 import styles from "./coach-workbench.module.css";
 
@@ -35,12 +36,15 @@ export function CoachWorkbench({
           />
           <div className={styles.orientationWash} aria-hidden="true" />
           <div className={styles.orientationCopy}>
-            <p className={styles.orientationEyebrow}>COMAC 青年 AI Agent 创新实践月</p>
+            <p className={styles.orientationEyebrow}>{site.brand.name}</p>
             <p className={styles.orientationTitle}>把一个真实问题，变成可验证的 Agent 作品</p>
             <p className={styles.orientationPromise}>
-              <span>三幕只问三个关键问题</span>
-              <span>先凝结问题种子</span>
+              <span>直接回答当前唯一问题</span>
+              <span>三幕追问后凝结问题种子</span>
               <span>再去外部构建并带回证据</span>
+            </p>
+            <p className={styles.orientationMobileSummary} data-hub-orientation-mobile-summary>
+              直接回答 → 三幕追问 → 问题种子 → 外部构建与证据
             </p>
           </div>
           <Link href="/guide" className={styles.orientationLink}>
