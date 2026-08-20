@@ -5,6 +5,7 @@ import {
   type ProjectProgressRow,
 } from "@/lib/progress-server";
 import { TEAM_MODE_LABELS } from "@/lib/constants";
+import { evidenceGapCandidate } from "@/lib/project-evidence";
 import {
   Badge,
   EmptyState,
@@ -28,15 +29,17 @@ function evidenceSignals(row: ProjectProgressRow) {
     { label: "问题定义记录", state: hasProblemRecord ? "已有记录" : "待记录" },
     { label: "验证案例", state: `已记录 ${row.progress.tests.count} 条` },
     { label: "失败记录", state: row.hasDocumentedFailure ? "已有记录" : "暂无记录" },
+    { label: "不适用记录", state: row.hasNotApplicableRecord ? "已有记录" : "暂无记录" },
     { label: "提交快照", state: row.hasSnapshot ? "已有快照" : "尚无快照" },
   ];
 }
 
 function gapCandidate(row: ProjectProgressRow): string {
-  if (["SUBMITTED", "PRELIMINARY", "FINAL"].includes(row.status)) {
-    return "提交后的证据缺口尚待人工复核；平台当前不自动判定。";
-  }
-  return row.blocker || row.progress.nextHint || "尚未形成可核对的缺口记录。";
+  return evidenceGapCandidate({
+    status: row.status,
+    blocker: row.blocker,
+    nextHint: row.progress.nextHint,
+  });
 }
 
 function EvidenceStrip({
@@ -234,7 +237,7 @@ export default async function WorkspacePage() {
                       </div>
                       <p className="mt-3 text-xs leading-5 text-slate-500">
                         <span className="font-semibold text-slate-700">候选缺口：</span>
-                        {row.progress.nextHint}
+                        {gapCandidate(row)}
                       </p>
                     </div>
                     <LinkButton href={`/projects/${row.projectId}/chat`} size="sm" variant="secondary">

@@ -2,6 +2,7 @@
 
 import { prisma } from "./db";
 import { computeProjectProgress, blockerSummary, type ProjectProgress } from "./progress";
+import { summarizeTestRecords } from "./project-evidence";
 
 export interface ProjectProgressRow {
   projectId: string;
@@ -18,6 +19,7 @@ export interface ProjectProgressRow {
   feedbackCount: number;
   hasSnapshot: boolean;
   hasDocumentedFailure: boolean;
+  hasNotApplicableRecord: boolean;
 }
 
 async function buildRow(row: {
@@ -72,9 +74,7 @@ async function buildRow(row: {
     submittedAt: row.submittedAt?.toISOString() ?? null,
     feedbackCount: row._count?.agentFeedbacks ?? 0,
     hasSnapshot: (row._count?.snapshots ?? 0) > 0,
-    hasDocumentedFailure: row.testCases.some(
-      (t) => (t.type === "FAILURE" || t.type === "NA") && !!t.failureReason?.trim()
-    ),
+    ...summarizeTestRecords(row.testCases),
   };
 }
 
