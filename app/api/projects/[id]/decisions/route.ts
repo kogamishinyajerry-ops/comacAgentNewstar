@@ -74,6 +74,12 @@ function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
 
+function uniqueEvidence(values: DecisionEvidence[]): DecisionEvidence[] {
+  const byId = new Map<string, DecisionEvidence>();
+  for (const value of values) byId.set(value.id, value);
+  return Array.from(byId.values());
+}
+
 function parseSuggestionStates(raw: string): Record<string, string> {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -127,6 +133,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   let validationFeedbackId: string | undefined;
   let validationAgentId = `agent:${feedback.session.id}`;
+  let validationEvidence: DecisionEvidence[] = [];
   if (input.intent === "validate") {
     const validationFeedback = await prisma.agentFeedback.findUnique({
       where: { id: input.validationFeedbackId },
@@ -146,8 +153,28 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     if (!["OK", "REPAIRED"].includes(validationFeedback.session.status)) {
       return jsonError(409, "本轮 Coach 运行未形成可采信的复核结果，请重试");
     }
+    const validationResult = parseAgentFeedback(validationFeedback.content);
+    if (!validationResult.success) {
+      return jsonError(409, "Coach 复核反馈结构无效，请重试");
+    }
+
     validationFeedbackId = validationFeedback.id;
     validationAgentId = `agent:${validationFeedback.session.id}`;
+    validationEvidence = [
+      {
+        id: `feedback:${validationFeedback.id}`,
+        kind: "feedback",
+        label: "Coach 复核反馈",
+        excerpt: validationResult.data.summary,
+        version: validationFeedback.createdAt.toISOString(),
+      },
+      {
+        id: `run:${validationFeedback.session.id}`,
+        kind: "run",
+        label: `Validation Run · ${validationFeedback.session.provider}/${validationFeedback.session.model}`,
+        version: `${validationFeedback.session.promptVersionLabel ?? "prompt-unversioned"} · ${validationFeedback.session.status}`,
+      },
+    ];
   }
 
   if (input.intent === "signoff" && existing && !hasValidationEvent(existing)) {
@@ -155,19 +182,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   const stageTitle = getStepConfig(input.step)?.title ?? `阶段 ${input.step}`;
-  // 只把本轮 Agent 实际读取的上下文登记为依据。当前 Coach 上下文没有读取附件，
-  // 因此附件不能仅因“存在于项目中”就被伪装成支持本结论的 Evidence。
-  const evidence: DecisionEvidence[] = [
-    {
-      id: `stage:${params.id}:${input.step}`,
-      kind: "stage",
-      label: `${stageTitle} · 本轮读取的阶段 Artifact`,
-      version: stageRow ? `更新于 ${stageRow.updatedAt.toISOString()}` : "本轮读取为空白阶段",
-    },
+  // 当前数据库没有保存 Agent 运行时输入的不可变快照或哈希。
+  // 因此这里只登记可被准确重建的结构化反馈与具体 Run，不把“当前阶段值”
+  // 或“项目里存在的附件”冒充为本轮已经使用的证据。
+  const sourceEvidence: DecisionEvidence[] = [
     {
       id: `feedback:${feedback.id}`,
       kind: "feedback",
       label: "AI 导师结构化诊断",
+      excerpt: feedbackResult.data.summary,
       version: feedback.createdAt.toISOString(),
     },
     {
@@ -187,9 +210,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       title: suggestion.title,
       proposal: suggestion.action,
       reasons: uniqueStrings([suggestion.why, feedbackResult.data.summary]),
-      evidence,
+      evidence: sourceEvidence,
       assumptions: feedbackResult.data.critical_gaps.map((gap) => `${gap.field}：${gap.reason}`),
-      uncertainties: feedbackResult.data.risk_flags.map((risk) => risk.message),
+      uncertainties: uniqueStrings([
+        ...feedbackResult.data.risk_flags.map((risk) => risk.message),
+        "当前版本未保存 Agent 运行时上下文的不可变快照或哈希，无法逐字段重建本轮输入版本。",
+      ]),
       impacts: [
         `系统会把本次决定写入“${stageTitle}”的协作记录。`,
         "不会自动提交作品、修改其他正式字段或执行外部工具。",
@@ -202,6 +228,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       createdAt: feedback.createdAt.toISOString(),
     });
 
+  const artifactForIntent: DecisionArtifact = validationEvidence.length
+    ? {
+        ...baseArtifact,
+        evidence: uniqueEvidence([...baseArtifact.evidence, ...validationEvidence]),
+      }
+    : baseArtifact;
+
   const actor: DecisionActor =
     input.intent === "validate"
       ? { id: validationAgentId, name: "AI 导师 Coach", type: "agent" }
@@ -210,13 +243,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   let artifact: DecisionArtifact;
   try {
     artifact = applyDecisionIntent({
-      artifact: baseArtifact,
+      artifact: artifactForIntent,
       intent: input.intent,
       actor,
       timestamp: new Date().toISOString(),
       rationale: input.rationale,
       modifiedProposal: input.modifiedProposal,
       validationFeedbackId,
+      eventEvidenceRefs: validationEvidence.length
+        ? validationEvidence.map((item) => item.id)
+        : undefined,
     });
   } catch (error) {
     return jsonError(409, error instanceof Error ? error.message : "无法应用这项决定");
@@ -259,6 +295,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           initiatedBy: access.user.id,
           semanticActorId: actor.id,
           validationFeedbackId,
+          evidenceRefs: artifact.events.at(-1)?.evidenceRefs ?? [],
           requestId: randomUUID(),
         }),
       },
