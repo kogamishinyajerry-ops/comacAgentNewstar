@@ -10,6 +10,8 @@ import { COACH_SYSTEM_PROMPT, PRECHECK_SYSTEM_PROMPT } from "../prompts";
 import { getStepConfig } from "../steps";
 import { getStageData, validateTestCases } from "../validation";
 import { TRACKS } from "../constants";
+import { parseDecisionArtifacts } from "../agent-collaboration/decision";
+import { DECISION_ARTIFACTS_KEY } from "../agent-collaboration/types";
 import type { ProjectBundle } from "../projects";
 
 export interface CoachRunResult {
@@ -19,6 +21,8 @@ export interface CoachRunResult {
   status: "OK" | "REPAIRED" | "FALLBACK" | "ERROR";
   provider: string;
   model: string;
+  promptVersionLabel: string;
+  latencyMs: number;
 }
 
 const MAX_FIELD_CHARS = 600;
@@ -28,16 +32,60 @@ function truncate(v: unknown): unknown {
   return v;
 }
 
-/** 生成阶段摘要而不是把全部历史塞进上下文 */
-export function buildUserContext(bundle: ProjectBundle, step: number, purpose: "COACH" | "PRECHECK", qa: { q: string; a: string }[] = []): string {
+function truncateStrings(values: string[], limit = 4): string[] {
+  return values.slice(0, limit).map((value) => String(truncate(value)));
+}
+
+/**
+ * 生成可控的 Agent 上下文而不是倾倒全部历史。
+ *
+ * 当前实现会显式包含本轮阶段与结构化 Decision Artifact，使“Coach 复核”
+ * 在所有十个阶段都能看到它正在复核的对象。运行时上下文尚未持久化为不可变
+ * 快照或哈希，因此该边界也会随 payload 一起告知模型和前台。
+ */
+export function buildUserContext(
+  bundle: ProjectBundle,
+  step: number,
+  purpose: "COACH" | "PRECHECK",
+  qa: { q: string; a: string }[] = [],
+): string {
   const cfg = getStepConfig(step);
   const stageSummary: Record<number, Record<string, unknown>> = {};
-  for (const s of [1, 4, 5, 6]) {
-    const d = getStageData(bundle.stages, s);
+  const contextSteps = Array.from(new Set([1, 4, 5, 6, step])).sort((a, b) => a - b);
+
+  for (const stageStep of contextSteps) {
+    const data = getStageData(bundle.stages, stageStep);
     const trimmed: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(d)) trimmed[k] = truncate(v);
-    stageSummary[s] = trimmed;
+    for (const [key, value] of Object.entries(data)) {
+      // Decision Artifact 以单独的语义对象进入上下文，避免在普通字段里重复或无限膨胀。
+      if (key === DECISION_ARTIFACTS_KEY) continue;
+      trimmed[key] = truncate(value);
+    }
+    stageSummary[stageStep] = trimmed;
   }
+
+  const currentDecisions = parseDecisionArtifacts(getStageData(bundle.stages, step))
+    .slice(0, 3)
+    .map((decision) => ({
+      id: decision.id,
+      title: String(truncate(decision.title)),
+      proposal: String(truncate(decision.proposal)),
+      original_proposal: String(truncate(decision.originalProposal)),
+      human_revision: decision.humanRevision ? String(truncate(decision.humanRevision)) : null,
+      state: decision.state,
+      version: decision.version,
+      uncertainties: truncateStrings(decision.uncertainties),
+      impacts: truncateStrings(decision.impacts),
+      recent_events: decision.events.slice(-6).map((event) => ({
+        actor_type: event.actorType,
+        actor_name: event.actorName,
+        action: event.action,
+        after_state: event.afterState,
+        rationale: event.rationale ? String(truncate(event.rationale)) : null,
+        timestamp: event.timestamp,
+      })),
+    }));
+
   const payload = {
     purpose,
     current_step: step,
@@ -45,7 +93,7 @@ export function buildUserContext(bundle: ProjectBundle, step: number, purpose: "
     step_focus: cfg?.coachFocus,
     project: {
       title: bundle.project.title,
-      track: bundle.project.track ? TRACKS.find((t) => t.key === bundle.project.track)?.name : null,
+      track: bundle.project.track ? TRACKS.find((track) => track.key === bundle.project.track)?.name : null,
       status: bundle.project.status,
     },
     team: {
@@ -58,18 +106,23 @@ export function buildUserContext(bundle: ProjectBundle, step: number, purpose: "
       helpers: bundle.team.helpers,
     },
     stages_summary: stageSummary,
+    current_decisions: currentDecisions,
     test_cases: {
       count: bundle.testCases.length,
-      coverage_errors: validateTestCases(bundle.testCases).errors.map((e) => e.reason).slice(0, 5),
-      items: bundle.testCases.map((t) => ({
-        name: t.name,
-        type: t.type,
-        verdict: t.verdict,
-        has_actual: !!t.actual,
-        has_failure_reason: !!t.failureReason,
+      coverage_errors: validateTestCases(bundle.testCases).errors.map((error) => error.reason).slice(0, 5),
+      items: bundle.testCases.map((testCase) => ({
+        name: testCase.name,
+        type: testCase.type,
+        verdict: testCase.verdict,
+        has_actual: !!testCase.actual,
+        has_failure_reason: !!testCase.failureReason,
       })),
     },
-    recent_qa: qa, // 此前你追问过、用户已回答的内容:请针对回答继续深挖,不要重复问
+    recent_qa: qa,
+    context_boundary: {
+      immutable_input_snapshot_persisted: false,
+      note: "当前版本未保存本轮 Agent 输入上下文的不可变快照或哈希；不要声称可逐字段重放当时输入。",
+    },
   };
   return JSON.stringify(payload);
 }
@@ -101,18 +154,18 @@ async function recentQA(projectId: string): Promise<{ q: string; a: string }[]> 
     take: 3,
   });
   const qa: { q: string; a: string }[] = [];
-  for (const r of rows) {
+  for (const row of rows) {
     try {
-      const answers = JSON.parse(r.answers) as Record<string, string>;
-      const content = JSON.parse(r.content) as { questions?: (string | { q?: string })[] };
-      for (const [i, a] of Object.entries(answers)) {
-        if (!a || !a.trim()) continue;
-        const q = content.questions?.[Number(i)];
-        const qText = typeof q === "string" ? q : q?.q;
-        if (qText) qa.push({ q: qText, a });
+      const answers = JSON.parse(row.answers) as Record<string, string>;
+      const content = JSON.parse(row.content) as { questions?: (string | { q?: string })[] };
+      for (const [index, answer] of Object.entries(answers)) {
+        if (!answer || !answer.trim()) continue;
+        const question = content.questions?.[Number(index)];
+        const questionText = typeof question === "string" ? question : question?.q;
+        if (questionText) qa.push({ q: questionText, a: answer });
       }
     } catch {
-      /* ignore */
+      /* ignore malformed historical QA */
     }
   }
   return qa.slice(0, 5);
@@ -152,7 +205,6 @@ export async function runAgent(params: {
     if (parsedDirect?.success) {
       feedback = normalizeFeedback(parsedDirect.data);
     } else {
-      // 一次自动修复
       const repaired = tryParseJson(rawText, true);
       const parsedRepaired = repaired ? AgentFeedbackSchema.safeParse(coerceFeedbackShape(repaired)) : null;
       if (parsedRepaired?.success) {
@@ -163,9 +215,9 @@ export async function runAgent(params: {
         feedback = fallbackFeedback(rawText);
       }
     }
-  } catch (e) {
+  } catch (caught) {
     status = "ERROR";
-    error = e instanceof Error ? e.message.slice(0, 500) : String(e).slice(0, 500);
+    error = caught instanceof Error ? caught.message.slice(0, 500) : String(caught).slice(0, 500);
     feedback = fallbackFeedback("");
   }
 
@@ -205,7 +257,8 @@ export async function runAgent(params: {
         promptTokens: promptTokens ?? Math.ceil(userMessage.length / 4),
         completionTokens: completionTokens ?? Math.ceil(rawText.length / 4),
         totalTokens:
-          (promptTokens ?? Math.ceil(userMessage.length / 4)) + (completionTokens ?? Math.ceil(rawText.length / 4)),
+          (promptTokens ?? Math.ceil(userMessage.length / 4)) +
+          (completionTokens ?? Math.ceil(rawText.length / 4)),
         latencyMs,
         ok: true,
       },
@@ -222,5 +275,14 @@ export async function runAgent(params: {
     });
   }
 
-  return { feedback, sessionId: session.id, feedbackId: feedbackRow.id, status, provider: provider.name, model: provider.model };
+  return {
+    feedback,
+    sessionId: session.id,
+    feedbackId: feedbackRow.id,
+    status,
+    provider: provider.name,
+    model: provider.model,
+    promptVersionLabel: label,
+    latencyMs,
+  };
 }

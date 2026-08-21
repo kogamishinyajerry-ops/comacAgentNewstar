@@ -1,0 +1,64 @@
+name: Agent collaboration validation
+
+on:
+  pull_request:
+    paths:
+      - "app/(app)/projects/**"
+      - "app/api/projects/**"
+      - "components/agent-collaboration/**"
+      - "components/wizard-types.ts"
+      - "lib/agent-collaboration/**"
+      - "tests/agent-collaboration.test.ts"
+      - "tests/e2e/decision-workspace.spec.ts"
+      - ".github/workflows/agent-collaboration-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: file:./ci-agent-collaboration.db
+      LLM_MOCK_MODE: "true"
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database
+        run: |
+          npx prisma generate
+          npx prisma db push
+          npm run db:seed
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Production build
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Golden Path E2E
+        run: npx playwright test tests/e2e/decision-workspace.spec.ts

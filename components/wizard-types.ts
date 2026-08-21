@@ -1,3 +1,5 @@
+import type { DecisionRunTrace } from "@/lib/agent-collaboration/types";
+
 // 向导客户端共享类型(全部为可序列化的纯数据)
 
 export interface TestCaseRow {
@@ -38,6 +40,7 @@ export interface FeedbackItem {
   suggestionStates: Record<string, string>;
   answers: Record<string, string>;
   createdAt: string;
+  run?: DecisionRunTrace;
 }
 
 export interface WizardTeam {

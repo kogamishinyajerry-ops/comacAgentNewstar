@@ -143,8 +143,8 @@ export default async function WorkspacePage() {
                     </span>
                   </div>
                 </div>
-                <LinkButton href={`/projects/${active.projectId}/chat`} size="lg">
-                  继续和 Agent 打磨 →
+                <LinkButton href={`/projects/${active.projectId}`} size="lg">
+                  进入当前决定 →
                 </LinkButton>
               </div>
 
@@ -225,7 +225,7 @@ export default async function WorkspacePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
-                          href={`/projects/${row.projectId}/chat`}
+                          href={`/projects/${row.projectId}`}
                           className="text-[14px] font-semibold text-slate-900 hover:text-brand-600"
                         >
                           {row.title}
@@ -240,8 +240,8 @@ export default async function WorkspacePage() {
                         {gapCandidate(row)}
                       </p>
                     </div>
-                    <LinkButton href={`/projects/${row.projectId}/chat`} size="sm" variant="secondary">
-                      打开
+                    <LinkButton href={`/projects/${row.projectId}`} size="sm" variant="secondary">
+                      打开决策
                     </LinkButton>
                   </div>
                 </article>
