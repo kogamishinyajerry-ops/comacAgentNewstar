@@ -1,26 +1,35 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 const uniq = Date.now();
 
-test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 Artifact", async ({ page }) => {
+async function registerProject(
+  page: Page,
+  suffix: string,
+  projectTitle: string,
+): Promise<string> {
   await page.goto("/register");
-  await page.getByPlaceholder("真实姓名或常用昵称").fill(`协作验收${uniq}`);
-  await page.locator('input[type="email"]').fill(`decision${uniq}@t.cn`);
+  await page.getByPlaceholder("真实姓名或常用昵称").fill(`协作验收${suffix}`);
+  await page.locator('input[type="email"]').fill(`decision-${suffix}@t.cn`);
   await page.locator('input[type="password"]').fill("password123");
   await page.getByRole("button", { name: "注册并开始" }).click();
   await expect(page).toHaveURL(/\/projects/);
 
   await page.goto("/projects/new-team");
-  await page.getByPlaceholder("例如:艾的实验小队").fill(`Decision队${uniq}`);
+  await page.getByPlaceholder("例如:艾的实验小队").fill(`Decision队${suffix}`);
   await page.getByRole("button", { name: "创建队伍" }).click();
 
   await page.getByRole("button", { name: "+ 新建想法" }).click();
-  await page.getByPlaceholder("想法名称,如:变更对比说明小助手").fill("可信协作闭环验收");
+  await page.getByPlaceholder("想法名称,如:变更对比说明小助手").fill(projectTitle);
   await page.getByRole("button", { name: "创建", exact: true }).click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/chat$/);
 
   const projectId = page.url().match(/\/projects\/([^/]+)\/chat$/)?.[1];
   expect(projectId).toBeTruthy();
+  return projectId as string;
+}
+
+test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 Artifact", async ({ page }) => {
+  const projectId = await registerProject(page, `${uniq}-golden`, "可信协作闭环验收");
   await page.goto(`/projects/${projectId}`);
 
   await expect(page.getByRole("region", { name: "Agent 协作决策工作台" })).toBeVisible();
@@ -30,7 +39,7 @@ test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 A
 
   await page.getByRole("button", { name: "请求本阶段诊断" }).click();
   await expect(page.getByText("先读一遍红线")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("重点看求证闭环与数据安全两条红线")).toBeVisible();
+  await expect(page.getByText("重点看求证闭环与数据安全两条红线", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /依据 1/ })).toBeVisible();
 
   await page.getByRole("button", { name: "接受并写入 Artifact" }).click();
@@ -53,13 +62,9 @@ test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 A
 });
 
 test("高级工作台仍可作为完整编辑与回退界面", async ({ page }) => {
-  await page.goto("/login");
-  await page.locator('input[type="email"]').fill(`decision${uniq}@t.cn`);
-  await page.locator('input[type="password"]').fill("password123");
-  await page.getByRole("button", { name: "登录" }).click();
-  await expect(page).toHaveURL(/\/projects/);
+  const projectId = await registerProject(page, `${uniq}-advanced`, "高级工作台回退验收");
+  await page.goto(`/projects/${projectId}`);
 
-  await page.getByText("可信协作闭环验收").click();
   await expect(page.getByRole("link", { name: "进入高级工作台 ↗" })).toBeVisible();
   await page.getByRole("link", { name: "进入高级工作台 ↗" }).click();
 
