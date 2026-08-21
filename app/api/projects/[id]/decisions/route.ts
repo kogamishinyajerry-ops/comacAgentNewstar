@@ -135,6 +135,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   let validationAgentId = `agent:${feedback.session.id}`;
   let validationEvidence: DecisionEvidence[] = [];
   if (input.intent === "validate") {
+    if (!existing || !["approved", "executed"].includes(existing.state)) {
+      return jsonError(409, "只有已批准并写入的决定才能请求复核");
+    }
+    const decisionWrittenAt = new Date(existing.updatedAt);
+    if (Number.isNaN(decisionWrittenAt.getTime())) {
+      return jsonError(409, "当前决定版本时间无效，请重新生成建议");
+    }
+
     const validationFeedback = await prisma.agentFeedback.findUnique({
       where: { id: input.validationFeedbackId },
       include: { session: true },
@@ -143,12 +151,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       !validationFeedback ||
       validationFeedback.projectId !== params.id ||
       validationFeedback.step !== input.step ||
-      validationFeedback.createdAt <= feedback.createdAt
+      validationFeedback.session.purpose !== "COACH" ||
+      validationFeedback.createdAt <= decisionWrittenAt
     ) {
-      return jsonError(409, "Coach 复核记录与当前决定不匹配");
-    }
-    if (!existing || !["approved", "executed"].includes(existing.state)) {
-      return jsonError(409, "只有已批准并写入的决定才能请求复核");
+      return jsonError(409, "必须使用批准后新产生的本阶段 Coach 复核记录");
     }
     if (!["OK", "REPAIRED"].includes(validationFeedback.session.status)) {
       return jsonError(409, "本轮 Coach 运行未形成可采信的复核结果，请重试");
@@ -250,10 +256,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       rationale: input.rationale,
       modifiedProposal: input.modifiedProposal,
       validationFeedbackId,
-      eventEvidenceRefs: validationEvidence.length
-        ? validationEvidence.map((item) => item.id)
-        : undefined,
     });
+    if (input.intent === "validate" && validationEvidence.length) {
+      const validationRefs = validationEvidence.map((item) => item.id);
+      artifact = {
+        ...artifact,
+        events: artifact.events.map((event, index, events) =>
+          index === events.length - 1 && event.action === "validated"
+            ? { ...event, evidenceRefs: validationRefs }
+            : event,
+        ),
+      };
+    }
   } catch (error) {
     return jsonError(409, error instanceof Error ? error.message : "无法应用这项决定");
   }
