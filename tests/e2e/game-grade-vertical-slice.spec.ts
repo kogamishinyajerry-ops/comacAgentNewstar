@@ -36,6 +36,11 @@ test.describe("Game-grade Vertical Slice", () => {
       }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "唤醒问题" })).toBeFocused();
+    const skipLink = page.locator(".hub-skip-link");
+    await expect(skipLink).toHaveAttribute("href", "#game-grade-intro-title");
+    await skipLink.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#game-grade-intro-title")).toBeFocused();
     await expect(
       intro.getByRole("link", { name: "直接进入简洁模式" }),
     ).toHaveAttribute("href", "/start");
@@ -62,6 +67,7 @@ test.describe("Game-grade Vertical Slice", () => {
     await expect(stage).not.toHaveAttribute("inert", "");
     await expect(journey).not.toHaveAttribute("inert", "");
     await expect(journey).toHaveAttribute("aria-hidden", "false");
+    await expect(skipLink).toHaveAttribute("href", "#hub-main");
     await expect(page.locator("#coach-answer")).toBeFocused();
     await expect(page.locator("[data-game-grade-journey]")).toHaveAccessibleName(
       /等待第一条真实线索/,
@@ -70,6 +76,19 @@ test.describe("Game-grade Vertical Slice", () => {
     await expect(
       page.locator('[data-game-grade-step="moment"]'),
     ).toHaveAttribute("data-state", "current");
+    await expect(page.locator("[data-game-grade-outcome]")).toHaveAttribute(
+      "data-state",
+      "forming",
+    );
+    const geometry = await page.evaluate(() => ({
+      horizontal: document.documentElement.scrollWidth - window.innerWidth,
+      documentHeight: document.documentElement.scrollHeight,
+      viewportHeight: window.innerHeight,
+    }));
+    expect(geometry.horizontal).toBeLessThanOrEqual(0);
+    expect(geometry.documentHeight).toBeLessThanOrEqual(
+      geometry.viewportHeight + 1,
+    );
   });
 
   test("Escape 可跳过序章，仍进入同一条真实工作流", async ({ page }: { page: Page }) => {
@@ -123,6 +142,16 @@ test.describe("Game-grade Vertical Slice", () => {
     await page.locator("#coach-answer").fill(THIRD_ANSWER);
     await page.getByRole("button", { name: "提交这一问的回答" }).click();
 
+    const journey = page.locator("[data-game-grade-journey]");
+    await expect(journey).toHaveAttribute("data-busy", "true");
+    await expect(page.locator("[data-game-grade-outcome]")).toContainText(
+      "正在重排线索",
+    );
+    await expect(page.locator("[data-game-grade-outcome]")).toHaveAttribute(
+      "data-state",
+      "forming",
+    );
+
     await expect(page.locator(".coach-workspace-grid--grown")).toBeVisible({
       timeout: 15_000,
     });
@@ -136,6 +165,10 @@ test.describe("Game-grade Vertical Slice", () => {
     await expect(
       page.locator('[data-game-grade-step][data-state="complete"]'),
     ).toHaveCount(3);
+    await expect(page.locator("[data-game-grade-outcome]")).toHaveAttribute(
+      "data-state",
+      "condensed",
+    );
   });
 
   test("种子凝结后进入深化轮,世界状态不回退到旧一幕", async ({
@@ -201,6 +234,98 @@ test.describe("Game-grade Vertical Slice", () => {
       page.getByRole("link", { name: "开始一次问题探索" }),
     ).toHaveAttribute("href", "/start");
   });
+});
+
+test("390×844：抽屉与序章的 Escape 归属唯一", async ({
+  page,
+}: { page: Page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/experience");
+
+  const intro = page.locator("[data-game-grade-intro]");
+  const burger = page.getByRole("button", { name: "打开导航菜单" });
+  await burger.click();
+  await expect(page.locator("#hub-drawer")).toHaveAttribute("aria-hidden", "false");
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#hub-drawer")).toHaveAttribute("aria-hidden", "true");
+  await expect(burger).toBeFocused();
+  await expect(intro).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(intro).toHaveCount(0, { timeout: 3_000 });
+  await expect(page.locator("#coach-answer")).toBeFocused();
+});
+
+test("1024×768 + 200% 文本：序章可读、可操作且无水平溢出", async ({
+  page,
+}: { page: Page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/experience");
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+
+  const title = page.locator("#game-grade-intro-title");
+  const lead = page.locator("#game-grade-intro-description");
+  const start = page.getByRole("button", { name: "唤醒问题" });
+  await expect(title).toBeVisible();
+  await expect(lead).toBeVisible();
+  await start.scrollIntoViewIfNeeded();
+  await expect(start).toBeVisible();
+
+  const metrics = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth - window.innerWidth,
+    documentHeight: document.documentElement.scrollHeight,
+    viewportHeight: window.innerHeight,
+    titleSize: Number.parseFloat(
+      getComputedStyle(document.querySelector("#game-grade-intro-title")!).fontSize,
+    ),
+    leadSize: Number.parseFloat(
+      getComputedStyle(document.querySelector("#game-grade-intro-description")!).fontSize,
+    ),
+  }));
+  expect(metrics.horizontal).toBeLessThanOrEqual(0);
+  expect(metrics.documentHeight).toBeLessThanOrEqual(metrics.viewportHeight + 1);
+  expect(metrics.titleSize).toBeGreaterThanOrEqual(70);
+  expect(metrics.leadSize).toBeGreaterThanOrEqual(28);
+});
+
+test("Forced Colors：journey 当前、完成与未来状态不只依赖颜色", async ({
+  page,
+}: { page: Page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.emulateMedia({ forcedColors: "active" });
+  await enterExperience(page);
+
+  const styles = await page.evaluate(() => {
+    const current = document.querySelector<HTMLElement>(
+      '[data-game-grade-step][data-state="current"] > span[aria-hidden="true"]',
+    );
+    const future = document.querySelector<HTMLElement>(
+      '[data-game-grade-step][data-state="future"] > span[aria-hidden="true"]',
+    );
+    if (!current || !future) throw new Error("journey markers missing");
+    return {
+      currentBorderStyle: getComputedStyle(current).borderStyle,
+      futureBorderStyle: getComputedStyle(future).borderStyle,
+    };
+  });
+  expect(styles.currentBorderStyle).toBe("double");
+  expect(styles.futureBorderStyle).toBe("dashed");
+
+  await page.locator("#coach-answer").fill(FIRST_ANSWER);
+  await page.getByRole("button", { name: "提交这一问的回答" }).click();
+  await expect(
+    page.getByRole("heading", { name: /这个问题对谁造成了什么具体损失/ }),
+  ).toBeVisible({ timeout: 15_000 });
+  const completed = page.locator(
+    '[data-game-grade-step][data-state="complete"] > span[aria-hidden="true"]',
+  );
+  await expect(completed).toHaveText("✓");
+  expect(await completed.evaluate((node) => getComputedStyle(node).borderStyle)).toBe(
+    "solid",
+  );
 });
 
 test("390×844 + Reduced Motion：序章即时退出且无页面溢出", async ({

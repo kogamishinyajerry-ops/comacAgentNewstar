@@ -158,6 +158,7 @@ test.describe("Hub 无障碍与响应式深化", () => {
 const axeCases = [
   { name: "首页桌面", url: "/", viewport: desktop },
   { name: "Coach 起始幕平板", url: "/start", viewport: tablet },
+  { name: "Game-grade 序章移动端", url: "/experience", viewport: mobile },
   { name: "活动指南移动端", url: "/guide", viewport: mobile },
   { name: "参赛者角色页桌面", url: "/role/participant", viewport: desktop },
   { name: "评委角色页平板", url: "/role/reviewer", viewport: tablet },
@@ -172,6 +173,17 @@ for (const axeCase of axeCases) {
     await expectNoAxeViolations(page);
   });
 }
+
+test("Axe: Game-grade 序章结束后的真实 Coach 态无违规", async ({ page }) => {
+  await page.setViewportSize(tablet);
+  await page.goto("/experience");
+  await page.getByRole("button", { name: "唤醒问题" }).click();
+  await expect(page.locator("[data-game-grade-intro]")).toHaveCount(0, {
+    timeout: 3_000,
+  });
+  await expect(page.locator("#coach-answer")).toBeFocused();
+  await expectNoAxeViolations(page);
+});
 
 /* K3 增补:过渡后问题态与种子态也必须零豁免(任务书§七) */
 const ACT_AXE_QUESTIONS = [

@@ -110,6 +110,23 @@ function statusCopy(snapshot: JourneySnapshot): string {
   return "Agent 必要性已形成";
 }
 
+function outcomeCopy(snapshot: JourneySnapshot): {
+  eyebrow: string;
+  label: string;
+  state: "forming" | "condensed";
+} {
+  if (snapshot.busy) {
+    return { eyebrow: "本轮产物", label: "正在重排线索", state: "forming" };
+  }
+  if (snapshot.phase === "artifact") {
+    return { eyebrow: "问题种子", label: "已进入实践", state: "condensed" };
+  }
+  if (snapshot.completed === JOURNEY_STEPS.length) {
+    return { eyebrow: "问题种子", label: "已凝结", state: "condensed" };
+  }
+  return { eyebrow: "本轮产物", label: "等待真实判断", state: "forming" };
+}
+
 function stepState(
   index: number,
   snapshot: JourneySnapshot,
@@ -139,6 +156,7 @@ export function GameGradeVerticalSlice({
 
   const introActive = introState !== "closed";
   const status = useMemo(() => statusCopy(snapshot), [snapshot]);
+  const outcome = useMemo(() => outcomeCopy(snapshot), [snapshot]);
 
   const beginExperience = useCallback(() => {
     if (introState !== "open") return;
@@ -148,7 +166,7 @@ export function GameGradeVerticalSlice({
     ).matches;
     exitTimerRef.current = window.setTimeout(
       () => setIntroState("closed"),
-      reduceMotion ? 0 : 620,
+      reduceMotion ? 0 : 440,
     );
   }, [introState]);
 
@@ -177,12 +195,31 @@ export function GameGradeVerticalSlice({
   }, [introActive]);
 
   useEffect(() => {
+    const skipLink = document.querySelector<HTMLAnchorElement>(".hub-skip-link");
+    if (!skipLink || !introActive) return;
+
+    const previousHref = skipLink.getAttribute("href");
+    // 序章是当前唯一场景，skip-link 应落到序章标题，
+    // 不应把焦点送入已 inert 的 Coach stage。
+    skipLink.setAttribute("href", "#game-grade-intro-title");
+
+    return () => {
+      if (previousHref === null) skipLink.removeAttribute("href");
+      else skipLink.setAttribute("href", previousHref);
+    };
+  }, [introActive]);
+
+  useEffect(() => {
     if (introState !== "open") return;
     const frame = window.requestAnimationFrame(() => startRef.current?.focus());
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
+      // 移动端抽屉拥有更高的当前场景优先级：Esc 只关闭抽屉，
+      // 不在同一次按键中跳过序章。
+      if (document.querySelector('.hub-drawer[data-open="true"]')) return;
       event.preventDefault();
+      event.stopImmediatePropagation();
       beginExperience();
     }
 
@@ -229,6 +266,7 @@ export function GameGradeVerticalSlice({
         "aria-label",
         "class",
         "data-artifact-lit",
+        "data-coach-progress-deepening",
         "data-coach-slot-filled",
       ],
     });
@@ -296,6 +334,21 @@ export function GameGradeVerticalSlice({
             );
           })}
         </ol>
+
+        <div
+          className={journeyStyles.journeyOutcome}
+          data-game-grade-outcome
+          data-state={outcome.state}
+          aria-hidden="true"
+        >
+          <span className={journeyStyles.outcomeMark}>
+            <span className={journeyStyles.outcomeCore} />
+          </span>
+          <span className={journeyStyles.outcomeCopy}>
+            <span className={journeyStyles.outcomeEyebrow}>{outcome.eyebrow}</span>
+            <strong className={journeyStyles.outcomeLabel}>{outcome.label}</strong>
+          </span>
+        </div>
       </aside>
 
       <div
@@ -323,7 +376,11 @@ export function GameGradeVerticalSlice({
                 <span aria-hidden="true">/</span>
                 <span>体验序章 01</span>
               </p>
-              <h1 id="game-grade-intro-title" className={introStyles.introTitle}>
+              <h1
+                id="game-grade-intro-title"
+                className={introStyles.introTitle}
+                tabIndex={-1}
+              >
                 让一个真实问题，
                 <span>自己长出结构。</span>
               </h1>
@@ -360,6 +417,10 @@ export function GameGradeVerticalSlice({
               data-game-grade-seed
               aria-hidden="true"
             >
+              <div className={introStyles.seedStageHeader}>
+                <span>问题种子 / SEED FIELD</span>
+                <span>等待真实线索</span>
+              </div>
               <div className={introStyles.seedCoordinate}>
                 <span className={introStyles.seedAxisHorizontal} />
                 <span className={introStyles.seedAxisVertical} />

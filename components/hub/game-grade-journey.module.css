@@ -10,16 +10,16 @@
   gap: 22px;
   min-height: 50px;
   padding: 7px 12px 7px 15px;
-  border: 1px solid rgba(43, 85, 201, 0.1);
+  border: 1px solid color-mix(in srgb, var(--accent-coach) 10%, transparent);
   border-radius: 10px;
   opacity: 0;
   transform: translateY(-8px);
   pointer-events: none;
-  background: rgba(255, 255, 255, 0.74);
+  background: color-mix(in srgb, var(--surface-primary) 74%, transparent);
   box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.9),
-    0 12px 34px rgba(23, 34, 56, 0.055);
-  backdrop-filter: blur(16px);
+    inset 0 1px color-mix(in srgb, var(--surface-primary) 90%, transparent),
+    0 10px 28px color-mix(in srgb, var(--text-primary) 4.5%, transparent);
+  backdrop-filter: blur(12px);
   transition:
     opacity 400ms var(--ease-soft),
     transform 480ms var(--ease-soft);
@@ -39,7 +39,7 @@
 
 .journeyEyebrow {
   color: var(--text-tertiary);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -49,7 +49,7 @@
   margin-top: 3px;
   overflow: hidden;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -74,22 +74,22 @@
   content: "";
 }
 
-.journeyTrack::before { background: rgba(89, 100, 119, 0.18); }
+.journeyTrack::before { background: color-mix(in srgb, var(--text-secondary) 18%, transparent); }
 
 .journeyTrack::after {
-  right: auto;
-  width: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
   background: linear-gradient(90deg, var(--accent-coach), var(--accent-purple));
-  transition: width 540ms var(--ease-soft);
+  transition: transform 540ms var(--ease-soft);
 }
 
 :global([data-journey-completed="1"]) .journeyTrack::after {
-  width: calc(33.333% - 12px);
+  transform: scaleX(0.5);
 }
 
 :global([data-journey-completed="2"]) .journeyTrack::after,
 :global([data-journey-completed="3"]) .journeyTrack::after {
-  width: calc(66.667% - 24px);
+  transform: scaleX(1);
 }
 
 .journeyStep {
@@ -111,29 +111,28 @@
   height: 26px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(89, 100, 119, 0.24);
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 24%, transparent);
   border-radius: 50%;
   color: var(--text-tertiary);
-  font-size: 8.5px;
+  font-size: 0.53125rem;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.92);
-  transition: 360ms var(--ease-soft);
-  transition-property: border-color, background-color, color, box-shadow, transform;
+  background: color-mix(in srgb, var(--surface-primary) 92%, transparent);
+  transition: transform 360ms var(--ease-soft);
 }
 
 .journeyStep[data-state="current"] .journeyMarker {
-  border-color: rgba(43, 85, 201, 0.52);
+  border-color: color-mix(in srgb, var(--accent-coach) 52%, transparent);
   color: var(--accent-coach-strong);
-  background: rgba(247, 249, 255, 0.96);
-  box-shadow: 0 0 0 5px rgba(43, 85, 201, 0.07);
+  background: color-mix(in srgb, var(--surface-focus) 96%, transparent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent-coach) 7%, transparent);
   transform: scale(1.04);
 }
 
 .journeyStep[data-state="complete"] .journeyMarker {
-  border-color: rgba(43, 85, 201, 0.72);
-  color: #fff;
+  border-color: color-mix(in srgb, var(--accent-coach) 72%, transparent);
+  color: var(--surface-primary);
   background: var(--accent-coach);
-  box-shadow: 0 0 0 4px rgba(43, 85, 201, 0.055);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-coach) 5.5%, transparent);
 }
 
 .journey[data-busy="true"] .journeyStep[data-state="current"] .journeyMarker {
@@ -142,7 +141,7 @@
 
 .journeyStepLabel {
   color: var(--text-primary);
-  font-size: 10.5px;
+  font-size: 0.65625rem;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -151,7 +150,7 @@
   display: none;
   margin-top: 2px;
   color: var(--text-tertiary);
-  font-size: 9px;
+  font-size: 0.5625rem;
   white-space: nowrap;
 }
 
@@ -161,8 +160,86 @@
 }
 
 @keyframes settle {
-  from { box-shadow: 0 0 0 0 rgba(43, 85, 201, 0.22); }
-  to { box-shadow: 0 0 0 8px rgba(43, 85, 201, 0); }
+  0%, 100% { transform: scale(1.04); }
+  48% { transform: scale(0.92); }
+}
+
+.journeyOutcome {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.outcomeMark {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  background: color-mix(in srgb, var(--surface-primary) 88%, transparent);
+}
+
+.outcomeMark::before,
+.outcomeMark::after {
+  position: absolute;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  content: "";
+  opacity: 0.24;
+}
+
+.outcomeMark::before { inset: 4px; }
+.outcomeMark::after { inset: 8px; }
+
+.outcomeCore {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.outcomeCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  text-align: right;
+}
+
+.outcomeEyebrow {
+  color: var(--text-tertiary);
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.outcomeLabel {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journeyOutcome[data-state="condensed"] .outcomeMark {
+  border-color: color-mix(in srgb, var(--accent-coach) 58%, transparent);
+  color: var(--accent-coach);
+  transform: scale(1.06);
+}
+
+.journeyOutcome[data-state="condensed"] .outcomeLabel {
+  color: var(--accent-coach-strong);
+}
+
+:global([data-journey-phase="seed"]) .journeyMarker {
+  transition: none;
 }
 
 @media (min-width: 1280px) {
@@ -185,13 +262,13 @@
     left: 7px;
     right: 7px;
     top: 7px;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 9px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 7px;
     min-height: 49px;
     padding: 6px 9px;
   }
-  .journeyEyebrow { font-size: 8px; }
-  .journeyStatus { font-size: 10.5px; }
+  .journeyEyebrow { font-size: 0.5rem; }
+  .journeyStatus { font-size: 0.65625rem; }
   .journeyTrack { width: 112px; }
   .journeyTrack::before,
   .journeyTrack::after {
@@ -199,26 +276,56 @@
     right: calc(16.667% + 8px);
     top: 9px;
   }
-  :global([data-journey-completed="1"]) .journeyTrack::after {
-    width: calc(33.333% - 8px);
-  }
-  :global([data-journey-completed="2"]) .journeyTrack::after,
-  :global([data-journey-completed="3"]) .journeyTrack::after {
-    width: calc(66.667% - 16px);
-  }
-  .journeyMarker { width: 19px; height: 19px; font-size: 7px; }
+  .journeyMarker { width: 19px; height: 19px; font-size: 0.4375rem; }
   .journeyStepCopy { display: none; }
+  .outcomeCopy { display: none; }
+  .outcomeMark { width: 23px; height: 23px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .journey,
   .journeyTrack::after,
-  .journeyMarker {
+  .journeyMarker,
+  .outcomeMark {
     animation: none !important;
     transition: none !important;
   }
 }
 
 @media (forced-colors: active) {
-  .journey { background: Canvas; }
+  .journey {
+    border-color: CanvasText;
+    background: Canvas;
+    box-shadow: none;
+  }
+  .journeyTrack::before { background: GrayText; }
+  .journeyTrack::after { background: Highlight; }
+  .journeyStep[data-state="future"] .journeyMarker {
+    border-style: dashed;
+    border-color: GrayText;
+    color: GrayText;
+  }
+  .journeyStep[data-state="current"] .journeyMarker {
+    border: 3px double Highlight;
+    color: Highlight;
+    background: Canvas;
+    box-shadow: none;
+  }
+  .journeyStep[data-state="complete"] .journeyMarker {
+    border-color: Highlight;
+    color: HighlightText;
+    background: Highlight;
+    box-shadow: none;
+  }
+  .journeyStep[data-state="future"] .journeyStepLabel { color: GrayText; }
+  .journeyOutcome[data-state="forming"] .outcomeMark {
+    border-style: dashed;
+    border-color: GrayText;
+    color: GrayText;
+  }
+  .journeyOutcome[data-state="condensed"] .outcomeMark {
+    border: 3px double Highlight;
+    color: Highlight;
+    background: Canvas;
+  }
 }
