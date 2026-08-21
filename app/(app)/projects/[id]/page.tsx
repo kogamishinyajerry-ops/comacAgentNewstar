@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { canEditProject, canViewProject, isProjectMember, loadProjectBundle } from "@/lib/projects";
 import { judgeAssignmentIds } from "@/lib/api-helpers";
 import { getStageData } from "@/lib/validation";
-import { Wizard } from "@/components/wizard";
+import { AdvancedWizard } from "@/components/agent-collaboration/advanced-wizard";
 import { DecisionWorkspace } from "@/components/agent-collaboration/decision-workspace";
 import type { WizardData } from "@/components/wizard-types";
 
@@ -121,7 +121,7 @@ export default async function ProjectWizardPage({
     })),
   };
 
-  if (searchParams.view === "advanced") return <Wizard data={data} />;
+  if (searchParams.view === "advanced") return <AdvancedWizard data={data} />;
 
   return <DecisionWorkspace data={data} actorName={user.name} actorRole={user.role} />;
 }
