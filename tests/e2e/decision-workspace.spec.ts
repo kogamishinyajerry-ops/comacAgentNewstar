@@ -55,10 +55,12 @@ test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 A
   await expect(page.getByLabel("AI Coach 决策区").getByText("已签收", { exact: true })).toBeVisible();
   await expect(page.getByText("你已完成最终签收", { exact: false })).toBeVisible();
 
-  const attribution = page.locator("section").filter({
-    has: page.getByRole("heading", { name: "谁提出、谁修改、谁批准、谁复核" }),
-  });
-  await expect(attribution.getByRole("listitem").filter({ hasText: "签收" })).toContainText("协作验收");
+  const attribution = page
+    .getByRole("heading", { name: "谁提出、谁修改、谁批准、谁复核" })
+    .locator("..");
+  await expect(
+    attribution.locator('li[data-actor="human"]').filter({ hasText: "签收" }).first(),
+  ).toContainText("协作验收");
 
   await page.getByText("Evidence & Run Trace", { exact: true }).click();
   await expect(page.getByText("Agent Run", { exact: true })).toBeVisible();
@@ -78,8 +80,8 @@ test("新项目默认进入决策界面，高级工作台保持可刷新回退",
   await page.getByRole("link", { name: "进入高级工作台 ↗" }).click();
 
   await expect(page).toHaveURL(/view=advanced/);
-  await expect(page.getByText("规则与数据承诺", { exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "步骤导航" })).toBeVisible();
   await page.reload();
   await expect(page).toHaveURL(/view=advanced/);
-  await expect(page.getByText("规则与数据承诺", { exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "步骤导航" })).toBeVisible();
 });
