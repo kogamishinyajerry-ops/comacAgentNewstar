@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { AgentFeedbackSchema, fallbackFeedback, normalizeFeedback } from "../lib/llm/schema";
 import { coerceFeedbackShape, tryParseJson } from "../lib/llm/repair";
 import { generateMockFeedback } from "../lib/llm/mock";
+import { buildUserContext } from "../lib/llm/coach";
+import {
+  applyDecisionIntent,
+  buildDecisionArtifact,
+  withDecisionArtifacts,
+} from "../lib/agent-collaboration/decision";
 import type { ProjectBundle } from "../lib/projects";
 
 const bundle = (over: Partial<ProjectBundle> = {}): ProjectBundle => ({
@@ -93,7 +99,6 @@ describe("coerceFeedbackShape 形状矫正", () => {
       critical_gaps: ["闭环设计完全缺失", "测试案例为0个"],
       suggestions: ["补全阶段5闭环设计材料", "补充至少5个测试案例"],
     };
-    // 与真实管线一致:coerce → Schema校验 → normalize(强制note与上限)
     const parsed = AgentFeedbackSchema.safeParse(coerceFeedbackShape(raw));
     expect(parsed.success).toBe(true);
     if (parsed.success) {
@@ -108,6 +113,62 @@ describe("coerceFeedbackShape 形状矫正", () => {
     expect(coerced.questions).toEqual([]);
     expect(coerced.stage_assessment).toBe("needs_revision");
     expect(typeof coerced.next_action).toBe("string");
+  });
+});
+
+describe("Coach 上下文与证据边界", () => {
+  it("所有阶段都包含当前 Artifact，并把 Decision 作为独立语义对象交给 Coach", () => {
+    const proposed = buildDecisionArtifact({
+      projectId: "p1",
+      subjectRef: "project:p1:stage:8",
+      stage: 8,
+      title: "补充失败案例",
+      proposal: "记录一个失败输入、失败原因和人工修正过程。",
+      reasons: ["验证不能只有成功案例"],
+      evidence: [{ id: "feedback:f1", kind: "feedback", label: "AI 导师诊断" }],
+      uncertainties: ["尚未保存运行时上下文快照"],
+      impacts: ["只写入当前阶段"],
+      feedbackId: "f1",
+      suggestionIndex: 0,
+      createdAt: "2026-08-21T10:00:00.000Z",
+    });
+    const executed = applyDecisionIntent({
+      artifact: proposed,
+      intent: "approve",
+      actor: { id: "u1", name: "甲", type: "human" },
+      timestamp: "2026-08-21T10:01:00.000Z",
+    });
+    const current = bundle({
+      stages: [
+        ...bundle().stages,
+        {
+          step: 8,
+          data: JSON.stringify(withDecisionArtifacts({ evidenceNote: "当前阶段人工记录" }, [executed])),
+        },
+      ],
+    });
+
+    const context = JSON.parse(buildUserContext(current, 8, "COACH")) as {
+      stages_summary: Record<string, Record<string, unknown>>;
+      current_decisions: Array<{
+        id: string;
+        proposal: string;
+        state: string;
+        recent_events: Array<{ action: string }>;
+      }>;
+      context_boundary: { immutable_input_snapshot_persisted: boolean; note: string };
+    };
+
+    expect(context.stages_summary["8"].evidenceNote).toBe("当前阶段人工记录");
+    expect(context.stages_summary["8"].__decisionArtifacts).toBeUndefined();
+    expect(context.current_decisions[0]).toMatchObject({
+      id: executed.id,
+      proposal: executed.proposal,
+      state: "executed",
+    });
+    expect(context.current_decisions[0].recent_events.map((event) => event.action)).toContain("executed");
+    expect(context.context_boundary.immutable_input_snapshot_persisted).toBe(false);
+    expect(context.context_boundary.note).toContain("不可变快照或哈希");
   });
 });
 
@@ -172,7 +233,6 @@ describe("拷问式辅导(grill)", () => {
     const fb = generateMockFeedback({ bundle: b, step: 4, purpose: "COACH" });
     const qs = fb.questions.map((q) => (typeof q === "string" ? q : q.q)).join("|");
     expect(qs).toMatch(/估的|数过/);
-    // 每个对象形态的追问都带教育性 why
     for (const q of fb.questions) {
       if (typeof q !== "string") expect(q.why!.length).toBeGreaterThan(4);
     }
