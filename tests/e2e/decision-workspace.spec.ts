@@ -45,14 +45,18 @@ test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 A
   await page.getByRole("button", { name: "接受并写入 Artifact" }).click();
   await expect(page.getByText("已记录：你批准了 Agent 提议", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "让 Coach 复核" })).toBeVisible();
-  await expect(page.getByLabel("AI Coach 决策区").getByText("已写入 Artifact", { exact: true })).toBeVisible();
+  const coach = page.getByLabel("AI Coach 决策区");
+  await expect(coach.getByText("已写入 Artifact", { exact: true })).toBeVisible();
+  await expect(coach.getByText("无法逐字段重建本轮输入版本", { exact: false })).toBeVisible();
 
   await page.getByRole("button", { name: "让 Coach 复核" }).click();
   await expect(page.getByText("Coach 已完成一次新的阶段复核", { exact: false })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "确认签收" })).toBeVisible();
+  await expect(coach.getByRole("button", { name: /Coach 复核反馈/ })).toBeVisible();
+  await expect(coach.getByRole("button", { name: /Validation Run/ })).toBeVisible();
 
   await page.getByRole("button", { name: "确认签收" }).click();
-  await expect(page.getByLabel("AI Coach 决策区").getByText("已签收", { exact: true })).toBeVisible();
+  await expect(coach.getByText("已签收", { exact: true })).toBeVisible();
   await expect(page.getByText("你已完成最终签收", { exact: false })).toBeVisible();
 
   const attribution = page
