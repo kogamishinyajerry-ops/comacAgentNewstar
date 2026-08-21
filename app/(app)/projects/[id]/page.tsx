@@ -5,6 +5,7 @@ import { canEditProject, canViewProject, isProjectMember, loadProjectBundle } fr
 import { judgeAssignmentIds } from "@/lib/api-helpers";
 import { getStageData } from "@/lib/validation";
 import { Wizard } from "@/components/wizard";
+import { DecisionWorkspace } from "@/components/agent-collaboration/decision-workspace";
 import type { WizardData } from "@/components/wizard-types";
 
 export default async function ProjectWizardPage({
@@ -12,7 +13,7 @@ export default async function ProjectWizardPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { step?: string };
+  searchParams: { step?: string; view?: string };
 }) {
   const user = await requireUser();
   const bundle = await loadProjectBundle(params.id);
@@ -35,7 +36,19 @@ export default async function ProjectWizardPage({
         where: { projectId: params.id },
         orderBy: { createdAt: "desc" },
         take: 20,
-        include: { session: { select: { purpose: true } } },
+        include: {
+          session: {
+            select: {
+              purpose: true,
+              provider: true,
+              model: true,
+              promptVersionLabel: true,
+              status: true,
+              latencyMs: true,
+              createdAt: true,
+            },
+          },
+        },
       })
     : [];
   const snapshots = await prisma.submissionSnapshot.findMany({
@@ -88,6 +101,15 @@ export default async function ProjectWizardPage({
       suggestionStates: JSON.parse(f.suggestionStates || "{}"),
       answers: JSON.parse(f.answers || "{}"),
       createdAt: f.createdAt.toISOString(),
+      run: {
+        feedbackId: f.id,
+        provider: f.session.provider,
+        model: f.session.model,
+        promptVersionLabel: f.session.promptVersionLabel,
+        status: f.session.status,
+        latencyMs: f.session.latencyMs,
+        createdAt: f.session.createdAt.toISOString(),
+      },
     })),
     snapshots: snapshots.map((s) => ({ version: s.version, createdAt: s.createdAt.toISOString() })),
     attachments: attachments.map((a) => ({
@@ -99,5 +121,7 @@ export default async function ProjectWizardPage({
     })),
   };
 
-  return <Wizard data={data} />;
+  if (searchParams.view === "advanced") return <Wizard data={data} />;
+
+  return <DecisionWorkspace data={data} actorName={user.name} actorRole={user.role} />;
 }
