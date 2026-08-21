@@ -14,18 +14,18 @@ async function registerProject(
   await page.getByRole("button", { name: "注册并开始" }).click();
   await expect(page).toHaveURL(/\/projects/);
 
-  await page.goto("/projects/new-team");
-  await page.getByPlaceholder("例如:艾的实验小队").fill(`Decision队${suffix}`);
-  await page.getByRole("button", { name: "创建队伍" }).click();
+  const teamResponse = await page.request.post("/api/teams", {
+    data: { name: `Decision队${suffix}`.slice(0, 30), mode: "SOLO" },
+  });
+  expect(teamResponse.ok()).toBeTruthy();
 
-  await page.getByRole("button", { name: "+ 新建想法" }).click();
-  await page.getByPlaceholder("想法名称,如:变更对比说明小助手").fill(projectTitle);
-  await page.getByRole("button", { name: "创建", exact: true }).click();
-  await expect(page).toHaveURL(/\/projects\/[^/]+\/chat$/);
-
-  const projectId = page.url().match(/\/projects\/([^/]+)\/chat$/)?.[1];
-  expect(projectId).toBeTruthy();
-  return projectId as string;
+  const projectResponse = await page.request.post("/api/projects", {
+    data: { title: projectTitle },
+  });
+  expect(projectResponse.ok()).toBeTruthy();
+  const payload = (await projectResponse.json()) as { projectId?: string };
+  expect(payload.projectId).toBeTruthy();
+  return payload.projectId as string;
 }
 
 test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 Artifact", async ({ page }) => {
@@ -45,16 +45,16 @@ test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 A
   await page.getByRole("button", { name: "接受并写入 Artifact" }).click();
   await expect(page.getByText("已记录：你批准了 Agent 提议", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "让 Coach 复核" })).toBeVisible();
-  await expect(page.getByText("写入 Artifact", { exact: false })).toBeVisible();
+  await expect(page.getByLabel("AI Coach 决策区").getByText("已写入 Artifact", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "让 Coach 复核" }).click();
   await expect(page.getByText("Coach 已完成一次新的阶段复核", { exact: false })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "确认签收" })).toBeVisible();
 
   await page.getByRole("button", { name: "确认签收" }).click();
-  await expect(page.getByText("已签收", { exact: true }).first()).toBeVisible();
+  await expect(page.getByLabel("AI Coach 决策区").getByText("已签收", { exact: true })).toBeVisible();
   await expect(page.getByText("你已完成最终签收", { exact: false })).toBeVisible();
-  await expect(page.getByText("协作验收", { exact: false })).toBeVisible();
+  await expect(page.getByText(/协作验收.*签收/)).toBeVisible();
 
   await page.getByText("Evidence & Run Trace", { exact: true }).click();
   await expect(page.getByText("Agent Run", { exact: true })).toBeVisible();
