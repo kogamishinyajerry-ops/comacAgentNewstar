@@ -56,6 +56,14 @@ function parseStageData(raw: string | null | undefined): Record<string, unknown>
   }
 }
 
+function parseAgentFeedback(raw: string) {
+  try {
+    return AgentFeedbackSchema.safeParse(JSON.parse(raw) as unknown);
+  } catch {
+    return AgentFeedbackSchema.safeParse(null);
+  }
+}
+
 function suggestionStateFor(intent: z.infer<typeof Body>["intent"]): string | null {
   if (intent === "approve" || intent === "modify") return "adopted";
   if (intent === "signoff") return "done";
@@ -64,6 +72,20 @@ function suggestionStateFor(intent: z.infer<typeof Body>["intent"]): string | nu
 
 function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+}
+
+function parseSuggestionStates(raw: string): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+  } catch {
+    return {};
+  }
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -84,7 +106,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return jsonError(404, "对应的 Agent 建议不存在");
   }
 
-  const feedbackResult = AgentFeedbackSchema.safeParse(JSON.parse(feedback.content));
+  const feedbackResult = parseAgentFeedback(feedback.content);
   if (!feedbackResult.success) return jsonError(409, "Agent 建议结构已失效，请重新诊断");
   const suggestion = feedbackResult.data.suggestions[input.suggestionIndex];
   if (!suggestion) return jsonError(404, "对应的 Agent 建议不存在");
@@ -99,27 +121,33 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!existing && (input.intent === "validate" || input.intent === "signoff")) {
     return jsonError(409, "请先批准、修改或质疑这项建议");
   }
-  if (existing?.state === "verified" && input.intent !== "signoff") {
-    return jsonError(409, "该决定已签收；如需改变，请生成新的 Agent 建议版本");
+  if (existing?.state === "verified") {
+    return jsonError(409, "该决定已经签收；如需改变，请生成新的 Agent 建议版本");
   }
 
   let validationFeedbackId: string | undefined;
+  let validationAgentId = `agent:${feedback.session.id}`;
   if (input.intent === "validate") {
     const validationFeedback = await prisma.agentFeedback.findUnique({
       where: { id: input.validationFeedbackId },
+      include: { session: true },
     });
     if (
       !validationFeedback ||
       validationFeedback.projectId !== params.id ||
       validationFeedback.step !== input.step ||
-      validationFeedback.createdAt < feedback.createdAt
+      validationFeedback.createdAt <= feedback.createdAt
     ) {
       return jsonError(409, "Coach 复核记录与当前决定不匹配");
     }
     if (!existing || !["approved", "executed"].includes(existing.state)) {
       return jsonError(409, "只有已批准并写入的决定才能请求复核");
     }
+    if (!["OK", "REPAIRED"].includes(validationFeedback.session.status)) {
+      return jsonError(409, "本轮 Coach 运行未形成可采信的复核结果，请重试");
+    }
     validationFeedbackId = validationFeedback.id;
+    validationAgentId = `agent:${validationFeedback.session.id}`;
   }
 
   if (input.intent === "signoff" && existing && !hasValidationEvent(existing)) {
@@ -127,31 +155,27 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   const stageTitle = getStepConfig(input.step)?.title ?? `阶段 ${input.step}`;
-  const attachments = await prisma.attachment.findMany({
-    where: { projectId: params.id },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-  });
+  // 只把本轮 Agent 实际读取的上下文登记为依据。当前 Coach 上下文没有读取附件，
+  // 因此附件不能仅因“存在于项目中”就被伪装成支持本结论的 Evidence。
   const evidence: DecisionEvidence[] = [
     {
       id: `stage:${params.id}:${input.step}`,
       kind: "stage",
-      label: `${stageTitle} · 当前阶段 Artifact`,
-      version: stageRow ? `更新于 ${stageRow.updatedAt.toISOString()}` : "尚无正式字段版本",
+      label: `${stageTitle} · 本轮读取的阶段 Artifact`,
+      version: stageRow ? `更新于 ${stageRow.updatedAt.toISOString()}` : "本轮读取为空白阶段",
     },
     {
       id: `feedback:${feedback.id}`,
       kind: "feedback",
-      label: `AI 导师诊断 · ${feedback.session.promptVersionLabel ?? "提示词版本待记录"}`,
-      version: `${feedback.session.provider}/${feedback.session.model}`,
+      label: "AI 导师结构化诊断",
+      version: feedback.createdAt.toISOString(),
     },
-    ...attachments.map((attachment) => ({
-      id: `attachment:${attachment.id}`,
-      kind: "attachment" as const,
-      label: attachment.title,
-      href: attachment.kind === "FILE" ? `/api/attachments/${attachment.id}/download` : attachment.url,
-      version: attachment.createdAt.toISOString(),
-    })),
+    {
+      id: `run:${feedback.session.id}`,
+      kind: "run",
+      label: `Agent Run · ${feedback.session.provider}/${feedback.session.model}`,
+      version: `${feedback.session.promptVersionLabel ?? "prompt-unversioned"} · ${feedback.session.status}`,
+    },
   ];
 
   const baseArtifact: DecisionArtifact =
@@ -180,7 +204,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const actor: DecisionActor =
     input.intent === "validate"
-      ? { id: `agent:${feedback.session.id}`, name: "AI 导师 Coach", type: "agent" }
+      ? { id: validationAgentId, name: "AI 导师 Coach", type: "agent" }
       : { id: access.user.id, name: access.user.name, type: "human" };
 
   let artifact: DecisionArtifact;
@@ -195,7 +219,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       validationFeedbackId,
     });
   } catch (error) {
-    return jsonError(400, error instanceof Error ? error.message : "无法应用这项决定");
+    return jsonError(409, error instanceof Error ? error.message : "无法应用这项决定");
   }
 
   const nextArtifacts = upsertDecisionArtifact(artifacts, artifact);
@@ -210,12 +234,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     if (nextSuggestionState) {
-      let states: Record<string, string> = {};
-      try {
-        states = JSON.parse(feedback.suggestionStates) as Record<string, string>;
-      } catch {
-        states = {};
-      }
+      const states = parseSuggestionStates(feedback.suggestionStates);
       states[String(input.suggestionIndex)] = nextSuggestionState;
       await tx.agentFeedback.update({
         where: { id: feedback.id },
@@ -237,6 +256,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           suggestionIndex: input.suggestionIndex,
           state: artifact.state,
           version: artifact.version,
+          initiatedBy: access.user.id,
+          semanticActorId: actor.id,
+          validationFeedbackId,
           requestId: randomUUID(),
         }),
       },
