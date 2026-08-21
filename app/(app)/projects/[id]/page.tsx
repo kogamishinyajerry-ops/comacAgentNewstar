@@ -121,7 +121,7 @@ export default async function ProjectWizardPage({
     })),
   };
 
-  if (searchParams.view === "advanced") return <AdvancedWizard data={data} />;
+  if (searchParams.view === "advanced" || !isMember) return <AdvancedWizard data={data} />;
 
   return <DecisionWorkspace data={data} actorName={user.name} actorRole={user.role} />;
 }
