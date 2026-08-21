@@ -31,5 +31,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     feedbackId: result.feedbackId,
     status: result.status,
     provider: result.provider,
+    model: result.model,
+    promptVersionLabel: result.promptVersionLabel,
+    latencyMs: result.latencyMs,
   });
 }
