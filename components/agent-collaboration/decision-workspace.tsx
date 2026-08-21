@@ -19,7 +19,6 @@ import type {
   DecisionArtifact,
   DecisionEvidence,
   DecisionIntent,
-  DecisionState,
 } from "@/lib/agent-collaboration/types";
 import styles from "./decision-workspace.module.css";
 
@@ -38,6 +37,7 @@ const PRIMARY_KEYS: Record<number, string[]> = {
   5: ["usableResult", "judgmentSource", "stopConditions"],
   6: ["oneSentenceMvp", "coreLoop", "verifiableMetric"],
 };
+const EMPTY_STAGE: Record<string, unknown> = {};
 
 type ActionMode = "modify" | "question" | "defer" | null;
 type Notice = { tone: "ok" | "error"; message: string } | null;
@@ -142,13 +142,6 @@ function primaryArtifactCopy(step: number, rows: ArtifactRow[]): string {
   return rows[0]?.value ?? "";
 }
 
-function stateForSuggestion(state: string | undefined): DecisionState {
-  if (state === "done") return "verified";
-  if (state === "adopted") return "executed";
-  if (state === "ignored") return "rejected";
-  return "proposed";
-}
-
 function roleLabel(role: string): string {
   const labels: Record<string, string> = {
     PARTICIPANT: "项目成员",
@@ -181,7 +174,7 @@ export function DecisionWorkspace({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
 
-  const stage = stages[step] ?? {};
+  const stage = useMemo(() => stages[step] ?? EMPTY_STAGE, [stages, step]);
   const config = getStepConfig(step);
   const rows = useMemo(() => artifactRows({ ...data, feedbacks }, step, stage), [data, feedbacks, stage, step]);
   const primaryCopy = primaryArtifactCopy(step, rows);
@@ -201,25 +194,26 @@ export function DecisionWorkspace({
         {
           id: `stage:${data.projectId}:${step}`,
           kind: "stage",
-          label: `${config?.title ?? `阶段 ${step}`} · 当前 Artifact`,
-          excerpt: primaryCopy || "当前阶段尚未形成可核对的正式字段。",
+          label: `${config?.title ?? `阶段 ${step}`} · 本轮读取的阶段 Artifact`,
+          excerpt: primaryCopy || "本轮读取为空白阶段。",
         },
         {
           id: `feedback:${activeFeedback.id}`,
           kind: "feedback",
-          label: "AI 导师本轮诊断",
+          label: "AI 导师结构化诊断",
           excerpt: activeFeedback.content.summary,
-          version: activeFeedback.run
-            ? `${activeFeedback.run.provider}/${activeFeedback.run.model}`
-            : activeFeedback.purpose,
+          version: activeFeedback.createdAt,
         },
-        ...data.attachments.slice(0, 3).map((attachment) => ({
-          id: `attachment:${attachment.id}`,
-          kind: "attachment" as const,
-          label: attachment.title,
-          href: attachment.url,
-          version: attachment.kind,
-        })),
+        ...(activeFeedback.run
+          ? [
+              {
+                id: `run:${activeFeedback.run.feedbackId}`,
+                kind: "run" as const,
+                label: `Agent Run · ${activeFeedback.run.provider}/${activeFeedback.run.model}`,
+                version: `${activeFeedback.run.promptVersionLabel ?? "prompt-unversioned"} · ${activeFeedback.run.status}`,
+              },
+            ]
+          : []),
       ]
     : [];
 
@@ -244,10 +238,6 @@ export function DecisionWorkspace({
           createdAt: activeFeedback.createdAt,
         })
       : null;
-
-  if (previewDecision && !persistedDecision) {
-    previewDecision.state = stateForSuggestion(activeFeedback?.suggestionStates[String(safeSuggestionIndex)]);
-  }
 
   const decision = persistedDecision ?? previewDecision;
   const validationComplete = Boolean(decision && hasValidationEvent(decision));
@@ -328,7 +318,7 @@ export function DecisionWorkspace({
         approve: "已记录：你批准了 Agent 提议，系统仅把决定写入当前 Artifact。",
         modify: "已记录：人工修改版成为当前确认版本，Agent 原提议仍保留。",
         question: "已记录质疑。该决定保持复核中，依据不会被静默接受。",
-        defer: "已记录暂缓理由。你可以继续，但风险会留在责任链中。",
+        defer: "已记录暂缓理由。当前决定保持复核中，风险会留在责任链中。",
         validate: "Coach 复核已关联到当前决定。",
         signoff: "你已完成最终签收；这条决定现在可完整追溯。",
       };
@@ -437,7 +427,7 @@ export function DecisionWorkspace({
       ? "你的确认版本"
       : actionMode === "question"
         ? "你质疑哪一项依据，为什么？"
-        : "为什么现在仍要继续？";
+        : "为什么现在暂缓处理？";
 
   const currentState = decision?.state ?? "draft";
   const advancedHref = `/projects/${data.projectId}?step=${step}&view=advanced`;
@@ -501,7 +491,7 @@ export function DecisionWorkspace({
           </p>
         </nav>
 
-        <main className={styles.canvas}>
+        <section className={styles.canvas} aria-label="当前 Artifact">
           <div className={styles.canvasHeader}>
             <div>
               <p className={styles.sectionEyebrow}>CURRENT ARTIFACT</p>
@@ -588,7 +578,7 @@ export function DecisionWorkspace({
               <p className={styles.readOnlyNote}>尚无责任事件。第一项 Agent 建议被人工处理后，轨迹会从这里开始。</p>
             )}
           </section>
-        </main>
+        </section>
 
         <aside className={styles.coach} aria-label="AI Coach 决策区">
           <div className={styles.coachSticky}>
@@ -697,7 +687,7 @@ export function DecisionWorkspace({
                     {!data.readOnly && (
                       <div className={styles.actionRow}>
                         <button className={`${styles.button} ${styles.textButton}`} type="button" onClick={() => openComposer("defer")}>
-                          记录理由并继续
+                          记录暂缓理由
                         </button>
                       </div>
                     )}
@@ -725,7 +715,13 @@ export function DecisionWorkspace({
                     />
                     <div className={styles.actionRow}>
                       <button className={`${styles.button} ${styles.primaryButton}`} disabled={busy || !draft.trim()} type="submit">
-                        {busy ? "记录中…" : actionMode === "modify" ? "确认人工版本" : "记录并进入复核"}
+                        {busy
+                          ? "记录中…"
+                          : actionMode === "modify"
+                            ? "确认人工版本"
+                            : actionMode === "defer"
+                              ? "记录暂缓理由"
+                              : "记录并进入复核"}
                       </button>
                       <button className={`${styles.button} ${styles.textButton}`} type="button" onClick={() => setActionMode(null)}>
                         取消
