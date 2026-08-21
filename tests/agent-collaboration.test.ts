@@ -43,6 +43,15 @@ function initial(): DecisionArtifact {
   return buildDecisionArtifact(seed);
 }
 
+function approve(artifact = initial()): DecisionArtifact {
+  return applyDecisionIntent({
+    artifact,
+    intent: "approve",
+    actor: { id: "user-1", name: "严冬杰", type: "human" },
+    timestamp: "2026-08-21T10:07:00.000Z",
+  });
+}
+
 describe("agent collaboration decision ontology", () => {
   it("builds a proposed artifact with an explicit agent attribution event", () => {
     const artifact = initial();
@@ -58,7 +67,7 @@ describe("agent collaboration decision ontology", () => {
     });
   });
 
-  it("preserves the agent proposal when a human commits an edited version", () => {
+  it("preserves the agent proposal and records each intermediate state for a human edit", () => {
     const artifact = applyDecisionIntent({
       artifact: initial(),
       intent: "modify",
@@ -78,6 +87,11 @@ describe("agent collaboration decision ontology", () => {
       "approved",
       "executed",
     ]);
+    expect(artifact.events.slice(1).map((event) => [event.beforeState, event.afterState])).toEqual([
+      ["proposed", "under_review"],
+      ["under_review", "approved"],
+      ["approved", "executed"],
+    ]);
     expect(artifact.events.at(-1)?.actorType).toBe("system");
   });
 
@@ -94,17 +108,14 @@ describe("agent collaboration decision ontology", () => {
     expect(artifact.events.at(-1)).toMatchObject({
       action: "questioned",
       actorType: "human",
+      beforeState: "proposed",
+      afterState: "under_review",
       rationale: "活动规则并没有要求所有项目都必须量化节省时间",
     });
   });
 
   it("requires an explicit validation event before the human sign-off can be represented", () => {
-    const approved = applyDecisionIntent({
-      artifact: initial(),
-      intent: "approve",
-      actor: { id: "user-1", name: "严冬杰", type: "human" },
-      timestamp: "2026-08-21T10:07:00.000Z",
-    });
+    const approved = approve();
     const validated = applyDecisionIntent({
       artifact: approved,
       intent: "validate",
@@ -125,8 +136,49 @@ describe("agent collaboration decision ontology", () => {
     expect(signedOff.events.at(-1)).toMatchObject({
       action: "signed_off",
       actorName: "严冬杰",
+      beforeState: "executed",
       afterState: "verified",
     });
+  });
+
+  it("rejects a second approval after the system has already recorded the decision", () => {
+    const approved = approve();
+
+    expect(() => approve(approved)).toThrow("不能再次处理原提议");
+  });
+
+  it("rejects sign-off before Coach validation", () => {
+    const approved = approve();
+
+    expect(() =>
+      applyDecisionIntent({
+        artifact: approved,
+        intent: "signoff",
+        actor: { id: "user-1", name: "严冬杰", type: "human" },
+        timestamp: "2026-08-21T10:08:00.000Z",
+      }),
+    ).toThrow("请先让 Coach 复核");
+  });
+
+  it("enforces authority instead of trusting a caller-provided semantic actor", () => {
+    expect(() =>
+      applyDecisionIntent({
+        artifact: initial(),
+        intent: "approve",
+        actor: { id: "agent:run-1", name: "AI 导师 Coach", type: "agent" },
+        timestamp: "2026-08-21T10:07:00.000Z",
+      }),
+    ).toThrow("必须由项目成员本人确认");
+
+    expect(() =>
+      applyDecisionIntent({
+        artifact: approve(),
+        intent: "validate",
+        actor: { id: "user-1", name: "严冬杰", type: "human" },
+        timestamp: "2026-08-21T10:08:00.000Z",
+        validationFeedbackId: "feedback-2",
+      }),
+    ).toThrow("只有 Agent 复核事件");
   });
 
   it("round-trips valid artifacts through the reserved stage-data key and drops malformed rows", () => {
