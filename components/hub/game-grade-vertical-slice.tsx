@@ -69,9 +69,11 @@ function readSnapshot(scope: HTMLElement): JourneySnapshot {
   ).length;
   const grown =
     workspace?.classList.contains("coach-workspace-grid--grown") ?? false;
+  // 深化轮期间没有 --grown 也没有 data-artifact-lit,但问题卡的深化区在;
+  // 必须读它,否则三轮深化中 journey 会回退到第二幕的旧状态。
   const artifact =
-    progressLabel.includes("深化") ||
-    Boolean(scope.querySelector("[data-artifact-lit]"));
+    Boolean(scope.querySelector("[data-artifact-lit]")) ||
+    Boolean(scope.querySelector("[data-coach-progress-deepening]"));
   const completed =
     grown || artifact
       ? JOURNEY_STEPS.length
@@ -134,6 +136,7 @@ export function GameGradeVerticalSlice({
   const [snapshot, setSnapshot] =
     useState<JourneySnapshot>(INITIAL_SNAPSHOT);
   const stageRef = useRef<HTMLDivElement>(null);
+  const journeyRef = useRef<HTMLElement>(null);
   const startRef = useRef<HTMLButtonElement>(null);
   const exitTimerRef = useRef<number | null>(null);
 
@@ -170,10 +173,18 @@ export function GameGradeVerticalSlice({
 
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage) return;
+    const journey = journeyRef.current;
+    if (!stage || !journey) return;
 
-    if (introActive) stage.setAttribute("inert", "");
-    else stage.removeAttribute("inert");
+    // 序章拥有唯一场景:stage 与 journey 一并隔离,
+    // 否则透明度为 0 的换入口链接仍可被 Tab/读屏到达。
+    if (introActive) {
+      stage.setAttribute("inert", "");
+      journey.setAttribute("inert", "");
+    } else {
+      stage.removeAttribute("inert");
+      journey.removeAttribute("inert");
+    }
   }, [introActive]);
 
   useEffect(() => {
@@ -263,9 +274,11 @@ export function GameGradeVerticalSlice({
       </div>
 
       <aside
+        ref={journeyRef}
         className={journeyStyles.journey}
         data-game-grade-journey
         data-busy={snapshot.busy}
+        aria-hidden={introActive}
         aria-label={`问题种子形成轨迹：${status}`}
       >
         <div className={journeyStyles.journeyIdentity}>

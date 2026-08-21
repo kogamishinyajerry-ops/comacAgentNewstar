@@ -3,7 +3,9 @@
   isolation: isolate;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  /* clip 而非 hidden:禁止程序化滚动,杜绝焦点时序竞争把
+     根容器 scrollTop 推离 0(移动端曾把 journey 条推出视口) */
+  overflow: clip;
   color: var(--text-primary);
   background:
     radial-gradient(circle at 75% 18%, rgba(124, 98, 232, 0.09), transparent 31%),

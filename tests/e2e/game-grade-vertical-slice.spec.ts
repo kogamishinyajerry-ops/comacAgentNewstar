@@ -40,12 +40,27 @@ test.describe("Game-grade Vertical Slice", () => {
       intro.getByRole("link", { name: "直接进入简洁模式" }),
     ).toHaveAttribute("href", "/start");
     await expect(stage).toHaveAttribute("inert", "");
+    // 序章拥有唯一场景:journey 轨迹在序章关闭前必须一并隔离,
+    // 否则透明容器里的换入口链接仍可被 Tab/读屏到达。
+    const journey = page.locator("[data-game-grade-journey]");
+    await expect(journey).toHaveAttribute("inert", "");
+    await expect(journey).toHaveAttribute("aria-hidden", "true");
+    await page.keyboard.press("Shift+Tab");
+    expect(
+      await page.evaluate(
+        () =>
+          document.activeElement?.closest("[data-game-grade-journey]") !==
+          null,
+      ),
+    ).toBe(false);
     await expect(intro).toContainText("无积分 · 无排行 · 不替你做判断");
 
     await page.getByRole("button", { name: "唤醒问题" }).click();
 
     await expect(intro).toHaveCount(0, { timeout: 3_000 });
     await expect(stage).not.toHaveAttribute("inert", "");
+    await expect(journey).not.toHaveAttribute("inert", "");
+    await expect(journey).toHaveAttribute("aria-hidden", "false");
     await expect(page.locator("#coach-answer")).toBeFocused();
     await expect(page.locator("[data-game-grade-journey]")).toHaveAccessibleName(
       /等待第一条真实线索/,
@@ -122,6 +137,60 @@ test.describe("Game-grade Vertical Slice", () => {
     ).toHaveCount(3);
   });
 
+  test("种子凝结后进入深化轮,世界状态不回退到旧一幕", async ({
+    page,
+  }: { page: Page }) => {
+    await enterExperience(page);
+
+    await page.locator("#coach-answer").fill(FIRST_ANSWER);
+    await page.getByRole("button", { name: "提交这一问的回答" }).click();
+    await expect(
+      page.getByRole("heading", {
+        name: /这个问题对谁造成了什么具体损失/,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.locator("#coach-answer").fill(SECOND_ANSWER);
+    await page.getByRole("button", { name: "提交这一问的回答" }).click();
+    await expect(
+      page.getByRole("heading", {
+        name: /为什么普通大模型聊天不足以解决它/,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    await page.locator("#coach-answer").fill(THIRD_ANSWER);
+    await page.getByRole("button", { name: "提交这一问的回答" }).click();
+    await expect(page.locator(".coach-workspace-grid--grown")).toBeVisible({
+      timeout: 15_000,
+    });
+
+    const slice = page.locator("[data-game-grade-slice]");
+    await expect(slice).toHaveAttribute("data-journey-phase", "seed");
+
+    await page.locator("[data-artifact-entry]").click();
+    await expect(
+      page.getByRole("heading", { name: /受影响的人大约有多少/ }),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // 深化轮期间没有 --grown 也没有 data-artifact-lit,
+    // 但世界状态必须停在 Artifact 阶段,不得回退到第二幕的旧文案。
+    await expect(slice).toHaveAttribute("data-journey-phase", "artifact");
+    await expect(slice).toHaveAttribute("data-journey-completed", "3");
+    await expect(
+      page.locator("[data-game-grade-journey]"),
+    ).toHaveAccessibleName(/已进入第一份 Artifact/);
+
+    await page
+      .locator("#coach-answer")
+      .fill("大约六名值班工程师,每个班次都会遇到一次。");
+    await page.getByRole("button", { name: "提交这一问的回答" }).click();
+    await expect(
+      page.getByRole("heading", { name: /改善之后/ }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(slice).toHaveAttribute("data-journey-phase", "artifact");
+    await expect(slice).toHaveAttribute("data-journey-completed", "3");
+  });
+
   test("活动页主 CTA 进入沉浸切片，简洁模式仍保留", async ({ page }: { page: Page }) => {
     await page.goto("/guide");
     await expect(
@@ -152,6 +221,13 @@ test("390×844 + Reduced Motion：序章即时退出且无页面溢出", async (
   await expect(page.locator("[data-game-grade-intro]")).toHaveCount(0);
   await expect(page.locator("#coach-answer")).toBeFocused();
   await expect(page.locator("[data-game-grade-step]")).toHaveCount(3);
+  // overflow:clip 根容器不允许任何程序化滚动,
+  // journey 轨迹不得被焦点时序竞争推出视口。
+  expect(
+    await page
+      .locator("[data-game-grade-slice]")
+      .evaluate((element: HTMLElement) => element.scrollTop),
+  ).toBe(0);
 
   const geometry = await page.evaluate(() => ({
     horizontal: document.documentElement.scrollWidth - window.innerWidth,
