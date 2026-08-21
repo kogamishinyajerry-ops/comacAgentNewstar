@@ -184,11 +184,9 @@ async function requestNextAct({
 export function CoachFlow({
   entry,
   orbIdPrefix = "coach-flow",
-  entryBasePath = "/start",
 }: {
   entry: CoachEntry;
   orbIdPrefix?: string;
-  entryBasePath?: "/" | "/start";
 }) {
   const [state, dispatch] = useReducer(reducer, entry, createCoachState);
   const [answer, setAnswer] = useState("");
@@ -527,8 +525,6 @@ export function CoachFlow({
       : null;
   const justFilledLabel =
     progressSlots.find((slot) => slot.key === justFilledKey)?.label ?? null;
-  const switchEntryHref = state.entry === "problem" ? `${entryBasePath}?entry=idea` : entryBasePath;
-  const switchEntryLabel = state.entry === "problem" ? "换一条入口:从已有想法开始" : "换一条入口:从真实问题开始";
   const nextAct = state.actIndex < ACT_COUNT - 1 ? resolvedActs[state.actIndex + 1] : null;
   /* 深化已全部完成时,第一格常亮;尚未完成时为可开始/可继续的入口 */
   const artifactLit = state.artifactAnswers.length >= ARTIFACT_ROUND_COUNT;
@@ -674,8 +670,6 @@ export function CoachFlow({
             flowBackHref={flowBackHref}
             reviewOpen={reviewOpen}
             onOpenReview={() => setReviewOpen(true)}
-            switchEntryHref={artifactStage ? undefined : switchEntryHref}
-            switchEntryLabel={artifactStage ? undefined : switchEntryLabel}
             returnAction={
               artifactStage
                 ? {

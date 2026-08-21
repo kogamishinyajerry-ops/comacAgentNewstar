@@ -35,8 +35,8 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await expect(page.getByRole("navigation", { name: "主导航" })).toBeVisible();
     await expect(page.getByRole("button", { name: "打开导航菜单" })).toHaveCount(0);
     await expect(page.locator(".hub-brand img")).toHaveCount(0);
-    const switchEntry = page.getByRole("link", { name: /换一条入口/ });
-    await expect(switchEntry).toBeVisible();
+    // 流程中不存在换入口跳页链接(回答会随路由切换丢失)
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(0);
 
     const metrics = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - window.innerWidth,
@@ -137,13 +137,12 @@ test.describe("Hub 无障碍与响应式深化", () => {
     expect(motion.animationName).toBe("none");
   });
 
-  test("移动端弱化换入口保留 44px 触控热区", async ({ page }) => {
+  test("移动端流程中不存在换入口跳页链接", async ({ page }) => {
     await page.setViewportSize(mobile);
     await page.goto("/");
 
-    const quietLink = page.getByRole("link", { name: /换一条入口/ });
-    const height = await quietLink.evaluate((link) => link.getBoundingClientRect().height);
-    expect(height).toBeGreaterThanOrEqual(44);
+    // 换入口会随路由切换丢失全部回答,已从流程中移除;锁定其不存在
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(0);
   });
 
   test("默认待确认配置不伪造外部报名入口或 Logo", async ({ page }) => {

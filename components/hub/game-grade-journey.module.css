@@ -31,8 +31,7 @@
 }
 
 .journeyIdentity,
-.journeyStepCopy,
-.journeyMode {
+.journeyStepCopy {
   display: flex;
   min-width: 0;
   flex-direction: column;
@@ -161,23 +160,6 @@
   font-weight: 600;
 }
 
-.journeyMode {
-  align-items: flex-end;
-  color: var(--text-tertiary);
-  font-size: 9.5px;
-}
-
-.modeLink {
-  margin-top: 2px;
-  color: var(--accent-coach-strong);
-  font-size: 10.5px;
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: rgba(43, 85, 201, 0.28);
-  text-underline-offset: 3px;
-  pointer-events: auto;
-}
-
 @keyframes settle {
   from { box-shadow: 0 0 0 0 rgba(43, 85, 201, 0.22); }
   to { box-shadow: 0 0 0 8px rgba(43, 85, 201, 0); }
@@ -225,8 +207,7 @@
     width: calc(66.667% - 16px);
   }
   .journeyMarker { width: 19px; height: 19px; font-size: 7px; }
-  .journeyStepCopy,
-  .journeyMode { display: none; }
+  .journeyStepCopy { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

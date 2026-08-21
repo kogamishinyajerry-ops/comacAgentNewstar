@@ -20,7 +20,7 @@ export default function ExperiencePage({
 
   return (
     <>
-      <GameGradeVerticalSlice entry={entry}>
+      <GameGradeVerticalSlice>
         <CoachWorkbench entry={entry} entryBasePath="/start" />
       </GameGradeVerticalSlice>
       <CoachArtPrefetch />

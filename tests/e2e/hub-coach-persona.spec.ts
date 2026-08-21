@@ -79,10 +79,10 @@ test.describe("状态 A:种子前的减法布局(桌面 1440×900)", () => {
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h1")).toHaveText(QUESTIONS[0]);
 
-    // 常驻“真实问题/已有想法”切换栏退场,只留一个弱化换入口动作
+    // 流程中不存在任何入口切换/跳页动作:回答会随路由切换丢失
     await expect(page.getByRole("link", { name: "真实问题", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "已有想法", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(0);
 
     await page.screenshot({ path: `${SHOTS}/state-a-question-1440.png` });
   });

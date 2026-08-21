@@ -57,7 +57,6 @@ export function CoachWorkbench({
         <CoachFlow
           key={entry}
           entry={entry}
-          entryBasePath={entryBasePath}
           orbIdPrefix="workbench-coach"
         />
       </div>

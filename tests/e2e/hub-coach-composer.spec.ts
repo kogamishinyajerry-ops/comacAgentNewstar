@@ -512,7 +512,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     expect(captured[0].attachment?.content).toBe("异常记录、依据、处理结果分散在三处。");
   });
 
-  test("读取未落定时切换入口,旧读取结果不得在新流程出现 Chip", async ({ page }) => {
+  test("读取未落定时离开并回退重开流程,旧读取结果不得在新流程出现 Chip", async ({ page }) => {
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
@@ -526,9 +526,13 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     });
     await expect(page.getByRole("button", { name: SEND_LABEL })).toBeDisabled();
 
-    // 切换入口(等价于流程重置:CoachFlow 以 entry 为 key 整体重挂载)
-    await page.getByRole("link", { name: /换一条入口/ }).click();
-    await expect(page.getByRole("heading", { name: coachDemoActs.idea[0].question })).toBeVisible();
+    // 换入口跳页链接已移除;改用真实 UI 软导航重开流程:经「返回活动指南」
+    // 离开(CoachFlow 卸载)再回退(整体重挂载)。软导航保留 JS realm,
+    // 挂起读取才能跨越重开并在新流程接受检验(整页刷新会销毁 realm)。
+    await page.getByRole("link", { name: /返回活动指南/ }).click();
+    await expect(page).toHaveURL(/\/guide/);
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 旧读取在新流程挂载后才落定:不得回写出 Chip 或隐私提示,也不得有请求发出
     await settleFileRead(page, "stale.md", "迟到内容,不应出现在新流程。");
@@ -631,7 +635,7 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     expect(captured[0].attachment?.content).not.toContain("A 的迟到内容");
   });
 
-  test("读取未完成时换入口重开流程,迟到读取不得污染新流程的请求", async ({ page }) => {
+  test("读取未完成时离开并回退重开流程,迟到读取不得污染新流程的请求", async ({ page }) => {
     const captured: CapturedCoachRequest[] = [];
     await mockCoachFixture(page, captured);
     await stubSlowFileText(page);
@@ -645,9 +649,12 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
     });
     await expect(page.getByRole("button", { name: SEND_LABEL })).toBeDisabled();
 
-    // 读取挂起时唯一可达的重开路径:换一条入口(CoachFlow 以 entry 为 key 整体重挂载)
-    await page.getByRole("link", { name: /换一条入口/ }).click();
-    await expect(page.getByRole("heading", { name: coachDemoActs.idea[0].question })).toBeVisible();
+    // 读取挂起时的重开路径:换入口跳页链接已移除;改用真实 UI 软导航
+    // (「返回活动指南」→ 回退)卸载并重挂载 CoachFlow,realm 保留。
+    await page.getByRole("link", { name: /返回活动指南/ }).click();
+    await expect(page).toHaveURL(/\/guide/);
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: FIRST_QUESTION })).toBeVisible();
 
     // 旧读取在新流程挂载后才落定:不得在新流程回写任何附件 UI,也不得有请求发出
     await settleFileRead(page, "stale-reset.md", "迟到内容,不应污染新流程。");
@@ -658,11 +665,11 @@ test.describe("附件读取竞态:迟到的读取结果不得回写", () => {
 
     // 新流程正常作答:首个请求体不得携带 attachment 键(污染不得进入请求)
     await submitAnswer(page, "评审前夜,团队在三个文档之间来回核对数字");
-    await expect(page.getByRole("heading", { name: coachDemoActs.idea[1].question })).toBeVisible({
+    await expect(page.getByRole("heading", { name: coachDemoActs.problem[1].question })).toBeVisible({
       timeout: 15_000,
     });
     expect(captured).toHaveLength(1);
-    expect(captured[0].entry).toBe("idea");
+    expect(captured[0].entry).toBe("problem");
     expect("attachment" in captured[0]).toBe(false);
   });
 });

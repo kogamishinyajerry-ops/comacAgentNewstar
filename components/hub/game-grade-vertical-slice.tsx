@@ -10,7 +10,6 @@ import {
   type ReactNode,
 } from "react";
 import { site } from "@/config/site";
-import type { CoachEntry } from "@/fixtures/coach-demo";
 import frameStyles from "./game-grade-vertical-slice.module.css";
 import journeyStyles from "./game-grade-journey.module.css";
 import introStyles from "./game-grade-intro.module.css";
@@ -126,10 +125,8 @@ function stepState(
 }
 
 export function GameGradeVerticalSlice({
-  entry,
   children,
 }: {
-  entry: CoachEntry;
   children: ReactNode;
 }) {
   const [introState, setIntroState] = useState<IntroState>("open");
@@ -142,14 +139,6 @@ export function GameGradeVerticalSlice({
 
   const introActive = introState !== "closed";
   const status = useMemo(() => statusCopy(snapshot), [snapshot]);
-  const switchHref =
-    entry === "problem" ? "/experience?entry=idea" : "/experience";
-  const switchLabel =
-    entry === "problem"
-      ? "改从已有想法开始"
-      : "改从一个真实问题开始";
-  const entryLabel =
-    entry === "problem" ? "真实问题入口" : "已有想法入口";
 
   const beginExperience = useCallback(() => {
     if (introState !== "open") return;
@@ -307,13 +296,6 @@ export function GameGradeVerticalSlice({
             );
           })}
         </ol>
-
-        <div className={journeyStyles.journeyMode}>
-          <span>{entryLabel}</span>
-          <Link href={switchHref} className={journeyStyles.modeLink}>
-            {switchLabel}
-          </Link>
-        </div>
       </aside>
 
       <div

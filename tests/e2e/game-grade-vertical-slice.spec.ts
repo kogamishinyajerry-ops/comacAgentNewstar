@@ -40,11 +40,12 @@ test.describe("Game-grade Vertical Slice", () => {
       intro.getByRole("link", { name: "直接进入简洁模式" }),
     ).toHaveAttribute("href", "/start");
     await expect(stage).toHaveAttribute("inert", "");
-    // 序章拥有唯一场景:journey 轨迹在序章关闭前必须一并隔离,
-    // 否则透明容器里的换入口链接仍可被 Tab/读屏到达。
+    // 序章拥有唯一场景:journey 轨迹在序章关闭前必须一并隔离。
+    // 轨迹条只读,不含任何跳页链接(流程中切换入口会丢失全部回答)。
     const journey = page.locator("[data-game-grade-journey]");
     await expect(journey).toHaveAttribute("inert", "");
     await expect(journey).toHaveAttribute("aria-hidden", "true");
+    await expect(journey.getByRole("link")).toHaveCount(0);
     await page.keyboard.press("Shift+Tab");
     expect(
       await page.evaluate(
