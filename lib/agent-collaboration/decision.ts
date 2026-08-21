@@ -237,14 +237,46 @@ export function buildDecisionArtifact(seed: DecisionSeed): DecisionArtifact {
   };
 }
 
-function nextEvent(
-  artifact: DecisionArtifact,
-  input: ApplyDecisionIntentInput,
-  action: DecisionSemanticAction,
-  afterState: DecisionState,
-  suffix: string,
-  rationale?: string,
-): DecisionEvent {
+function assertActor(intent: DecisionIntent, actorType: CollaborationActorType): void {
+  if (intent === "validate") {
+    if (actorType !== "agent") throw new Error("只有 Agent 复核事件可以标记为 validated");
+    return;
+  }
+  if (actorType !== "human") throw new Error("该决定必须由项目成员本人确认");
+}
+
+function assertTransition(artifact: DecisionArtifact, intent: DecisionIntent): void {
+  const current = artifact.state;
+  if (["approve", "modify", "question", "defer"].includes(intent)) {
+    if (!["proposed", "under_review"].includes(current)) {
+      throw new Error(`当前决定处于“${decisionStateLabel(current)}”，不能再次处理原提议`);
+    }
+    return;
+  }
+  if (intent === "validate") {
+    if (!["approved", "executed"].includes(current)) {
+      throw new Error("只有已批准并写入 Artifact 的决定才能由 Coach 复核");
+    }
+    return;
+  }
+  if (current !== "executed") {
+    throw new Error("只有已写入 Artifact 的决定才能由用户签收");
+  }
+  if (!hasValidationEvent(artifact)) {
+    throw new Error("请先让 Coach 复核，再由你完成签收");
+  }
+}
+
+function nextEvent(params: {
+  artifact: DecisionArtifact;
+  input: ApplyDecisionIntentInput;
+  action: DecisionSemanticAction;
+  beforeState: DecisionState;
+  afterState: DecisionState;
+  suffix: string;
+  rationale?: string;
+}): DecisionEvent {
+  const { artifact, input, action, beforeState, afterState, suffix, rationale } = params;
   return {
     id: `${artifact.id}:event:${artifact.version + 1}:${suffix}`,
     actorType: input.actor.type,
@@ -252,7 +284,7 @@ function nextEvent(
     actorName: input.actor.name,
     action,
     objectRef: artifact.id,
-    beforeState: artifact.state,
+    beforeState,
     afterState,
     evidenceRefs: artifact.evidence.map((item) => item.id),
     permissionSnapshot:
@@ -268,6 +300,9 @@ function nextEvent(
 
 export function applyDecisionIntent(input: ApplyDecisionIntentInput): DecisionArtifact {
   const { artifact, intent } = input;
+  assertActor(intent, input.actor.type);
+  assertTransition(artifact, intent);
+
   const next: DecisionArtifact = {
     ...artifact,
     evidence: [...artifact.evidence],
@@ -283,8 +318,23 @@ export function applyDecisionIntent(input: ApplyDecisionIntentInput): DecisionAr
   if (intent === "approve") {
     next.state = "executed";
     next.events.push(
-      nextEvent(artifact, input, "approved", "approved", "approved", input.rationale),
-      nextEvent(artifact, { ...input, actor: { id: "system", name: "系统", type: "system" } }, "executed", "executed", "executed"),
+      nextEvent({
+        artifact,
+        input,
+        action: "approved",
+        beforeState: artifact.state,
+        afterState: "approved",
+        suffix: "approved",
+        rationale: input.rationale,
+      }),
+      nextEvent({
+        artifact,
+        input: { ...input, actor: { id: "system", name: "系统", type: "system" } },
+        action: "executed",
+        beforeState: "approved",
+        afterState: "executed",
+        suffix: "executed",
+      }),
     );
     return next;
   }
@@ -296,34 +346,98 @@ export function applyDecisionIntent(input: ApplyDecisionIntentInput): DecisionAr
     next.humanRevision = revision;
     next.state = "executed";
     next.events.push(
-      nextEvent(artifact, input, "edited", "under_review", "edited", input.rationale),
-      nextEvent(artifact, input, "approved", "approved", "approved-revision", input.rationale),
-      nextEvent(artifact, { ...input, actor: { id: "system", name: "系统", type: "system" } }, "executed", "executed", "executed-revision"),
+      nextEvent({
+        artifact,
+        input,
+        action: "edited",
+        beforeState: artifact.state,
+        afterState: "under_review",
+        suffix: "edited",
+        rationale: input.rationale,
+      }),
+      nextEvent({
+        artifact,
+        input,
+        action: "approved",
+        beforeState: "under_review",
+        afterState: "approved",
+        suffix: "approved-revision",
+        rationale: input.rationale,
+      }),
+      nextEvent({
+        artifact,
+        input: { ...input, actor: { id: "system", name: "系统", type: "system" } },
+        action: "executed",
+        beforeState: "approved",
+        afterState: "executed",
+        suffix: "executed-revision",
+      }),
     );
     return next;
   }
 
   if (intent === "question") {
     next.state = "under_review";
-    next.events.push(nextEvent(artifact, input, "questioned", "under_review", "questioned", input.rationale));
+    next.events.push(
+      nextEvent({
+        artifact,
+        input,
+        action: "questioned",
+        beforeState: artifact.state,
+        afterState: "under_review",
+        suffix: "questioned",
+        rationale: input.rationale,
+      }),
+    );
     return next;
   }
 
   if (intent === "defer") {
     next.state = "under_review";
-    next.events.push(nextEvent(artifact, input, "deferred", "under_review", "deferred", input.rationale));
+    next.events.push(
+      nextEvent({
+        artifact,
+        input,
+        action: "deferred",
+        beforeState: artifact.state,
+        afterState: "under_review",
+        suffix: "deferred",
+        rationale: input.rationale,
+      }),
+    );
     return next;
   }
 
   if (intent === "validate") {
+    if (!input.validationFeedbackId) throw new Error("缺少 Coach 复核记录");
     next.validationFeedbackId = input.validationFeedbackId;
-    next.state = artifact.state === "verified" ? "verified" : "executed";
-    next.events.push(nextEvent(artifact, input, "validated", next.state, "validated", input.rationale));
+    next.state = "executed";
+    next.events.push(
+      nextEvent({
+        artifact,
+        input,
+        action: "validated",
+        beforeState: artifact.state,
+        afterState: "executed",
+        suffix: "validated",
+        rationale: input.rationale,
+      }),
+    );
     return next;
   }
 
   next.state = "verified";
-  next.events.push(nextEvent(artifact, input, "signed_off", "verified", "signed-off", input.rationale));
+  next.events.push(
+    nextEvent({
+      artifact,
+      input,
+      action: "signed_off",
+      beforeState: artifact.state,
+      afterState: "verified",
+      suffix: "signed-off",
+      rationale: input.rationale,
+    }),
+  );
   return next;
 }
 
