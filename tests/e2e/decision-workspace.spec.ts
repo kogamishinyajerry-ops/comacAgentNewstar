@@ -54,21 +54,32 @@ test("Agent 提议→人工批准→Coach 复核→人工签收形成可追溯 A
   await page.getByRole("button", { name: "确认签收" }).click();
   await expect(page.getByLabel("AI Coach 决策区").getByText("已签收", { exact: true })).toBeVisible();
   await expect(page.getByText("你已完成最终签收", { exact: false })).toBeVisible();
-  await expect(page.getByText(/协作验收.*签收/)).toBeVisible();
+
+  const attribution = page.locator("section").filter({
+    has: page.getByRole("heading", { name: "谁提出、谁修改、谁批准、谁复核" }),
+  });
+  await expect(attribution.getByRole("listitem").filter({ hasText: "签收" })).toContainText("协作验收");
 
   await page.getByText("Evidence & Run Trace", { exact: true }).click();
   await expect(page.getByText("Agent Run", { exact: true })).toBeVisible();
   await expect(page.getByText("系统：只按确认动作写入阶段 JSON")).toBeVisible();
 });
 
-test("高级工作台仍可作为完整编辑与回退界面", async ({ page }) => {
-  const projectId = await registerProject(page, `${uniq}-advanced`, "高级工作台回退验收");
-  await page.goto(`/projects/${projectId}`);
+test("新项目默认进入决策界面，高级工作台保持可刷新回退", async ({ page }) => {
+  await registerProject(page, `${uniq}-advanced`, "高级工作台夹具");
+  await page.goto("/projects");
 
-  await expect(page.getByRole("link", { name: "进入高级工作台 ↗" })).toBeVisible();
+  await page.getByRole("button", { name: "+ 新建想法" }).click();
+  await page.getByPlaceholder("想法名称,如:变更对比说明小助手").fill("默认决策入口验收");
+  await page.getByRole("button", { name: "创建", exact: true }).click();
+
+  await expect(page).toHaveURL(/\/projects\/[^/?]+$/);
+  await expect(page.getByRole("region", { name: "Agent 协作决策工作台" })).toBeVisible();
   await page.getByRole("link", { name: "进入高级工作台 ↗" }).click();
 
   await expect(page).toHaveURL(/view=advanced/);
   await expect(page.getByText("规则与数据承诺", { exact: true })).toBeVisible();
-  await expect(page.getByText("10 步", { exact: false }).or(page.getByText("第1步", { exact: false }))).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/view=advanced/);
+  await expect(page.getByText("规则与数据承诺", { exact: true })).toBeVisible();
 });
