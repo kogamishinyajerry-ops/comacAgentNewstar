@@ -157,6 +157,8 @@ export const coachProgressCopy = {
   waitingSecondUnit: "s",
   depositPrefix: "你的回答已沉淀到「",
   depositSuffix: "」。",
+  /* §35:会话快照恢复后的克制提示(出现一次,不持久标记) */
+  restoredNotice: "已恢复本次会话的进度。",
 } as const;
 
 /**

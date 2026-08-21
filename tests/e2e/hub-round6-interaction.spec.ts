@@ -5,10 +5,11 @@ import { beginCoach, completeThreeActs, submitCoachAnswer } from "./helpers";
 
 /**
  * 打磨轮⑥(§29):进展可感知。
- * 常驻问题卡(幽灵→点亮→高亮)、等待计时、阶段性指南出口、回看抽屉、
+ * 常驻问题卡(幽灵→点亮→高亮)、等待计时、回看抽屉、
  * 深化三槽模板、Axe 零违规与窄屏进度条零溢出。
  * 旅程叙事轮(§31):首屏幽灵槽断言改为建立拍 begin 后;
- * 指南出口保留在建立拍与第一幕问题态都要成立。
+ * §35:顶栏不再承担页面跳转——指南出口从顶栏移除(回看抽屉页脚常驻),
+ * 回看触发器从第一幕起全程在场。
  */
 
 const QUESTIONS = [
@@ -29,14 +30,16 @@ const DEEPENING_ANSWERS = [
   "必须按固定流程调用检索工具并逐步留痕,普通对话记不住口径也不留痕",
 ] as const;
 
-test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
-  test("首屏:三格幽灵槽与缺口摘要在场;指南出口保留、回看尚未接替", async ({ page }) => {
+test.describe("打磨轮⑥:常驻问题卡与顶栏跳转移除(§35)", () => {
+  test("首屏:三格幽灵槽与缺口摘要在场;顶栏无跳转链接、回看从第一幕起在场", async ({ page }) => {
     await page.goto("/start");
-    // 指南出口在建立拍成立(G1:还有退路价值的时刻,出口不回退)
-    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
+    // §35:建立拍顶栏不再有「返回活动指南」出口;入口切换在 CTA 区(零成本起点决策)
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toHaveCount(0);
+    await expect(page.locator("[data-coach-entry-switch]")).toBeVisible();
     await beginCoach(page);
-    // 第一幕问题态:指南出口同样保留
-    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
+    // 第一幕问题态:同样无跳转链接,回看触发器从第一幕起在场(会话历史全程可见)
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toHaveCount(0);
+    await expect(page.locator("[data-coach-review-trigger]")).toBeVisible();
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     await expect(page.locator("[data-coach-progress]")).toBeVisible();
     for (const key of ["moment", "impact", "necessity"]) {
@@ -47,8 +50,7 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
     }
     await expect(page.locator('[data-coach-slot="moment"]')).toContainText("待打磨");
     await expect(page.getByText("缺口 3 条 · 诚实保留")).toBeVisible();
-    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
-    await expect(page.locator("[data-coach-review-trigger]")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toHaveCount(0);
   });
 
   test("提交瞬间第一格点亮并高亮;等待期计时不伪造阶段;完整回答不落屏", async ({ page }) => {
@@ -81,7 +83,7 @@ test.describe("打磨轮⑥:常驻问题卡与阶段性指南出口", () => {
     await page.unrouteAll({ behavior: "ignoreErrors" });
   });
 
-  test("作答后指南出口退位给回看;回看抽屉全文问答、当前行、Esc 关闭并归还焦点", async ({
+  test("作答后回看抽屉全文问答、当前行、Esc 关闭并归还焦点;顶栏始终无跳转链接", async ({
     page,
   }) => {
     await page.goto("/start");
@@ -177,7 +179,7 @@ test.describe("打磨轮⑥:无障碍与窄屏", () => {
     await expect(page.getByRole("heading", { name: QUESTIONS[0] })).toBeVisible();
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 
-    /* 作答一次让回看接替指南出口,再开抽屉扫描 */
+    /* 作答一次让回看抽屉有内容,再开抽屉扫描(§35:回看触发器从第一幕起已在场) */
     await submitCoachAnswer(page, ANSWERS[0]);
     await expect(page.getByRole("heading", { name: QUESTIONS[1] })).toBeVisible({
       timeout: 15_000,

@@ -85,8 +85,10 @@ test.describe("J-1 建立拍", () => {
     await expect(page.locator("[data-coach-progress]")).toHaveCount(0);
     await expect(page.locator("#coach-answer")).toHaveCount(0);
 
-    /* 顶栏出口保留;唯一 CTA 是「开始第一问」 */
-    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
+    /* §35:顶栏不再承担页面跳转(无返回指南链接);唯一 CTA 是「开始第一问」,
+       次要入口切换在 CTA 区(尚无回答,零成本起点决策) */
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toHaveCount(0);
+    await expect(page.locator("[data-coach-entry-switch]")).toBeVisible();
     const begin = page.locator("[data-coach-begin]");
     await expect(begin).toHaveText(coachIntroCopy.beginLabel);
 

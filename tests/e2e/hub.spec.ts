@@ -41,8 +41,11 @@ test.describe("桌面 1440×900", () => {
     // K3 减法:首屏唯一主标题就是当前主问题,完整工作台栏尚未长出
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     await expect(page.locator("h1")).toHaveCount(1);
-    await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
+    /* §35:顶栏不再承担页面跳转——无返回指南/换入口链接;
+       会话历史入口(回看)从第一幕起全程可见 */
+    await expect(page.getByRole("link", { name: /返回活动指南/ })).toHaveCount(0);
+    await expect(page.locator("[data-coach-entry-switch]")).toHaveCount(0);
+    await expect(page.locator("[data-coach-review-trigger]")).toBeVisible();
     await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
     /* §33 K1:工作台页是全幅 Agent 工作台,站点导航栏不渲染 */
     await expect(page.locator(".hub-header")).toHaveCount(0);
@@ -83,8 +86,8 @@ test.describe("桌面 1440×900", () => {
 
   test("3. 已有想法入口第一问挑战方案先行,不直接认可", async ({ page }) => {
     await page.goto("/");
-    await beginCoach(page);
-    await page.getByRole("link", { name: /换一条入口/ }).click();
+    /* §35:入口切换前移到建立拍 CTA 区(尚无回答,零成本起点决策) */
+    await page.locator("[data-coach-entry-switch]").click();
     await expect(page).toHaveURL(/\?entry=idea/);
     // 换入口整体重挂载 CoachFlow,建立拍再次出现(过渡期内旧回答器可能仍在,先等建立拍端上)
     await page.locator("[data-coach-begin]").waitFor({ state: "visible" });
@@ -128,7 +131,7 @@ test.describe("桌面 1440×900", () => {
         `锚点 ${href} 应有对应元素`
       ).toBe(true);
     }
-    // 站内路由全部可达(§33 K1:工作台无站点导航,链接集=指南出口/换入口/定向层)
+    // 站内路由全部可达(§33 K1:工作台无站点导航;§35:链接集=建立拍入口切换/定向层)
     const routes = new Set(
       hrefs
         .filter((h) => h.startsWith("/") && !h.startsWith("/#") && !h.includes("://"))
@@ -144,9 +147,10 @@ test.describe("桌面 1440×900", () => {
   test("7. prefers-reduced-motion 下信息顺序不变,三幕流程完整", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
+    /* §35:入口切换在建立拍 CTA 区(问题态不再出现) */
+    await expect(page.locator("[data-coach-entry-switch]")).toBeVisible();
     await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
-    await expect(page.getByRole("link", { name: /换一条入口/ })).toBeVisible();
     await page.goto("/start");
     await answerActs(page, ACT_QUESTIONS.problem, "减弱动态");
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
@@ -204,13 +208,8 @@ test.describe("移动端 390×844", () => {
     expect(introMetrics.overflow).toBeLessThanOrEqual(0);
     expect(introMetrics.documentHeight).toBeLessThanOrEqual(introMetrics.viewportHeight + 1);
 
-    await beginCoach(page);
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(845);
-    const switchEntry = page.getByRole("link", { name: /换一条入口/ });
+    /* §35:入口切换前移到建立拍 CTA 区——尚无回答,零成本起点决策 */
+    const switchEntry = page.locator("[data-coach-entry-switch]");
     await expect(switchEntry).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/home-first-390.png` });
     await switchEntry.tap();
@@ -219,6 +218,11 @@ test.describe("移动端 390×844", () => {
     await page.locator("[data-coach-begin]").waitFor({ state: "visible" });
     await beginCoach(page);
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(845);
   });
 
   test("11. 移动端 Coach 单焦点场景", async ({ page }) => {

@@ -1174,3 +1174,87 @@ dev server 热重载了「删除 COACH_STATE_ART 导出、底纹层尚未移除�
 | ④ 390×844 `/organizer`(organizer) | `04-organizer-390x844.png` | 横向溢出 0(document 与 body 双测) |
 
 抽验用 3200 临时 dev server 已停;3100 共享生产服务器全程未动。
+
+## 35. 旅程跳转移除 + Coach 会话持久化(2026-08-21 用户反馈授权)
+
+用户原话:「顶部的跳转页面的横幅毫无意义,整个网页不应该有这种可以由用户
+自己探索点击切换的地方,否则就很乱。而且现在会话历史也看不到,一点击跳转
+就所有信息都损失了,完全不可用。」两处决策:① 旅程中(建立拍/三幕/深化轮)
+顶栏不再承担任何页面跳转;② Coach 会话在 sessionStorage 持久化(session-only,
+§28 会话级定位不变),离开/刷新不再丢进度。
+
+### 35.1 实现决定(P 系)
+
+- P1 顶栏跳转移除:intro 建立拍删「← 返回活动指南」Link 与 `guideHref`
+  prop(左槽占位,三栏布局稳定);workspace 场景删 `flowBackHref` /
+  `switchEntryHref` / `switchEntryLabel` prop,左槽从第一幕起始终是「回看」
+  触发器(会话历史入口全程可见),三幕态右槽留空占位,深化轮右槽仍是
+  returnAction;coach-flow 中对应派生计算删除。回看抽屉页脚的指南链接保留
+  (持久化后离开不再丢进度,链接重新安全)。
+- P2 入口选择前移到建立拍 CTA 区:主按钮「开始第一问」旁加次要 quiet-link
+  (`data-coach-entry-switch`),problem 入口显示「从已有想法开始 →」指向
+  `{entryBasePath}?entry=idea`,idea 入口反之。建立拍尚无回答,这是零成本
+  起点决策,不是旅程中跳转;CoachFlow 仍以 entry 为 key 整体重挂载。
+- P3 会话持久化(`lib/hub/coach-persistence.ts`,纯函数模块):
+  键 `coach-flow:v1:{entry}`(版本进键,结构演进即换键;/ 与 /start 共键,
+  problem/idea 各自独立)。持久化切片:reducer state、remoteActs、
+  artifactRemoteActs、answer 草稿、cardId、seedAt/artifactAt(ISO 串)、
+  beginCount;不持久化在途瞬态(providerPending/transitionStep/attachment 等)。
+  挂载时读取并做版本/形状/相位—进度不变量校验,任一损坏整体回退初始态
+  (不做局部修复);transient 相位(transition/artifact-transition)用机器纯
+  函数 `advance()` 落定到稳定相位再恢复——回答在提交瞬间已入史,live 追问
+  丢失时机器本就有确定性 fixture 兜底,语义一致。首渲染仍以初始态参与
+  (避免 hydration 不一致),挂载后一次性恢复;写入闸门 storageReady 防止
+  初始态覆盖未读快照。有进度(有回答或已离开建立拍)时给一次性克制提示
+  「已恢复本次会话的进度。」(`data-coach-restored`,与 provider 状态行同款
+  样式,下一次提交/重开即消失;grown 态同文案同标记)。私密模式/配额等
+  读写失败静默降级为不持久化,流程本身不受影响。
+- P4 清除路径:`resetFlow`(所有「重新开始」)`sessionStorage.removeItem`
+  同步清键(随后写回的是全新初始态)。
+- P5 前半成品接管说明:本轮基于被中断代理的半成品续作——持久化模块、
+  intro/workspace 场景改动整体可用并保留;coach-flow 调用侧断点(旧 prop
+  传递、restored 未接线、reset 不清键、恢复提示不消失、persistence TS2322)
+  由本轮修正,未回滚重来。
+
+### 35.2 e2e 断言对齐(授权定点改测试,均先读源码再改)
+
+- `hub.spec.ts`:首屏断言改为顶栏零跳转链接 + 回看触发器在场;已有想法入口
+  用例与移动端换入口用例改为建立拍 `data-coach-entry-switch` 点击进入
+  ?entry=idea;reduced-motion 用例的换入口断言移到 begin 前(建立拍)。
+- `hub.a11y.spec.ts`:1024×768 用例改断言问题态无入口切换链接、回看触发器
+  在场;44px 触控热区用例移到建立拍的入口切换链接(`.hub-quiet-link` 移动档
+  min-height 44px 不变)。
+- `hub-coach-persona.spec.ts`:状态 A 保留元素中「极弱返回链接」改为「回看
+  触发器在场 + 返回指南链接为 0」;换入口断言改为问题态
+  `data-coach-entry-switch` 为 0。
+- `hub-journey.spec.ts`:建立拍顶栏出口断言改为「无返回指南链接 + 入口切换
+  在 CTA 区在场」。
+- `hub-round6-interaction.spec.ts`:首屏用例整体反转——建立拍/第一幕均无
+  返回指南链接,回看从第一幕起在场(原断言"回看尚未接替"已不成立);
+  回看抽屉用例标题与注释同步。
+- `hub-coach-composer.spec.ts` 两个「换入口当重开路径」用例改为
+  `sessionStorage.clear() + reload` 重开;刷新销毁旧 JS 上下文,挂起的文件
+  读取随之消亡,原"迟到读取落定"步骤不再可达,改为断言新流程零附件残留且
+  首个请求体不带 attachment 键。
+- 新增 `tests/e2e/hub-coach-persistence.spec.ts` 5 例:离开 /guide 再回进度
+  恢复+一次性提示+回看历史同步恢复;刷新恢复 + / 与 /start 共键;顶栏零
+  跳转链接+回看第一幕可用;建立拍入口切换双向;「重新开始」清键后刷新不
+  回旧进度。
+
+### 35.3 验收记录(2026-08-21,分支 agent/act5-commercial-grade-ui)
+
+| 验证 | 结果 |
+| --- | --- |
+| `npm run lint` | 通过(0 警告 0 错误) |
+| `npm run typecheck` | 通过 |
+| `npm run test`(vitest) | 23 files / 242 tests 全部通过(新增 hub-coach-persistence 11 例:往返一致/损坏回退/transient advance 落定/键与版本/CoachAct 守卫) |
+| `npm run build` | 通过(EXIT=0) |
+| `npm run e2e`(playwright 全量) | **122 passed / 0 failed**(EXIT=0) |
+
+过程说明(如实记录):e2e 首跑 121 通过 1 失败,失败为新 spec 自身断言
+strict-mode 违规(回答文本同时命中常驻小卡槽位与回看抽屉,locator 未限定
+作用域),收窄到抽屉作用域后该 spec 单跑 5/5;二次全跑日志尾部被截断只
+读到 107 passed(EXIT=0,无失败),三次全跑干净收口 122/122。验证前发现
+昨日残留的 3211 dev server(旧路径启动,cwd 随目录改名落到本仓)与本仓
+共享 `.next`,按"跑 e2e 时不要同时起其他 dev server"的既定约束将其停止;
+3100 旧构建生产服务器全程未动。

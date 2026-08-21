@@ -23,6 +23,13 @@ import {
   type CoachAttachment,
 } from "@/lib/hub/coach-attachment";
 import {
+  COACH_FLOW_STORAGE_VERSION,
+  coachFlowStorageKey,
+  isCoachAct,
+  restoreCoachFlowSnapshot,
+  serializeCoachFlow,
+} from "@/lib/hub/coach-persistence";
+import {
   ARTIFACT_ROUND_COUNT,
   ACT_COUNT,
   advance,
@@ -55,6 +62,8 @@ type Action =
   | { type: "clearError" }
   | { type: "startArtifact" }
   | { type: "returnToSeed" }
+  /* §35:会话快照恢复(形状已在 persistence 层校验;entry 不符拒绝) */
+  | { type: "restore"; state: CoachState }
   | { type: "reset" };
 
 type CoachApiMode = "live" | "fixture";
@@ -79,6 +88,8 @@ function reducer(state: CoachState, action: Action): CoachState {
       return startArtifact(state);
     case "returnToSeed":
       return returnToSeed(state);
+    case "restore":
+      return action.state.entry === state.entry ? action.state : state;
     case "reset":
       return createCoachState(state.entry);
   }
@@ -124,14 +135,6 @@ function stepMs(text?: string): number {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
-function isCoachAct(value: unknown): value is CoachAct {
-  if (typeof value !== "object" || value === null) return false;
-  const act = value as Record<string, unknown>;
-  return ["judgment", "risk", "question", "placeholder", "emptyHint"].every(
-    (key) => typeof act[key] === "string" && (act[key] as string).trim().length > 0 && (act[key] as string).length <= 600
-  );
 }
 
 function parseCoachApiResponse(value: unknown): CoachApiResponse | null {
@@ -244,6 +247,44 @@ export function CoachFlow({
   const artifactAtRef = useRef<Date | null>(null);
   /* J-1:建立拍→第一幕后,焦点接续到回答器的信号(随 begin 递增) */
   const [beginCount, setBeginCount] = useState(0);
+  /* §35:会话持久化(sessionStorage,session-only)——/ 与 /start 共键,problem/idea 各自独立 */
+  const storageKey = coachFlowStorageKey(entry);
+  /* 写入闸门:挂载恢复 effect 读完快照前,不允许写回(防止初始态覆盖未读快照) */
+  const [storageReady, setStorageReady] = useState(false);
+  /* §35:恢复提示——曾有进度时给一条克制状态行,下一次提交/重开后消失 */
+  const [restored, setRestored] = useState(false);
+
+  /* §35:挂载时恢复本会话快照。首渲染仍以初始态参与(避免 hydration 不一致),
+     挂载后一次性恢复;transient 相位已在 persistence 层用 advance() 落定 */
+  useEffect(() => {
+    let snapshot: ReturnType<typeof restoreCoachFlowSnapshot> = null;
+    try {
+      snapshot = restoreCoachFlowSnapshot(window.sessionStorage.getItem(storageKey), entry);
+    } catch {
+      snapshot = null;
+    }
+    if (snapshot) {
+      const restoredState = snapshot.state;
+      dispatch({ type: "restore", state: restoredState });
+      setRemoteActs(snapshot.remoteActs);
+      setArtifactRemoteActs(snapshot.artifactRemoteActs);
+      setAnswer(snapshot.answer);
+      setBeginCount(snapshot.beginCount);
+      cardIdRef.current = snapshot.cardId;
+      seedAtRef.current = snapshot.seedAt ? new Date(snapshot.seedAt) : null;
+      artifactAtRef.current = snapshot.artifactAt ? new Date(snapshot.artifactAt) : null;
+      if (
+        restoredState.answers.length > 0 ||
+        restoredState.artifactAnswers.length > 0 ||
+        restoredState.phase !== "intro"
+      ) {
+        setRestored(true);
+      }
+    }
+    setStorageReady(true);
+    /* entry/storageKey 每次挂载稳定(CoachFlow 以 entry 为 key 整体重挂载) */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const artifactStage = state.phase === "artifact-question" || state.phase === "artifact-transition" || state.phase === "artifact-done";
   const transitioning = state.phase === "transition" || state.phase === "artifact-transition";
@@ -405,6 +446,32 @@ export function CoachFlow({
     }
   }, [state.phase]);
 
+  /* §35:相关状态落定即写快照(量小,不防抖)。声明在凝结时钟捕获 effect 之后,
+     同一 commit 内 seedAt/artifactAt 先落 ref,这里读到的是最新值;
+     providerPending/transitionStep/attachment 等在途瞬态不持久化 */
+  useEffect(() => {
+    if (!storageReady) return;
+    try {
+      window.sessionStorage.setItem(
+        storageKey,
+        serializeCoachFlow({
+          version: COACH_FLOW_STORAGE_VERSION,
+          entry,
+          state,
+          remoteActs,
+          artifactRemoteActs,
+          answer,
+          cardId: cardIdRef.current ?? "",
+          seedAt: seedAtRef.current ? seedAtRef.current.toISOString() : null,
+          artifactAt: artifactAtRef.current ? artifactAtRef.current.toISOString() : null,
+          beginCount,
+        }),
+      );
+    } catch {
+      /* 私密模式/配额等写入失败:静默降级为不持久化,流程本身不受影响 */
+    }
+  }, [storageReady, storageKey, entry, state, remoteActs, artifactRemoteActs, answer, beginCount]);
+
   const visual = useMemo(() => {
     if ((state.phase === "question" || state.phase === "artifact-question") && listening) {
       return "listening" as const;
@@ -465,6 +532,8 @@ export function CoachFlow({
     dispatch({ type: "submit", answer });
     setAnswer("");
     setListening(false);
+    /* §35:恢复提示只出现一次——下一次提交即消失 */
+    setRestored(false);
   }
 
   /** 读取并校验文本附件;失败只留行内错误,不出现 Chip。
@@ -532,10 +601,17 @@ export function CoachFlow({
     attachmentRef.current = null;
     setJustFilledKey(null);
     setReviewOpen(false);
+    setRestored(false);
     /* P0-1:重新开始=新会话——新卡号,凝结时刻重捕 */
     cardIdRef.current = createSessionCardId();
     seedAtRef.current = null;
     artifactAtRef.current = null;
+    /* §35:所有 reset 路径同时清会话快照键(随后写回的是全新初始态) */
+    try {
+      window.sessionStorage.removeItem(storageKey);
+    } catch {
+      /* 私密模式等场景忽略——写快照 effect 同样静默降级 */
+    }
   }
 
   /** J-1:建立拍「开始第一问」——进入第一幕并信号焦点接续到回答器 */
@@ -558,7 +634,7 @@ export function CoachFlow({
     generatedAt: artifactAtRef.current ?? new Date(),
     cardId: cardIdRef.current,
   };
-  /* 打磨轮⑥派生:常驻小卡、回看数据、当前轮标记、指南出口的阶段性行为 */
+  /* 打磨轮⑥派生:常驻小卡、回看数据、当前轮标记 */
   const progressSlots = miniSlots(state);
   /* 打磨轮⑦(§32 I1):回看每轮携带过渡拍实际端上的判断/风险——首轮无过渡拍为 null */
   const reviewRounds = composeReviewRounds(
@@ -585,14 +661,11 @@ export function CoachFlow({
             artifactCopy.dimensionLabels[Math.min(state.artifactRound, ARTIFACT_ROUND_COUNT - 1)]
           }`
         : null;
-  const flowBackHref =
-    state.phase === "question" && state.actIndex === 0 && state.answers.length === 0
-      ? backHref
-      : null;
   const justFilledLabel =
     progressSlots.find((slot) => slot.key === justFilledKey)?.label ?? null;
+  /* §35:入口切换只活在建立拍 CTA 区(零成本起点决策);问题态/深化轮不再出现 */
   const switchEntryHref = state.entry === "problem" ? `${entryBasePath}?entry=idea` : entryBasePath;
-  const switchEntryLabel = state.entry === "problem" ? "换一条入口:从已有想法开始" : "换一条入口:从真实问题开始";
+  const switchEntryLabel = state.entry === "problem" ? "从已有想法开始 →" : "从真实问题开始 →";
   const nextAct = state.actIndex < ACT_COUNT - 1 ? resolvedActs[state.actIndex + 1] : null;
   /* 深化已全部完成时,第一格常亮;尚未完成时为可开始/可继续的入口 */
   const artifactLit = state.artifactAnswers.length >= ARTIFACT_ROUND_COUNT;
@@ -620,6 +693,12 @@ export function CoachFlow({
             </p>
             <span className="coach-topbar-spacer" aria-hidden="true" />
           </div>
+          {/* §35:恢复到凝结态同样给一次性诚实提示(与问题态同一文案,只出现一次) */}
+          {restored && (
+            <p className="coach-provider-status" data-coach-restored>
+              {coachProgressCopy.restoredNotice}
+            </p>
+          )}
           <div className="coach-grown-body">
             <aside
               className="coach-artifact-rail"
@@ -720,10 +799,12 @@ export function CoachFlow({
         </div>
       ) : state.phase === "intro" ? (
         /* J-1(§31 H2):建立拍——第一幕尚无回答时的前置场景,一屏一焦点;
-           常驻小卡与回答器在此拍不渲染,顶栏出口只保留「返回活动指南」 */
+           常驻小卡与回答器在此拍不渲染;§35:顶栏不再承担页面跳转,
+           入口切换收在 CTA 区次要链接(建立拍尚无回答,零成本起点决策) */
         <CoachIntroScene
-          guideHref={backHref}
           orbIdPrefix={orbIdPrefix}
+          switchEntryHref={switchEntryHref}
+          switchEntryLabel={switchEntryLabel}
           onBegin={handleBegin}
         />
       ) : (
@@ -766,16 +847,14 @@ export function CoachFlow({
             attachmentReading={attachmentReading}
             providerStatus={providerStatus}
             providerError={providerError}
+            restored={restored}
             visual={visual}
             visualLabel={COACH_STATE_LABELS[visual]}
             orbIdPrefix={orbIdPrefix}
-            flowBackHref={flowBackHref}
             /* J-1:建立拍离开后焦点接续到回答器的信号(随 begin 递增) */
             focusSignal={beginCount}
             reviewOpen={reviewOpen}
             onOpenReview={() => setReviewOpen(true)}
-            switchEntryHref={artifactStage ? undefined : switchEntryHref}
-            switchEntryLabel={artifactStage ? undefined : switchEntryLabel}
             returnAction={
               artifactStage
                 ? {

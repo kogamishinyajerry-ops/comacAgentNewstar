@@ -39,8 +39,11 @@ test.describe("Hub 无障碍与响应式深化", () => {
     await expect(page.locator(".hub-header")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "打开导航菜单" })).toHaveCount(0);
     await expect(page.locator(".hub-brand img")).toHaveCount(0);
-    const switchEntry = page.getByRole("link", { name: /换一条入口/ });
-    await expect(switchEntry).toBeVisible();
+    /* §35:入口切换在建立拍 CTA 区;问题态顶栏不再有任何跳转链接,
+       会话历史入口(回看)从第一幕起在场 */
+    await expect(page.locator("[data-coach-entry-switch]")).toHaveCount(0);
+    const reviewTrigger = page.locator("[data-coach-review-trigger]");
+    await expect(reviewTrigger).toBeVisible();
 
     const metrics = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - window.innerWidth,
@@ -149,10 +152,9 @@ test.describe("Hub 无障碍与响应式深化", () => {
   test("移动端弱化换入口保留 44px 触控热区", async ({ page }) => {
     await page.setViewportSize(mobile);
     await page.goto("/");
-    // 换一条入口在第一幕问题态渲染,建立拍只有返回指南出口
-    await beginCoach(page);
-
-    const quietLink = page.getByRole("link", { name: /换一条入口/ });
+    // §35:换入口前移到建立拍 CTA 区(问题态/深化轮不再出现入口切换链接)
+    const quietLink = page.locator("[data-coach-entry-switch]");
+    await expect(quietLink).toBeVisible();
     const height = await quietLink.evaluate((link) => link.getBoundingClientRect().height);
     expect(height).toBeGreaterThanOrEqual(44);
   });

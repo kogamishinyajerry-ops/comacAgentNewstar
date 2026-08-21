@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import type { CoachAct } from "@/fixtures/coach-demo";
 import { coachProgressCopy } from "@/fixtures/coach-demo";
 import {
@@ -21,10 +20,11 @@ const COMPOSER_INPUT_MAX_HEIGHT = 144;
 
 /**
  * 单焦点 Coach 场景(状态 A/B/C)。
- * 种子形成前不做完整工作台:极弱返回 + 幕号 + Coach 状态提示 +
+ * 种子形成前不做完整工作台:回看入口 + 幕号 + Coach 状态提示 +
  * 压缩结论轨迹 + 一个主问题 + 一个紧凑浮屿回答器(附件 / 输入 / 发送)。
  * 判断与风险是提交后的时间序列,不与下一问长期并列;
  * 过渡期回答器整体折叠,不留禁用的大输入框占据视觉中心。
+ * §35:顶栏不再承担页面跳转(无返回指南/换入口链接),会话历史由「回看」承接。
  */
 export function CoachWorkspaceScene({
   act,
@@ -47,15 +47,13 @@ export function CoachWorkspaceScene({
   attachmentReading,
   providerStatus,
   providerError,
+  restored,
   visual,
   visualLabel,
   orbIdPrefix,
-  flowBackHref,
   focusSignal,
   reviewOpen,
   onOpenReview,
-  switchEntryHref,
-  switchEntryLabel,
   returnAction,
   onChange,
   onResponderFocus,
@@ -92,20 +90,17 @@ export function CoachWorkspaceScene({
   attachmentReading: boolean;
   providerStatus: string | null;
   providerError: string | null;
+  /** §35:会话快照恢复后的克制提示(出现一次,不持久标记) */
+  restored?: boolean;
   visual: CoachVisualState;
   visualLabel: string;
   orbIdPrefix: string;
-  /** 打磨轮⑥:顶栏左槽——尚无回答的第一幕保留指南出口,此后让位给"回看" */
-  flowBackHref: string | null;
   /** J-1:建立拍→第一幕后焦点接续到回答器的信号(随 begin 递增;0=未经建立拍) */
   focusSignal: number;
   /** 回看抽屉开态(触发器 aria-expanded 用) */
   reviewOpen: boolean;
   onOpenReview: () => void;
-  /** 换一条入口链接(三幕态);深化轮不传 */
-  switchEntryHref?: string;
-  switchEntryLabel?: string;
-  /** 顶栏第三位的安静动作(如深化轮的"回到问题种子");提供时优先于换入口 */
+  /** 顶栏第三位的安静动作(如深化轮的"回到问题种子");三幕态留空(占位) */
   returnAction?: { label: string; onClick: () => void };
   onChange: (value: string) => void;
   onResponderFocus: (focused: boolean) => void;
@@ -145,14 +140,6 @@ export function CoachWorkspaceScene({
 
   /* 过渡期计数器先对齐到正在进入的一幕,不再滞后显示旧幕号 */
   const displayActIndex = transitioning ? Math.min(actIndex + 1, actCount - 1) : actIndex;
-
-  /* 390px 顶栏三件套不折行:返回/计数不换行(white-space:nowrap),
-     <400px 时「换一条入口」只留主词,说明后缀收进 max-[400px]:hidden */
-  const switchEntryLead = switchEntryLabel?.split(":")[0] ?? null;
-  const switchEntrySuffix =
-    switchEntryLabel && switchEntryLead && switchEntryLabel.length > switchEntryLead.length
-      ? switchEntryLabel.slice(switchEntryLead.length)
-      : null;
 
   /* 提交后回答器折叠,焦点会掉到 body;时序各拍显式落在对应步骤文本上,
      每拍自播报,不再依赖 aria-live 复述,避免同一内容重复朗读。
@@ -195,23 +182,17 @@ export function CoachWorkspaceScene({
   return (
     <div className="coach-workspace-dialog coach-solo" data-phase={transitioning ? "transition" : "question"}>
       <div className="coach-topbar">
-        {/* 打磨轮⑥:黄金位让给流程上下文——尚无回答的第一幕保留唯一出口,
-            此后左槽是"回看";指南链接在抽屉页脚常驻可达 */}
-        {flowBackHref ? (
-          <Link href={flowBackHref} className="coach-topbar-back hub-quiet-link whitespace-nowrap">
-            ← 返回活动指南
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="coach-topbar-back hub-quiet-link"
-            data-coach-review-trigger
-            aria-expanded={reviewOpen}
-            onClick={onOpenReview}
-          >
-            ← {coachProgressCopy.reviewLabel}
-          </button>
-        )}
+        {/* §35:顶栏不再承担页面跳转——左槽从第一幕起始终是「回看」
+            (会话历史入口全程可见);指南链接在回看抽屉页脚常驻可达 */}
+        <button
+          type="button"
+          className="coach-topbar-back hub-quiet-link"
+          data-coach-review-trigger
+          aria-expanded={reviewOpen}
+          onClick={onOpenReview}
+        >
+          ← {coachProgressCopy.reviewLabel}
+        </button>
         <p
           className="coach-workspace-count"
           aria-label={
@@ -236,22 +217,8 @@ export function CoachWorkspaceScene({
             {returnAction.label}
           </button>
         ) : (
-          switchEntryHref &&
-          switchEntryLabel && (
-            <Link
-              href={switchEntryHref}
-              className="coach-entry-quiet hub-quiet-link whitespace-nowrap"
-            >
-              {switchEntrySuffix ? (
-                <>
-                  {switchEntryLead}
-                  <span className="max-[400px]:hidden">{switchEntrySuffix}</span>
-                </>
-              ) : (
-                switchEntryLabel
-              )}
-            </Link>
-          )
+          /* §35:三幕态右槽留空——占位保持三栏布局稳定,不再放换入口链接 */
+          <span className="coach-topbar-spacer" aria-hidden="true" />
         )}
       </div>
 
@@ -356,6 +323,12 @@ export function CoachWorkspaceScene({
             {/* 断网 alert 已表达回退事实时,状态行不再重复同义文案 */}
             {providerStatus && !providerError && (
               <p className="coach-provider-status">{providerStatus}</p>
+            )}
+            {/* §35:会话恢复提示——与 provider 状态行同款样式,出现一次即可 */}
+            {restored && (
+              <p className="coach-provider-status" data-coach-restored>
+                {coachProgressCopy.restoredNotice}
+              </p>
             )}
             {/* 隐私前置披露:回答会发送至 AI 服务的问题态常驻,告知必须先于输入;
                 客户端本地凝结的末幕/末轮传 null(§18 时序原则,§28 深化轮同构) */}
