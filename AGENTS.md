@@ -6,11 +6,12 @@ Read these files in order before changing code:
 
 1. `docs/codex/00-Codex开工提示词-首期Hub-v1.2.md`
 2. `docs/product/01-网页中枢UIUX设计基线-Codex执行版-v1.0.md`
-3. `docs/product/02-AI导师Coach人格与交互规范-v1.0.md`
-4. `docs/product/03-视觉参考使用说明.md`
-5. `docs/product/04-阶段一活动配置待确认项.md`
-6. Images under `docs/design-references/`
-7. `config/activity.example.json`
+3. `docs/product/07-Game-grade-Experience-Bible-v1.0.md`
+4. `docs/product/02-AI导师Coach人格与交互规范-v1.0.md`
+5. `docs/product/03-视觉参考使用说明.md`
+6. `docs/product/04-阶段一活动配置待确认项.md`
+7. Images under `docs/design-references/`
+8. `config/activity.example.json`
 
 ## Source priority
 
@@ -19,10 +20,11 @@ When instructions conflict, follow this order:
 1. This `AGENTS.md`
 2. The phase-one Hub kickoff prompt
 3. The Codex execution version of the UI/UX baseline
-4. The AI Coach persona and interaction specification
-5. The visual reference guide
-6. The reference images
-7. Example copy, labels, dates, numbers, avatars, and project names shown inside images
+4. The Game-grade Experience Bible
+5. The AI Coach persona and interaction specification
+6. The visual reference guide
+7. The reference images
+8. Example copy, labels, dates, numbers, avatars, and project names shown inside images
 
 Never copy generated-image text or fictional metrics as product truth.
 
@@ -53,6 +55,16 @@ topbar replan; provider contract, routes, and persistence are untouched.
 Chain-level changes (streaming output, a thinking-summary field, editable
 back-steps) remain unauthorized future work.
 
+The current bounded milestone (authorized 2026-08-20) is one **Game-grade
+Experience Vertical Slice** governed by
+`docs/product/07-Game-grade-Experience-Bible-v1.0.md`: an optional
+`/experience` route with a skippable prologue, visible action consequences,
+and the existing three-scene Coach flow ending in a question seed. It must
+reuse the current machine, Provider contract, fallback, attachments, review,
+seed, and first Artifact. It does not authorize a second Artifact, new
+backend, persistent game state, sound, 3D runtime, or an all-site visual
+rewrite.
+
 Do not expand the milestone into:
 
 - a complete participant workbench;
@@ -78,12 +90,14 @@ Later-phase concepts are context only. They are not implementation scope.
 - AI has process capability, not human decision authority.
 - The visual language is a quiet cognitive canvas, not an enterprise cockpit.
 - Motion must explain state change and support `prefers-reduced-motion`.
+- Game-grade quality means coherent scenes, visible action consequences, and
+  persistent world state—not XP, badges, rankings, or ambient spectacle.
 
 ## Execution behavior
 
 1. Inspect the repository, dependency versions, routes, styles, tests, and uncommitted work.
 2. Prefer incremental changes. Never reset Git or overwrite unrelated work.
-3. Create `IMPLEMENTATION_PLAN.md` before implementation.
+3. Create or update an implementation plan before implementation. A bounded slice may use a dedicated plan under `docs/product/` when rewriting the historical root plan would create avoidable drift.
 4. After the plan, continue directly into implementation; do not stop for routine approval.
 5. Ask only when external information genuinely blocks progress. Otherwise use reversible, configuration-driven defaults and record the decision.
 6. Use real DOM, accessible components, and working interactions. Never use screenshots as implemented pages.

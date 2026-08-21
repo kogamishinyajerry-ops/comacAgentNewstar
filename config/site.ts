@@ -24,7 +24,8 @@ export const site = {
     { label: "活动指南", href: "/guide" },
     { label: "参赛者入口", href: "/role/participant" },
   ],
-  primaryCta: { label: "开始探索", href: "/" },
+  /** 非工作台页面的主入口进入可选沉浸式切片；/start 继续保留简洁模式。 */
+  primaryCta: { label: "开始探索", href: "/experience" },
 
   faq: [
     {

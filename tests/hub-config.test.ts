@@ -50,8 +50,8 @@ describe("config/site:导航与首屏", () => {
     expect(site.brand.shortName).toBe(activity.identity.shortName);
   });
 
-  it("主 CTA 与导航均指向真实去处;hero 长卷文案已随死代码移除", () => {
-    expect(site.primaryCta.href).toBe("/");
+  it("主 CTA 指向可选沉浸式入口;导航均指向真实去处;hero 长卷文案已随死代码移除", () => {
+    expect(site.primaryCta.href).toBe("/experience");
     expect(site.nav.length).toBeGreaterThan(0);
     expect("hero" in site).toBe(false);
   });

@@ -38,7 +38,7 @@ test.describe("桌面 1440×900", () => {
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.getByRole("link", { name: /返回活动指南/ })).toBeVisible();
-    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(1);
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(0);
     await expect(page.locator("#intro, #journey, #roles, #faq")).toHaveCount(0);
     await expect(page.locator(".hub-footer")).toBeHidden();
     // 首屏不是项目列表或后台:无密集统计卡/排行榜/健康分;
@@ -75,9 +75,8 @@ test.describe("桌面 1440×900", () => {
   });
 
   test("3. 已有想法入口第一问挑战方案先行,不直接认可", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("link", { name: /换一条入口/ }).click();
-    await expect(page).toHaveURL(/\?entry=idea/);
+    // 换入口跳页链接已移除;想法入口由 /guide 或直达 URL 进入
+    await page.goto("/?entry=idea");
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
     await answerActs(page, ACT_QUESTIONS.idea, "已有想法");
   });
@@ -133,7 +132,7 @@ test.describe("桌面 1440×900", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })).toBeVisible();
-    await expect(page.getByRole("link", { name: /换一条入口/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(0);
     await page.goto("/start");
     await answerActs(page, ACT_QUESTIONS.problem, "减弱动态");
     await expect(page.getByText("仍待深挖(诚实标注)")).toBeVisible();
@@ -178,19 +177,19 @@ test.describe("桌面 1440×900", () => {
 test.describe("移动端 390×844", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-  test("10. 无页面级滚动,弱化换入口可切换", async ({ page }) => {
+  test("10. 无页面级滚动,流程中不存在换入口跳页", async ({ page }) => {
     await page.goto("/");
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth
     );
     expect(overflow).toBeLessThanOrEqual(0);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(845);
-    const switchEntry = page.getByRole("link", { name: /换一条入口/ });
-    await expect(switchEntry).toBeVisible();
+    // 流程进行中不提供任何跳页切换:回答随路由切换整体丢失,不可接受
+    await expect(page.getByRole("link", { name: /换一条入口/ })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/home-first-390.png` });
-    await switchEntry.tap();
-    await expect(page).toHaveURL(/\?entry=idea/);
-    await expect(page.getByRole("heading", { name: ACT_QUESTIONS.idea[0] })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: ACT_QUESTIONS.problem[0] })
+    ).toBeVisible();
   });
 
   test("11. 移动端 Coach 单焦点场景与抽屉导航", async ({ page }) => {

@@ -52,8 +52,6 @@ export function CoachWorkspaceScene({
   flowBackHref,
   reviewOpen,
   onOpenReview,
-  switchEntryHref,
-  switchEntryLabel,
   returnAction,
   onChange,
   onResponderFocus,
@@ -96,10 +94,8 @@ export function CoachWorkspaceScene({
   /** 回看抽屉开态(触发器 aria-expanded 用) */
   reviewOpen: boolean;
   onOpenReview: () => void;
-  /** 换一条入口链接(三幕态);深化轮不传 */
-  switchEntryHref?: string;
-  switchEntryLabel?: string;
-  /** 顶栏第三位的安静动作(如深化轮的"回到问题种子");提供时优先于换入口 */
+  /** 顶栏第三位的安静动作(如深化轮的"回到问题种子");三幕态不再提供换入口,
+      流程进行中不允许跳页切换导致回答丢失 */
   returnAction?: { label: string; onClick: () => void };
   onChange: (value: string) => void;
   onResponderFocus: (focused: boolean) => void;
@@ -200,7 +196,7 @@ export function CoachWorkspaceScene({
           {counterPrefix && <span className="coach-count-prefix">{counterPrefix} </span>}
           {String(displayActIndex + 1).padStart(2, "0")} / {String(actCount).padStart(2, "0")}
         </p>
-        {returnAction ? (
+        {returnAction && (
           <button
             type="button"
             className="coach-entry-quiet hub-quiet-link"
@@ -209,13 +205,6 @@ export function CoachWorkspaceScene({
           >
             {returnAction.label}
           </button>
-        ) : (
-          switchEntryHref &&
-          switchEntryLabel && (
-            <Link href={switchEntryHref} className="coach-entry-quiet hub-quiet-link">
-              {switchEntryLabel}
-            </Link>
-          )
         )}
       </div>
 
