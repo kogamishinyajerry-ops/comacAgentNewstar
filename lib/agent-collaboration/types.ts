@@ -133,8 +133,6 @@ export interface ApplyDecisionIntentInput {
   rationale?: string;
   modifiedProposal?: string;
   validationFeedbackId?: string;
-  /** Evidence actually used for this semantic event. Defaults to the artifact evidence set. */
-  eventEvidenceRefs?: string[];
 }
 
 export interface DecisionRunTrace {
